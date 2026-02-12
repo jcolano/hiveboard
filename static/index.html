@@ -3,25 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HiveBoard v3 — Mission Control</title>
+    <title>HiveBoard — Mission Control</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <link href="css/hiveboard.css" rel="stylesheet" />
-
 </head>
 <body>
     <div class="topbar">
         <div class="topbar-left">
             <div class="logo"><div class="logo-hex"><div class="logo-hex-inner"></div></div>Hive<span>Board</span></div>
-            <div class="workspace-badge">acme-ai-ops</div>
+            <div class="workspace-badge" id="workspaceBadge">—</div>
             <div class="view-tabs">
                 <button class="view-tab active" onclick="switchView('mission')">Mission Control</button>
                 <button class="view-tab" onclick="switchView('cost')">Cost Explorer</button>
             </div>
         </div>
         <div class="topbar-right">
-            <div class="status-pill"><div class="status-dot"></div> Connected</div>
-            <select class="env-selector"><option>production</option><option>staging</option></select>
+            <div class="status-pill">
+                <div class="status-dot" id="connectionDot"></div>
+                <span id="connectionText">Connecting…</span>
+            </div>
+            <select class="env-selector" id="envSelector" onchange="onEnvChange()">
+                <option>production</option>
+                <option>staging</option>
+            </select>
         </div>
     </div>
 
@@ -37,7 +41,7 @@
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div class="panel-title">The Hive</div>
                     <div class="attention-badge" id="attentionBadge" style="display:none;"></div>
-                    <div class="panel-count" id="agentCount">6 agents</div>
+                    <div class="panel-count" id="agentCount">0 agents</div>
                 </div>
             </div>
             <div class="hive-list" id="hiveList"></div>
@@ -54,12 +58,8 @@
                     <div class="timeline-header" id="timelineHeader">
                         <div class="timeline-header-left">
                             <div class="panel-title">Timeline</div>
-                            <div class="timeline-task-id" id="tlTaskId">task_lead-4821</div>
-                            <div class="timeline-task-meta" id="tlMeta">
-                                <span>⏱ 12.4s</span>
-                                <span class="clickable-entity" onclick="selectAgent('lead-qualifier')">🤖 lead-qualifier</span>
-                                <span style="color: var(--success);">✓ completed</span>
-                            </div>
+                            <div class="timeline-task-id" id="tlTaskId">—</div>
+                            <div class="timeline-task-meta" id="tlMeta"></div>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <div class="permalink-btn" onclick="copyPermalink()">⧉ Permalink</div>
@@ -139,7 +139,8 @@
         </div>
     </div>
 
-    <script src="js/hiveboard-data-v3.js"></script>
+    <div class="toast-container" id="toastContainer"></div>
 
+    <script src="js/hiveboard.js"></script>
 </body>
 </html>
