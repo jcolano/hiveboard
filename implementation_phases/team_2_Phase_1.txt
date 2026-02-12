@@ -1,0 +1,65 @@
+  Phase C1: HiveLoop SDK — 6 sub-phases, 30 sub-tasks
+  Phase: C1.1
+  What: Transport layer
+  Sub-tasks: 6
+  Key Detail: Thread-safe deque, background flush, batch envelope, retry (5 attempts, exponential backoff), graceful
+    shutdown (atexit), manual flush
+  ────────────────────────────────────────
+  Phase: C1.2
+  What: Core primitives
+  Sub-tasks: 8
+  Key Detail: Singleton init, HiveBoard client, agent registration, heartbeat thread + payload/queue_provider callbacks,
+
+    task context manager, non-CM task API, manual events, event construction
+  ────────────────────────────────────────
+  Phase: C1.3
+  What: Decorator & nesting
+  Sub-tasks: 4
+  Key Detail: @track decorator (sync+async), contextvars nesting detection, track_context() CM alternative,
+    auto-populated payloads
+  ────────────────────────────────────────
+  Phase: C1.4
+  What: Convenience methods
+  Sub-tasks: 9
+  Key Detail: llm_call (task + agent), plan/plan_step, queue_snapshot, todo, scheduled, report_issue/resolve_issue —
+  each
+     with auto-generated summary
+  ────────────────────────────────────────
+  Phase: C1.5
+  What: SDK tests
+  Sub-tasks: 6
+  Key Detail: Mock HTTP server, transport tests, core tests, tracking tests, convenience tests, heartbeat callback tests
+  Phase C2: Dashboard — 5 sub-phases, 25+ sub-tasks
+  Phase: C2.1
+  What: Shell & theming
+  Sub-tasks: 6
+  Key Detail: Grid layout, CSS tokens (17 variables), typography (2 fonts), 5 animations, global filter bar, custom
+    scrollbars
+  ────────────────────────────────────────
+  Phase: C2.2
+  What: The Hive
+  Sub-tasks: 6
+  Key Detail: Agent cards (6 statuses), pipeline enrichment (queue/issues/processing), sparklines, status sorting,
+    click/double-click behavior
+  ────────────────────────────────────────
+  Phase: C2.3
+  What: Center panel
+  Sub-tasks: 3 views
+  Key Detail: Mission Control (8 sub-parts: stats, metrics, tasks, timeline, plan bar, branches, pin detail), Cost
+    Explorer (3 sub-parts), Agent Detail (7 sub-parts: header, tabs, tasks, issues, queue, TODOs, scheduled)
+  ────────────────────────────────────────
+  Phase: C2.4
+  What: Activity Stream
+  Sub-tasks: 6
+  Key Detail: Header+live badge, 7 filter chips, event cards with kind icons, severity coloring, auto-scroll with pause,
+
+    agent/task filtering
+  ────────────────────────────────────────
+  Phase: C2.5
+  What: API wiring
+  Sub-tasks: 6
+  Key Detail: API client module, initial load, WebSocket connection, live event handling, polling fallback, filter sync
+  Internal parallelism
+
+  The SDK and Dashboard share no code — two people within Team 2 can work on them simultaneously. The only dependency:
+  C2.5 (API wiring) can't be fully tested until Integration Phase I1 when Team 1's backend is ready.
