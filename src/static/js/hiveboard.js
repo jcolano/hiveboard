@@ -189,7 +189,7 @@ async function fetchTimeline(taskId) {
     else if (kind === 'llm_call') nodeType = 'llm';
     else if (e.event_type === 'custom' && kind === 'llm_call') nodeType = 'llm';
 
-    var rawLabel = (payload.data && payload.data.action_name) || payload.summary || e.event_type;
+    var rawLabel = payload.action_name || (payload.data && payload.data.action_name) || payload.summary || e.event_type;
     // Simplify labels: use just the event_type suffix for common types, truncate long labels
     var label = rawLabel;
     if (rawLabel && rawLabel.length > 24) {
@@ -245,7 +245,7 @@ async function fetchEvents(since) {
       kind: payload.kind || null,
       agent: e.agent_id,
       task: e.task_id,
-      summary: payload.summary || e.event_type,
+      summary: payload.action_name || (payload.data && payload.data.action_name) || payload.summary || e.event_type,
       time: timeAgo(e.timestamp),
       timestamp: e.timestamp,
       severity: e.severity || 'info',
@@ -979,7 +979,7 @@ function handleWsMessage(msg) {
       kind: payload.kind || null,
       agent: e.agent_id,
       task: e.task_id,
-      summary: payload.summary || e.event_type,
+      summary: payload.action_name || (payload.data && payload.data.action_name) || payload.summary || e.event_type,
       time: 'just now',
       timestamp: e.timestamp,
       severity: e.severity || 'info',
