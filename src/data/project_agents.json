@@ -5,5 +5,26 @@
     "agent_id": "ag_6ce5uncd",
     "added_at": "2026-02-12T18:08:34.939459Z",
     "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "loopcolony",
+    "agent_id": "main",
+    "added_at": "2026-02-12T18:22:31.587228Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "c4dcdfb6-c2f9-4f2e-a138-e20ec977662b",
+    "agent_id": "ag_6ce5uncd",
+    "added_at": "2026-02-12T18:57:44.479671Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "c4dcdfb6-c2f9-4f2e-a138-e20ec977662b",
+    "agent_id": "main",
+    "added_at": "2026-02-12T18:58:11.649743Z",
+    "role": "member"
   }
 ]
