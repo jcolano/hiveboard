@@ -571,9 +571,16 @@ class TestAgentStatusDerivation:
         defaults.update(kwargs)
         return AgentRecord(**defaults)
 
-    def test_stuck_no_heartbeat(self):
-        agent = self._make_agent(last_heartbeat=None)
+    def test_stuck_no_heartbeat_no_recent_activity(self):
+        """Agent with no heartbeat AND old last_seen is stuck."""
+        old = datetime.now(timezone.utc) - timedelta(seconds=600)
+        agent = self._make_agent(last_heartbeat=None, last_seen=old)
         assert derive_agent_status(agent) == AgentStatus.STUCK
+
+    def test_no_heartbeat_but_recently_seen_not_stuck(self):
+        """Agent with no heartbeat but recently seen should NOT be stuck (Issue #10)."""
+        agent = self._make_agent(last_heartbeat=None)
+        assert derive_agent_status(agent) != AgentStatus.STUCK
 
     def test_stuck_old_heartbeat(self):
         old = datetime.now(timezone.utc) - timedelta(seconds=600)

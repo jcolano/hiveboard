@@ -165,6 +165,37 @@ class StorageBackend(Protocol):
         """Returns True if project was found and unarchived."""
         ...
 
+    async def count_projects(self, tenant_id: str) -> int:
+        """Count non-archived projects for a tenant.
+
+        Maps to: SELECT COUNT(*) FROM projects
+                 WHERE tenant_id = ? AND is_archived = 0
+        """
+        ...
+
+    async def count_project_events(
+        self, tenant_id: str, project_id: str
+    ) -> int:
+        """Count events belonging to a project.
+
+        Maps to: SELECT COUNT(*) FROM events
+                 WHERE tenant_id = ? AND project_id = ?
+        """
+        ...
+
+    async def reassign_events(
+        self,
+        tenant_id: str,
+        from_project_id: str,
+        to_project_id: str,
+    ) -> int:
+        """Move all events from one project to another. Returns count moved.
+
+        Maps to: UPDATE events SET project_id = ?
+                 WHERE tenant_id = ? AND project_id = ?
+        """
+        ...
+
     # ───────────────────────────────────────────────────────────────────
     #  AGENTS
     # ───────────────────────────────────────────────────────────────────

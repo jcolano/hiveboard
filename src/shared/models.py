@@ -239,11 +239,18 @@ class IngestError(BaseModel):
     message: str
 
 
+class IngestWarning(BaseModel):
+    event_id: str | None = None
+    warning: str
+    project_slug: str | None = None
+
+
 class IngestResponse(BaseModel):
     """POST /v1/ingest response."""
     accepted: int
     rejected: int
     errors: list[IngestError] = Field(default_factory=list)
+    warnings: list[IngestWarning] = Field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -289,6 +296,7 @@ class ProjectRecord(BaseModel):
     environment: str = "production"
     settings: dict[str, Any] = Field(default_factory=dict)
     is_archived: bool = False
+    auto_created: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -303,9 +311,15 @@ class ProjectCreate(BaseModel):
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
+    slug: str | None = None
     description: str | None = None
     environment: str | None = None
     settings: dict[str, Any] | None = None
+
+
+class ProjectMergeRequest(BaseModel):
+    """POST /v1/projects/{slug}/merge request body."""
+    target_slug: str
 
 
 class AgentRecord(BaseModel):
