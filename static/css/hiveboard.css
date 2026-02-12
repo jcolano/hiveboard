@@ -1613,3 +1613,44 @@ body {
     background: rgba(139, 92, 246, 0.1);
     color: var(--llm);
 }
+
+/* ── Connection status: disconnected state ── */
+.status-dot.disconnected {
+    background: var(--error);
+    animation: none;
+}
+
+/* ── Toast notifications ── */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    animation: toast-in 0.25s ease;
+}
+
+.toast.error {
+    border-color: var(--error);
+    background: rgba(239, 68, 68, 0.08);
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
