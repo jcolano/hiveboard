@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(findstr:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)"
     ]
   }
 }
