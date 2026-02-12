@@ -41,6 +41,9 @@ let pollTimer = null;
 let isConnected = false;
 let lastEventTimestamp = null;
 
+// Timeline auto-scroll state
+let timelineAutoScroll = true;
+
 // ═══════════════════════════════════════════════════
 //  CONSTANTS
 // ═══════════════════════════════════════════════════
@@ -458,6 +461,8 @@ function renderTimeline() {
   html += '</div>';
   if (hasBranch) html = `<div style="padding-bottom: 60px">${html}</div>`;
   canvas.innerHTML = html;
+  initTimelineScrollListener();
+  if (timelineAutoScroll) requestAnimationFrame(() => scrollTimelineToEnd());
 }
 
 function pinNode(idx) {
@@ -489,6 +494,23 @@ function unpinDetail() {
   pinnedNode = null;
   document.querySelectorAll('.tl-node').forEach(el => el.classList.remove('pinned'));
   document.getElementById('pinnedDetail').classList.remove('visible');
+}
+
+// Timeline auto-scroll helpers
+function scrollTimelineToEnd() {
+  const canvas = document.getElementById('timelineCanvas');
+  if (canvas) canvas.scrollTo({ left: canvas.scrollWidth, behavior: 'smooth' });
+}
+
+function initTimelineScrollListener() {
+  const canvas = document.getElementById('timelineCanvas');
+  if (!canvas || canvas._scrollListenerAttached) return;
+  canvas.addEventListener('scroll', function() {
+    const threshold = 20;
+    const atEnd = canvas.scrollWidth - canvas.scrollLeft - canvas.clientWidth <= threshold;
+    timelineAutoScroll = atEnd;
+  });
+  canvas._scrollListenerAttached = true;
 }
 
 // ═══════════════════════════════════════════════════
@@ -775,6 +797,7 @@ function selectAgent(agentId) {
     const agent = AGENTS.find(a => a.id === agentId);
     if (agent && agent.task) {
       selectedTask = agent.task;
+      timelineAutoScroll = true;
       updateTimelineHeader();
       fetchTimeline(selectedTask).then(renderTimeline);
     }
@@ -789,6 +812,7 @@ function selectAgent(agentId) {
 async function selectTask(taskId) {
   if (currentView === 'agentDetail') switchView('mission');
   selectedTask = taskId;
+  timelineAutoScroll = true;
   updateTimelineHeader();
   renderTasks();
   await fetchTimeline(taskId);
