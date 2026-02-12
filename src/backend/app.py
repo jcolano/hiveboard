@@ -52,6 +52,7 @@ from shared.models import (
     Page,
     PaginationInfo,
     ProjectCreate,
+    ProjectMergeRequest,
     ProjectUpdate,
 )
 
@@ -327,16 +328,51 @@ async def ingest(body: IngestRequest, request: Request):
                 if pk and pk in SEVERITY_BY_PAYLOAD_KIND:
                     severity = SEVERITY_BY_PAYLOAD_KIND[pk]
 
-        # Step 5: Validate project_id
+        # Step 5: Validate or auto-create project
         project_id = raw.project_id
         if project_id:
             proj = await storage.get_project(tenant_id, project_id)
             if proj is None:
-                errors.append(IngestError(
-                    event_id=raw.event_id, error="invalid_project_id",
-                    message=f"Project {project_id} not found for this tenant",
-                ))
-                continue
+                # Auto-create project for unknown slug (Issue #9)
+                project_count = await storage.count_projects(tenant_id)
+                if project_count >= 50:
+                    # Tenant at project limit — route to default project
+                    default_proj = await storage.get_project(tenant_id, "default")
+                    if default_proj:
+                        project_id = default_proj.project_id
+                    warnings.append({
+                        "event_id": raw.event_id,
+                        "warning": f"Project limit (50) reached; routed to default project",
+                        "project_slug": raw.project_id,
+                    })
+                else:
+                    # Auto-create the project with the slug
+                    slug = raw.project_id
+                    new_proj = await storage.create_project(
+                        tenant_id,
+                        ProjectCreate(name=slug, slug=slug),
+                    )
+                    # Mark as auto-created
+                    await storage.update_project(
+                        tenant_id, new_proj.project_id,
+                        ProjectUpdate(),
+                    )
+                    # Set auto_created flag directly
+                    async with storage._locks["projects"]:
+                        for row in storage._tables["projects"]:
+                            if row["project_id"] == new_proj.project_id:
+                                row["auto_created"] = True
+                                storage._persist("projects")
+                                break
+                    project_id = new_proj.project_id
+                    warnings.append({
+                        "event_id": raw.event_id,
+                        "warning": f"Auto-created project '{slug}'",
+                        "project_slug": slug,
+                    })
+            else:
+                # Resolve slug to project_id if get_project matched by slug
+                project_id = proj.project_id
 
         event = Event(
             event_id=raw.event_id,
@@ -951,7 +987,12 @@ async def list_projects(
     projects = await storage.list_projects(
         tenant_id, include_archived=include_archived,
     )
-    return {"data": [p.model_dump(mode="json") for p in projects]}
+    result = []
+    for p in projects:
+        d = p.model_dump(mode="json")
+        d["event_count"] = await storage.count_project_events(tenant_id, p.project_id)
+        result.append(d)
+    return {"data": result}
 
 
 @app.post("/v1/projects")
@@ -998,6 +1039,7 @@ async def update_project(
 async def delete_project(
     project_id: str,
     request: Request,
+    reassign_to: str | None = Query(default=None, description="Slug/ID of project to reassign events to (default: 'default')"),
 ):
     storage = request.app.state.storage
     tenant_id = request.state.tenant_id
@@ -1007,8 +1049,18 @@ async def delete_project(
     # W7: Protect default project
     if project.slug == "default":
         raise HTTPException(400, {"error": "cannot_delete_default", "message": "Cannot delete the default project", "status": 400})
-    await storage.archive_project(tenant_id, project_id)
-    return {"status": "deleted"}
+
+    # Reassign events to target project (default: "default" project)
+    target_slug = reassign_to or "default"
+    target = await storage.get_project(tenant_id, target_slug)
+    events_moved = 0
+    if target and target.project_id != project.project_id:
+        events_moved = await storage.reassign_events(
+            tenant_id, project.project_id, target.project_id
+        )
+
+    await storage.archive_project(tenant_id, project.project_id)
+    return {"status": "deleted", "events_reassigned": events_moved, "reassigned_to": target_slug}
 
 
 @app.post("/v1/projects/{project_id}/archive")
@@ -1035,6 +1087,53 @@ async def unarchive_project(
     if not ok:
         raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
     return {"status": "unarchived"}
+
+
+@app.post("/v1/projects/{project_id}/merge")
+async def merge_project(
+    project_id: str,
+    body: ProjectMergeRequest,
+    request: Request,
+):
+    """Merge source project into target: reassign all events, then archive source."""
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+
+    # Resolve source project (by id or slug)
+    source = await storage.get_project(tenant_id, project_id)
+    if source is None:
+        raise HTTPException(404, {"error": "not_found", "message": "Source project not found", "status": 404})
+
+    # Resolve target project (by slug)
+    target = await storage.get_project(tenant_id, body.target_slug)
+    if target is None:
+        raise HTTPException(404, {"error": "not_found", "message": f"Target project '{body.target_slug}' not found", "status": 404})
+
+    if source.project_id == target.project_id:
+        raise HTTPException(400, {"error": "invalid_merge", "message": "Cannot merge a project into itself", "status": 400})
+
+    # Reassign all events from source to target
+    moved = await storage.reassign_events(tenant_id, source.project_id, target.project_id)
+
+    # Reassign project_agents junction entries
+    async with storage._locks["project_agents"]:
+        for row in storage._tables["project_agents"]:
+            if (
+                row["tenant_id"] == tenant_id
+                and row["project_id"] == source.project_id
+            ):
+                row["project_id"] = target.project_id
+        storage._persist("project_agents")
+
+    # Archive the source project
+    await storage.archive_project(tenant_id, source.project_id)
+
+    return {
+        "status": "merged",
+        "source_slug": source.slug,
+        "target_slug": target.slug,
+        "events_moved": moved,
+    }
 
 
 @app.get("/v1/projects/{project_id}/agents")

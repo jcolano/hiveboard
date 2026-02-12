@@ -488,3 +488,297 @@ class TestPhase2Features:
             assert "llm_call_count" in t
             assert "total_tokens_in" in t
             assert "total_tokens_out" in t
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  ISSUE #9 — Project auto-creation, merge, and enhanced delete
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestProjectAutoCreate:
+    """Issue #9 Part 1: Unknown project slugs during ingestion are auto-created."""
+
+    async def test_unknown_project_auto_created(self, client: AsyncClient):
+        """Events with unknown project_id should auto-create the project."""
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": "auto-1",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "task_started",
+                "project_id": "my-new-project",
+                "task_id": "t1",
+            }],
+        }
+        r = await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["accepted"] == 1
+        assert body["rejected"] == 0
+        # Should have a warning about auto-creation
+        warnings = body.get("warnings", [])
+        assert any("Auto-created" in w.get("warning", "") for w in warnings)
+
+        # Project should now exist
+        r2 = await client.get("/v1/projects", headers=AUTH_HEADERS)
+        projects = r2.json()["data"]
+        slugs = [p["slug"] for p in projects]
+        assert "my-new-project" in slugs
+
+        # Auto-created project should be flagged
+        auto_proj = next(p for p in projects if p["slug"] == "my-new-project")
+        assert auto_proj["auto_created"] is True
+
+    async def test_auto_created_project_has_event_count(self, client: AsyncClient):
+        """GET /v1/projects should include event_count for each project."""
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": "cnt-1",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "task_started",
+                "project_id": "counted-project",
+                "task_id": "t1",
+            }],
+        }
+        await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+        r = await client.get("/v1/projects", headers=AUTH_HEADERS)
+        projects = r.json()["data"]
+        proj = next(p for p in projects if p["slug"] == "counted-project")
+        assert "event_count" in proj
+        assert proj["event_count"] == 1
+
+    async def test_known_project_not_duplicated(self, client: AsyncClient):
+        """Events with known project slugs should not create duplicates."""
+        # "sales-pipeline" already exists from fixture
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": "dup-1",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "heartbeat",
+                "project_id": "sales-pipeline",
+            }],
+        }
+        r = await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        assert r.json()["accepted"] == 1
+        # No warnings about auto-creation
+        warnings = r.json().get("warnings", [])
+        assert not any("Auto-created" in w.get("warning", "") for w in warnings)
+
+    async def test_project_limit_routes_to_default(self, client: AsyncClient):
+        """When tenant hits 50 projects, new slugs route to default."""
+        storage = client._transport.app.state.storage
+        # Create 48 more projects (we already have "default" + "sales-pipeline" = 2)
+        for i in range(48):
+            await storage.create_project(
+                "dev", ProjectCreate(name=f"proj-{i}", slug=f"proj-{i}")
+            )
+        # Now we have 50 projects — next auto-create should route to default
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": "limit-1",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "task_started",
+                "project_id": "over-the-limit",
+                "task_id": "t1",
+            }],
+        }
+        r = await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["accepted"] == 1
+        warnings = body.get("warnings", [])
+        assert any("limit" in w.get("warning", "").lower() for w in warnings)
+
+        # "over-the-limit" should NOT have been created as a project
+        r2 = await client.get("/v1/projects", headers=AUTH_HEADERS)
+        slugs = [p["slug"] for p in r2.json()["data"]]
+        assert "over-the-limit" not in slugs
+
+
+class TestProjectMerge:
+    """Issue #9 Part 2: POST /v1/projects/{id}/merge endpoint."""
+
+    async def test_merge_projects(self, client: AsyncClient):
+        """Merge source project into target, reassigning events."""
+        storage = client._transport.app.state.storage
+
+        # Create two projects
+        r1 = await client.post(
+            "/v1/projects",
+            json={"name": "Source", "slug": "source-proj"},
+            headers=AUTH_HEADERS,
+        )
+        source_id = r1.json()["project_id"]
+
+        r2 = await client.post(
+            "/v1/projects",
+            json={"name": "Target", "slug": "target-proj"},
+            headers=AUTH_HEADERS,
+        )
+
+        # Ingest events for source project
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": f"merge-{i}",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "task_started",
+                "project_id": "source-proj",
+                "task_id": f"task-{i}",
+            } for i in range(3)],
+        }
+        await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+
+        # Merge source into target
+        r = await client.post(
+            f"/v1/projects/{source_id}/merge",
+            json={"target_slug": "target-proj"},
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["status"] == "merged"
+        assert body["events_moved"] == 3
+
+        # Source should be archived
+        r3 = await client.get(
+            "/v1/projects?include_archived=true", headers=AUTH_HEADERS
+        )
+        source = next(
+            p for p in r3.json()["data"] if p["slug"] == "source-proj"
+        )
+        assert source["is_archived"] is True
+
+    async def test_merge_into_self_fails(self, client: AsyncClient):
+        """Cannot merge a project into itself."""
+        r = await client.post(
+            "/v1/projects",
+            json={"name": "Solo", "slug": "solo-proj"},
+            headers=AUTH_HEADERS,
+        )
+        pid = r.json()["project_id"]
+        r2 = await client.post(
+            f"/v1/projects/{pid}/merge",
+            json={"target_slug": "solo-proj"},
+            headers=AUTH_HEADERS,
+        )
+        assert r2.status_code == 400
+        assert r2.json()["error"] == "invalid_merge"
+
+    async def test_merge_nonexistent_source(self, client: AsyncClient):
+        """Merge with nonexistent source returns 404."""
+        r = await client.post(
+            "/v1/projects/nonexistent/merge",
+            json={"target_slug": "default"},
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 404
+
+    async def test_merge_nonexistent_target(self, client: AsyncClient):
+        """Merge with nonexistent target returns 404."""
+        r = await client.post(
+            "/v1/projects",
+            json={"name": "Source", "slug": "merge-src"},
+            headers=AUTH_HEADERS,
+        )
+        pid = r.json()["project_id"]
+        r2 = await client.post(
+            f"/v1/projects/{pid}/merge",
+            json={"target_slug": "nonexistent-target"},
+            headers=AUTH_HEADERS,
+        )
+        assert r2.status_code == 404
+
+
+class TestProjectDeleteWithReassignment:
+    """Issue #9 Part 3: DELETE /v1/projects/{id} reassigns events."""
+
+    async def test_delete_reassigns_events_to_default(self, client: AsyncClient):
+        """Deleting a project moves its events to the default project."""
+        # Create a project and add events
+        r = await client.post(
+            "/v1/projects",
+            json={"name": "Doomed", "slug": "doomed-proj"},
+            headers=AUTH_HEADERS,
+        )
+        pid = r.json()["project_id"]
+
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": f"doom-{i}",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "task_started",
+                "project_id": "doomed-proj",
+                "task_id": f"task-{i}",
+            } for i in range(2)],
+        }
+        await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+
+        # Delete the project
+        r2 = await client.delete(
+            f"/v1/projects/{pid}", headers=AUTH_HEADERS
+        )
+        assert r2.status_code == 200
+        body = r2.json()
+        assert body["status"] == "deleted"
+        assert body["events_reassigned"] == 2
+        assert body["reassigned_to"] == "default"
+
+    async def test_delete_reassigns_to_specific_project(self, client: AsyncClient):
+        """DELETE with reassign_to param moves events to specified project."""
+        # Create source and target projects
+        r1 = await client.post(
+            "/v1/projects",
+            json={"name": "Source", "slug": "del-source"},
+            headers=AUTH_HEADERS,
+        )
+        source_id = r1.json()["project_id"]
+
+        await client.post(
+            "/v1/projects",
+            json={"name": "Target", "slug": "del-target"},
+            headers=AUTH_HEADERS,
+        )
+
+        # Add events to source
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": "del-reassign-1",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "heartbeat",
+                "project_id": "del-source",
+            }],
+        }
+        await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+
+        # Delete with specific reassignment target
+        r2 = await client.delete(
+            f"/v1/projects/{source_id}?reassign_to=del-target",
+            headers=AUTH_HEADERS,
+        )
+        assert r2.status_code == 200
+        assert r2.json()["reassigned_to"] == "del-target"
+        assert r2.json()["events_reassigned"] == 1
+
+    async def test_project_update_slug(self, client: AsyncClient):
+        """PATCH/PUT project should allow renaming the slug."""
+        r = await client.post(
+            "/v1/projects",
+            json={"name": "Original", "slug": "original-slug"},
+            headers=AUTH_HEADERS,
+        )
+        pid = r.json()["project_id"]
+
+        r2 = await client.put(
+            f"/v1/projects/{pid}",
+            json={"name": "Renamed", "slug": "renamed-slug"},
+            headers=AUTH_HEADERS,
+        )
+        assert r2.status_code == 200
+        assert r2.json()["name"] == "Renamed"

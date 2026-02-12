@@ -409,6 +409,41 @@ class JsonStorageBackend:
                     return True
         return False
 
+    async def count_projects(self, tenant_id: str) -> int:
+        return sum(
+            1 for row in self._tables["projects"]
+            if row["tenant_id"] == tenant_id
+            and not row.get("is_archived", False)
+        )
+
+    async def count_project_events(
+        self, tenant_id: str, project_id: str
+    ) -> int:
+        return sum(
+            1 for row in self._tables["events"]
+            if row["tenant_id"] == tenant_id
+            and row.get("project_id") == project_id
+        )
+
+    async def reassign_events(
+        self,
+        tenant_id: str,
+        from_project_id: str,
+        to_project_id: str,
+    ) -> int:
+        count = 0
+        async with self._locks["events"]:
+            for row in self._tables["events"]:
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row.get("project_id") == from_project_id
+                ):
+                    row["project_id"] = to_project_id
+                    count += 1
+            if count > 0:
+                self._persist("events")
+        return count
+
     # ───────────────────────────────────────────────────────────────────
     #  AGENTS
     # ───────────────────────────────────────────────────────────────────
