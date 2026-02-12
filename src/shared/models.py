@@ -538,6 +538,8 @@ class CostSummary(BaseModel):
     total_tokens_out: int = 0
     by_agent: list[dict[str, Any]] = Field(default_factory=list)
     by_model: list[dict[str, Any]] = Field(default_factory=list)
+    reported_cost: float = 0.0     # sum of developer-provided costs
+    estimated_cost: float = 0.0    # sum of server-estimated costs
 
 
 class CostTimeBucket(BaseModel):
@@ -561,6 +563,8 @@ class LlmCallRecord(BaseModel):
     tokens_out: int | None = None
     cost: float | None = None
     duration_ms: int | None = None
+    cost_source: str | None = None          # "reported", "estimated", or null
+    cost_model_matched: str | None = None   # pricing pattern matched (estimated only)
 
 
 class PipelineState(BaseModel):
