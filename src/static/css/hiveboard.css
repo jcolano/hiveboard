@@ -348,7 +348,7 @@ body {
 
 .agent-status-badge {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -451,7 +451,7 @@ body {
 
 .queue-badge {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--active);
     background: rgba(59, 130, 246, 0.12);
@@ -470,7 +470,7 @@ body {
     align-items: center;
     gap: 3px;
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     color: var(--error);
 }
 
@@ -483,7 +483,7 @@ body {
 
 .processing-line {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
@@ -793,7 +793,7 @@ body {
     border-radius: 4px;
     padding: 4px 8px;
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-secondary);
     white-space: nowrap;
     z-index: 10;
@@ -881,7 +881,7 @@ body {
     position: absolute;
     top: -42px;
     font-family: var(--font-mono);
-    font-size: 8px;
+    font-size: 10px;
     color: var(--llm);
     background: rgba(139, 92, 246, 0.12);
     padding: 1px 5px;
@@ -912,7 +912,7 @@ body {
     position: absolute;
     bottom: -22px;
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-muted);
     white-space: nowrap;
 }
@@ -934,7 +934,7 @@ body {
 .tl-connector-duration {
     position: absolute;
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     color: var(--text-muted);
     top: -16px;
     white-space: nowrap;
@@ -1019,7 +1019,7 @@ body {
 .detail-payload-tag {
     display: inline-block;
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     padding: 1px 6px;
     border-radius: 3px;
     background: var(--bg-card);
@@ -1110,7 +1110,7 @@ body {
 /* v3: LLM cost column */
 .task-llm-badge {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     color: var(--llm);
     background: rgba(139, 92, 246, 0.1);
     padding: 1px 5px;
@@ -1444,7 +1444,7 @@ body {
     .pipeline-table th {
         text-align: left;
         padding: 8px 12px;
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
@@ -1465,7 +1465,7 @@ body {
 
 .priority-badge {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     padding: 1px 6px;
     border-radius: 2px;
     font-weight: 600;
@@ -1488,7 +1488,7 @@ body {
 
 .severity-badge {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     padding: 1px 6px;
     border-radius: 2px;
     font-weight: 600;
@@ -1612,7 +1612,7 @@ body {
 
 .model-badge {
     font-family: var(--font-mono);
-    font-size: 9px;
+    font-size: 11px;
     padding: 2px 6px;
     border-radius: 3px;
     background: rgba(139, 92, 246, 0.1);
