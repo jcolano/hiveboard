@@ -121,7 +121,9 @@ async function apiFetch(path, params) {
 
 async function fetchAgents() {
   const env = document.getElementById('envSelector').value;
-  const data = await apiFetch('/v1/agents', { environment: env, sort: 'attention', limit: 100 });
+  const params = { sort: 'attention', limit: 100 };
+  if (env && env !== 'all' && env !== '') params.environment = env;
+  const data = await apiFetch('/v1/agents', params);
   if (!data || !data.data) return;
   AGENTS = data.data.map(function(a) {
     const stats = a.stats_1h || {};
@@ -141,7 +143,9 @@ async function fetchAgents() {
 
 async function fetchTasks(agentId) {
   const env = document.getElementById('envSelector').value;
-  const params = { limit: 30, sort: 'newest', environment: env };
+  const params = { limit: 30, sort: 'newest' };
+  // Only filter by environment when a specific one is selected (not "all"/empty)
+  if (env && env !== 'all' && env !== '') params.environment = env;
   if (agentId) params.agent_id = agentId;
   const data = await apiFetch('/v1/tasks', params);
   if (!data || !data.data) return;
@@ -181,7 +185,17 @@ async function fetchTimeline(taskId) {
     else if (kind === 'llm_call') nodeType = 'llm';
     else if (e.event_type === 'custom' && kind === 'llm_call') nodeType = 'llm';
 
-    var label = (payload.data && payload.data.action_name) || payload.summary || e.event_type;
+    var rawLabel = (payload.data && payload.data.action_name) || payload.summary || e.event_type;
+    // Simplify labels: use just the event_type suffix for common types, truncate long labels
+    var label = rawLabel;
+    if (rawLabel && rawLabel.length > 24) {
+      // For long labels with colons/underscores, take the last meaningful segment
+      var parts = rawLabel.split(/[_:]/);
+      if (parts.length > 1) {
+        label = parts.slice(-2).join(' ');
+      }
+      if (label.length > 24) label = label.substring(0, 21) + '…';
+    }
     var time = e.timestamp ? e.timestamp.split('T')[1].substring(0, 12) : '—';
     var dur = e.duration_ms != null ? fmtDuration(e.duration_ms) : '—';
     var detail = Object.assign({ event: e.event_type }, payload.data || {});
@@ -191,7 +205,7 @@ async function fetchTimeline(taskId) {
     var isBranchStart = e.render_hint === 'branch_start' || (e.event_type === 'action_failed' && e.payload && e.payload.data && e.payload.data.will_retry);
 
     return {
-      label: label, time: time, type: nodeType, dur: dur,
+      label: label, rawLabel: rawLabel, time: time, type: nodeType, dur: dur,
       detail: detail, tags: tags, llmModel: llmModel,
       isBranch: isRetry, isBranchStart: isBranchStart,
     };
@@ -216,7 +230,7 @@ async function fetchEvents(since) {
   var params = { limit: CONFIG.maxStreamEvents, exclude_heartbeats: true };
   if (since) params.since = since;
   var env = document.getElementById('envSelector').value;
-  params.environment = env;
+  if (env && env !== 'all' && env !== '') params.environment = env;
   var data = await apiFetch('/v1/events', params);
   if (!data || !data.data) return;
   var newEvents = data.data.map(function(e) {
@@ -405,7 +419,7 @@ function renderTimeline() {
 
     html += `<div class="tl-node ${isLlm ? 'llm-node' : ''}" data-idx="${nodeIdx}" onclick="pinNode(${nodeIdx})">`;
     if (isLlm && node.llmModel) html += `<div class="tl-llm-badge">${escHtml(node.llmModel)}</div>`;
-    html += `<div class="tl-node-label" style="color: ${color}">${escHtml(node.label)}</div>`;
+    html += `<div class="tl-node-label" style="color: ${color}" title="${escHtml(node.rawLabel || node.label)}">${escHtml(node.label)}</div>`;
     html += `<div class="tl-node-dot" style="border-color: ${color}; ${filled ? 'background: ' + color : ''}"></div>`;
     html += `<div class="tl-node-time">${node.time}</div></div>`;
 
@@ -1025,11 +1039,11 @@ setInterval(function() {
 
 // Full data refresh every 30s
 setInterval(async function() {
-  await fetchAgents();
-  await fetchMetrics();
+  await Promise.all([fetchAgents(), fetchTasks(), fetchMetrics()]);
   renderHive();
   renderSummary();
   renderMetrics();
+  renderTasks();
 }, CONFIG.refreshInterval);
 
 // ═══════════════════════════════════════════════════

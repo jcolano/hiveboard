@@ -897,6 +897,10 @@ body {
     white-space: nowrap;
     color: var(--text-secondary);
     transition: color 0.1s;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
 }
 
 .tl-node:hover .tl-node-label, .tl-node.pinned .tl-node-label {
