@@ -1,12 +1,32 @@
-<<<<<<< HEAD
-"""Test harness — fresh JsonStorageBackend per test with temp directory."""
+"""Shared test fixtures for both Team 1 (backend) and Team 2 (SDK) tests.
+
+Team 1 fixtures: JsonStorageBackend, sample_batch
+Team 2 fixtures: MockIngestServer, hiveloop import alias, singleton reset
+"""
 
 from __future__ import annotations
 
-import tempfile
+import json
+import sys
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+from typing import Any
 
 import pytest
+
+# ---------------------------------------------------------------------------
+# Team 2: Register sdk.hiveloop as 'hiveloop' so `import hiveloop` works
+# ---------------------------------------------------------------------------
+
+import sdk.hiveloop as _hiveloop_mod
+sys.modules["hiveloop"] = _hiveloop_mod
+sys.modules["hiveloop._transport"] = _hiveloop_mod._transport  # type: ignore[attr-defined]
+sys.modules["hiveloop._agent"] = _hiveloop_mod._agent  # type: ignore[attr-defined]
+
+# ---------------------------------------------------------------------------
+# Team 1: Backend storage fixtures
+# ---------------------------------------------------------------------------
 
 from backend.storage_json import JsonStorageBackend
 
@@ -23,34 +43,14 @@ async def storage(tmp_path: Path) -> JsonStorageBackend:
 @pytest.fixture
 def sample_batch() -> dict:
     """Load the shared sample batch fixture."""
-    import json
     fixture_path = Path(__file__).parent.parent / "shared" / "fixtures" / "sample_batch.json"
     with open(fixture_path, "r", encoding="utf-8") as f:
         return json.load(f)
-=======
-"""Shared test fixtures for HiveLoop SDK tests.
 
-Provides a mock HTTP server that captures POST /v1/ingest requests
-and can be configured to return error responses for retry testing.
-"""
 
-from __future__ import annotations
-
-import json
-import sys
-import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from typing import Any
-
-import pytest
-
-# Register sdk.hiveloop as 'hiveloop' so `import hiveloop` works in tests
-import sdk.hiveloop as _hiveloop_mod
-sys.modules["hiveloop"] = _hiveloop_mod
-# Also register sub-modules for direct imports
-sys.modules["hiveloop._transport"] = _hiveloop_mod._transport  # type: ignore[attr-defined]
-sys.modules["hiveloop._agent"] = _hiveloop_mod._agent  # type: ignore[attr-defined]
-
+# ---------------------------------------------------------------------------
+# Team 2: Mock HTTP server for SDK transport tests
+# ---------------------------------------------------------------------------
 
 class _IngestHandler(BaseHTTPRequestHandler):
     """Mock ingest endpoint that captures batches."""
@@ -147,4 +147,3 @@ def reset_hiveloop():
     import hiveloop  # noqa: F811
     yield
     hiveloop.reset()
->>>>>>> 7c7da8f16b65b2a17b2d0fed9c920a731e963094
