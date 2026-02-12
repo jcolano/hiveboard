@@ -21,7 +21,11 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Callable
 
-from shared.enums import EventType, PayloadKind, Severity, SEVERITY_DEFAULTS
+from shared.enums import (
+    EventType, PayloadKind, Severity, SEVERITY_DEFAULTS,
+    MAX_AGENT_ID_CHARS, MAX_TASK_ID_CHARS, MAX_SUMMARY_CHARS,
+    MAX_ENVIRONMENT_CHARS, MAX_GROUP_CHARS,
+)
 
 if TYPE_CHECKING:
     from ._transport import Transport
@@ -51,6 +55,38 @@ def _strip_none(d: dict[str, Any]) -> dict[str, Any]:
     """Remove None values from a dict, but always keep event_id, timestamp, event_type."""
     keep_always = {"event_id", "timestamp", "event_type"}
     return {k: v for k, v in d.items() if v is not None or k in keep_always}
+
+
+# Field size limits for client-side validation
+_FIELD_LIMITS: dict[str, int] = {
+    "agent_id": MAX_AGENT_ID_CHARS,
+    "task_id": MAX_TASK_ID_CHARS,
+    "environment": MAX_ENVIRONMENT_CHARS,
+    "group": MAX_GROUP_CHARS,
+}
+
+
+def _validate_field_sizes(event: dict[str, Any]) -> None:
+    """Warn and truncate if any string fields exceed spec limits."""
+    for field, limit in _FIELD_LIMITS.items():
+        val = event.get(field)
+        if isinstance(val, str) and len(val) > limit:
+            logger.warning(
+                "Field '%s' exceeds max length (%d > %d), truncating",
+                field, len(val), limit,
+            )
+            event[field] = val[:limit]
+
+    # Check payload.summary separately
+    payload = event.get("payload")
+    if isinstance(payload, dict):
+        summary = payload.get("summary")
+        if isinstance(summary, str) and len(summary) > MAX_SUMMARY_CHARS:
+            logger.warning(
+                "payload.summary exceeds max length (%d > %d), truncating",
+                len(summary), MAX_SUMMARY_CHARS,
+            )
+            payload["summary"] = summary[:MAX_SUMMARY_CHARS]
 
 
 class HiveLoopError(Exception):
@@ -270,7 +306,7 @@ class Task:
         payload: dict[str, Any] = {
             "kind": PayloadKind.PLAN_CREATED,
             "summary": goal,
-            "data": {"steps": step_data, "revision": revision},
+            "data": {"goal": goal, "steps": step_data, "revision": revision},
             "tags": ["plan", "created"],
         }
         self._agent._emit_event(
@@ -989,6 +1025,9 @@ class Agent:
             if event.get("severity") is None:
                 et = event.get("event_type", "")
                 event["severity"] = SEVERITY_DEFAULTS.get(et, Severity.INFO)
+
+            # Client-side field size validation (W1)
+            _validate_field_sizes(event)
 
             # Strip None values (but keep required fields)
             event = _strip_none(event)
