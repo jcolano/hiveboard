@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING, Any, Callable
 from shared.enums import (
     EventType, PayloadKind, Severity, SEVERITY_DEFAULTS,
     MAX_AGENT_ID_CHARS, MAX_TASK_ID_CHARS, MAX_SUMMARY_CHARS,
-    MAX_ENVIRONMENT_CHARS, MAX_GROUP_CHARS,
+    MAX_ENVIRONMENT_CHARS, MAX_GROUP_CHARS, MAX_PAYLOAD_BYTES,
 )
 
 if TYPE_CHECKING:
@@ -77,7 +77,7 @@ def _validate_field_sizes(event: dict[str, Any]) -> None:
             )
             event[field] = val[:limit]
 
-    # Check payload.summary separately
+    # Check payload.summary and payload size
     payload = event.get("payload")
     if isinstance(payload, dict):
         summary = payload.get("summary")
@@ -87,6 +87,18 @@ def _validate_field_sizes(event: dict[str, Any]) -> None:
                 len(summary), MAX_SUMMARY_CHARS,
             )
             payload["summary"] = summary[:MAX_SUMMARY_CHARS]
+
+        # Check total payload size
+        import json as _json
+        try:
+            payload_bytes = len(_json.dumps(payload))
+            if payload_bytes > MAX_PAYLOAD_BYTES:
+                logger.warning(
+                    "payload exceeds max size (%d > %d bytes), event may be rejected",
+                    payload_bytes, MAX_PAYLOAD_BYTES,
+                )
+        except (TypeError, ValueError):
+            pass
 
 
 class HiveLoopError(Exception):
@@ -316,6 +328,113 @@ class Task:
             task_type=self.task_type,
             task_run_id=self.task_run_id,
             correlation_id=self.correlation_id,
+            payload=payload,
+        )
+
+    def escalate(
+        self,
+        summary: str,
+        *,
+        assigned_to: str | None = None,
+        reason: str | None = None,
+        parent_event_id: str | None = None,
+    ) -> None:
+        """Escalate this task to a human or senior agent."""
+        data: dict[str, Any] = {}
+        if assigned_to is not None:
+            data["assigned_to"] = assigned_to
+        if reason is not None:
+            data["reason"] = reason
+        payload: dict[str, Any] = {"summary": summary}
+        if data:
+            payload["data"] = data
+        self._agent._emit_event(
+            event_type=EventType.ESCALATED,
+            task_id=self.task_id,
+            project_id=self.project_id,
+            task_type=self.task_type,
+            task_run_id=self.task_run_id,
+            correlation_id=self.correlation_id,
+            parent_event_id=parent_event_id,
+            payload=payload,
+        )
+
+    def request_approval(
+        self,
+        summary: str,
+        *,
+        approver: str | None = None,
+        parent_event_id: str | None = None,
+    ) -> None:
+        """Request human approval within this task."""
+        data: dict[str, Any] = {}
+        if approver is not None:
+            data["approver"] = approver
+        payload: dict[str, Any] = {"summary": summary}
+        if data:
+            payload["data"] = data
+        self._agent._emit_event(
+            event_type=EventType.APPROVAL_REQUESTED,
+            task_id=self.task_id,
+            project_id=self.project_id,
+            task_type=self.task_type,
+            task_run_id=self.task_run_id,
+            correlation_id=self.correlation_id,
+            parent_event_id=parent_event_id,
+            payload=payload,
+        )
+
+    def approval_received(
+        self,
+        summary: str,
+        *,
+        approved_by: str | None = None,
+        decision: str = "approved",
+        parent_event_id: str | None = None,
+    ) -> None:
+        """Record that approval was received for this task."""
+        data: dict[str, Any] = {"decision": decision}
+        if approved_by is not None:
+            data["approved_by"] = approved_by
+        payload: dict[str, Any] = {"summary": summary}
+        if data:
+            payload["data"] = data
+        self._agent._emit_event(
+            event_type=EventType.APPROVAL_RECEIVED,
+            task_id=self.task_id,
+            project_id=self.project_id,
+            task_type=self.task_type,
+            task_run_id=self.task_run_id,
+            correlation_id=self.correlation_id,
+            parent_event_id=parent_event_id,
+            payload=payload,
+        )
+
+    def retry(
+        self,
+        summary: str,
+        *,
+        attempt: int | None = None,
+        backoff_seconds: float | None = None,
+        parent_event_id: str | None = None,
+    ) -> None:
+        """Record a retry attempt within this task."""
+        data: dict[str, Any] = {}
+        if attempt is not None:
+            data["attempt"] = attempt
+        if backoff_seconds is not None:
+            data["backoff_seconds"] = backoff_seconds
+        payload: dict[str, Any] = {"summary": summary}
+        if data:
+            payload["data"] = data
+        self._agent._emit_event(
+            event_type=EventType.RETRY_STARTED,
+            task_id=self.task_id,
+            project_id=self.project_id,
+            task_type=self.task_type,
+            task_run_id=self.task_run_id,
+            correlation_id=self.correlation_id,
+            parent_event_id=parent_event_id,
             payload=payload,
         )
 

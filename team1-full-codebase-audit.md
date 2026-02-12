@@ -6,6 +6,7 @@
 > **Files analyzed:** 14 source files, 7 test files, 3 spec documents
 > **Total lines reviewed:** ~8,700 source + ~3,800 test
 
+NOTE: This audit document was created before the code files were moved under the src folder.  Even thogh the diagram shows this new state, it may not consider the updates done by team 1 regarding paths. Other than that, this audit is based on latest version code.
 ---
 
 ## Executive Summary
@@ -30,26 +31,29 @@ teams' code that must be addressed before production deployment.
 
 ```
 hiveboard/
-├── backend/
-│   ├── __init__.py
-│   ├── app.py              (1,167 lines — FastAPI API server)
-│   ├── middleware.py        (145 lines — Auth + rate limiting)
-│   ├── storage_json.py      (1,573 lines — JSON MVP storage)
-│   ├── websocket.py         (275 lines — WebSocket manager)
-│   └── alerting.py          (307 lines — Alert evaluation engine)
-├── shared/
-│   ├── __init__.py
-│   ├── enums.py             (244 lines — Constants, enums, limits)
-│   ├── models.py            (593 lines — Pydantic data models)
-│   └── storage.py           (477 lines — StorageBackend protocol)
-├── sdk/
-│   ├── __init__.py          (9 lines — Module registration)
-│   └── hiveloop/
-│       ├── __init__.py      (194 lines — Singleton + HiveBoard client)
-│       ├── _agent.py        (1,058 lines — Agent, Task, Action tracking)
-│       └── _transport.py    (309 lines — Batched HTTP transport)
-├── dashboard/
-│   └── __init__.py          (empty placeholder)
+├── src/
+│   ├── backend/
+│   │   ├── __init__.py
+│   │   ├── app.py              (1,167 lines — FastAPI API server)
+│   │   ├── middleware.py        (145 lines — Auth + rate limiting)
+│   │   ├── storage_json.py      (1,573 lines — JSON MVP storage)
+│   │   ├── websocket.py         (275 lines — WebSocket manager)
+│   │   └── alerting.py          (307 lines — Alert evaluation engine)
+│   ├── shared/
+│   │   ├── __init__.py
+│   │   ├── enums.py             (244 lines — Constants, enums, limits)
+│   │   ├── models.py            (593 lines — Pydantic data models)
+│   │   └── storage.py           (477 lines — StorageBackend protocol)
+│   ├── sdk/
+│   │   ├── __init__.py          (9 lines — Module registration)
+│   │   └── hiveloop/
+│   │       ├── __init__.py      (194 lines — Singleton + HiveBoard client)
+│   │       ├── _agent.py        (1,058 lines — Agent, Task, Action tracking)
+│   │       └── _transport.py    (309 lines — Batched HTTP transport)
+│   ├── dashboard/
+│   │   └── __init__.py          (empty placeholder)
+│   └── static/
+│       └── (static assets)
 ├── tests/
 │   ├── conftest.py          (149 lines — Shared fixtures)
 │   ├── test_storage.py      (834 lines — 61 storage tests)

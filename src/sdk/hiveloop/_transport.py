@@ -86,7 +86,7 @@ class Transport:
         self._thread.start()
 
         # Register atexit shutdown
-        atexit.register(self.shutdown, timeout=5.0)
+        atexit.register(lambda: self.shutdown(timeout=5.0))
 
     # ------------------------------------------------------------------
     # Public API

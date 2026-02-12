@@ -14,6 +14,7 @@ from shared.enums import RATE_LIMIT_INGEST, RATE_LIMIT_QUERY
 
 # Paths that skip authentication
 PUBLIC_PATHS = {"/health", "/docs", "/openapi.json", "/dashboard"}
+PUBLIC_PREFIXES = ("/v1/stream", "/static")
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -22,9 +23,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
-        # Skip auth for public paths and WebSocket (handled separately)
+        # Skip auth for public paths, WebSocket, and static files
         path = request.url.path.rstrip("/")
-        if path in PUBLIC_PATHS or request.url.path.startswith("/v1/stream"):
+        if path in PUBLIC_PATHS or any(request.url.path.startswith(p) for p in PUBLIC_PREFIXES):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization", "")
@@ -71,7 +72,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # Fire-and-forget touch
         import asyncio
-        asyncio.create_task(storage.touch_api_key(info.key_id))
+        import logging
+
+        def _log_task_exception(t: asyncio.Task) -> None:
+            if not t.cancelled() and t.exception():
+                logging.getLogger(__name__).warning(
+                    "touch_api_key failed: %s", t.exception()
+                )
+
+        task = asyncio.create_task(storage.touch_api_key(info.key_id))
+        task.add_done_callback(_log_task_exception)
 
         response = await call_next(request)
         return response
@@ -96,7 +106,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         path = request.url.path.rstrip("/")
-        if path in PUBLIC_PATHS or request.url.path.startswith("/v1/stream"):
+        if path in PUBLIC_PATHS or any(request.url.path.startswith(p) for p in PUBLIC_PREFIXES):
             return await call_next(request)
 
         # Rate limit only applies after auth has set key_id

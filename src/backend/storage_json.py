@@ -202,8 +202,15 @@ class JsonStorageBackend:
 
     def _persist(self, table: str) -> None:
         fp = self._data_dir / f"{table}.json"
-        with open(fp, "w", encoding="utf-8") as f:
+        tmp = fp.with_suffix(".json.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(self._tables[table], f, indent=2, default=str)
+        os.replace(tmp, fp)
+        # Restrict file permissions (no-op on Windows)
+        try:
+            os.chmod(fp, 0o600)
+        except OSError:
+            pass
 
     # ───────────────────────────────────────────────────────────────────
     #  TENANTS
@@ -337,10 +344,11 @@ class JsonStorageBackend:
         self, tenant_id: str, project_id: str
     ) -> ProjectRecord | None:
         for row in self._tables["projects"]:
-            if (
-                row["tenant_id"] == tenant_id
-                and row["project_id"] == project_id
-            ):
+            if row["tenant_id"] == tenant_id and row["project_id"] == project_id:
+                return ProjectRecord(**row)
+        # Fallback: match by slug (SDK sends slug as project_id)
+        for row in self._tables["projects"]:
+            if row["tenant_id"] == tenant_id and row.get("slug") == project_id:
                 return ProjectRecord(**row)
         return None
 
@@ -383,6 +391,19 @@ class JsonStorageBackend:
                     and row["project_id"] == project_id
                 ):
                     row["is_archived"] = True
+                    row["updated_at"] = _now_utc().isoformat()
+                    self._persist("projects")
+                    return True
+        return False
+
+    async def unarchive_project(self, tenant_id: str, project_id: str) -> bool:
+        async with self._locks["projects"]:
+            for row in self._tables["projects"]:
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row["project_id"] == project_id
+                ):
+                    row["is_archived"] = False
                     row["updated_at"] = _now_utc().isoformat()
                     self._persist("projects")
                     return True
@@ -552,6 +573,13 @@ class JsonStorageBackend:
             int(sum(durations) / len(durations)) if durations else None
         )
 
+        # Compute queue_depth and active_issues from pipeline data
+        pipeline = await self.get_pipeline(tenant_id, agent_id)
+        queue_depth = 0
+        if pipeline.queue and isinstance(pipeline.queue, dict):
+            queue_depth = pipeline.queue.get("depth", 0)
+        active_issues = len(pipeline.issues)
+
         return AgentStats1h(
             tasks_completed=tasks_completed,
             tasks_failed=tasks_failed,
@@ -559,6 +587,8 @@ class JsonStorageBackend:
             avg_duration_ms=avg_duration,
             total_cost=total_cost if total_cost > 0 else None,
             throughput=tasks_completed,
+            queue_depth=queue_depth,
+            active_issues=active_issues,
         )
 
     # ───────────────────────────────────────────────────────────────────

@@ -140,10 +140,7 @@ def run_lead_qualifier(hb: hiveloop.HiveBoard, speed: float):
                         category="connectivity",
                         context={"api": "clearbit", "timeout_ms": 5000},
                     )
-                    task.event("retry_started", payload={
-                        "summary": "Retrying enrichment",
-                        "data": {"attempt": 1, "backoff_seconds": 2.0},
-                    })
+                    task.retry("Retrying enrichment", attempt=1, backoff_seconds=2.0)
                     _sim_sleep(0.5, speed)
                     task.plan_step(1, "completed", "Enrichment succeeded on retry")
                     agent.resolve_issue("Clearbit API recovered", issue_id="clearbit-timeout")
@@ -224,19 +221,20 @@ def run_support_triage(hb: hiveloop.HiveBoard, speed: float):
 
                 # 10% chance of escalation
                 if random.random() < 0.10:
-                    task.event("escalated", payload={
-                        "summary": f"Ticket #{ticket_num} escalated — complex {category} issue",
-                        "data": {"assigned_to": "senior-support"},
-                    })
-                    task.event("approval_requested", payload={
-                        "summary": "Approval needed for account credit",
-                        "data": {"approver": "support-lead"},
-                    })
+                    task.escalate(
+                        f"Ticket #{ticket_num} escalated — complex {category} issue",
+                        assigned_to="senior-support",
+                    )
+                    task.request_approval(
+                        "Approval needed for account credit",
+                        approver="support-lead",
+                    )
                     _sim_sleep(1, speed)
-                    task.event("approval_received", payload={
-                        "summary": "Credit approved by support-lead",
-                        "data": {"approved_by": "support-lead", "decision": "approved"},
-                    })
+                    task.approval_received(
+                        "Credit approved by support-lead",
+                        approved_by="support-lead",
+                        decision="approved",
+                    )
 
                 # 5% chance of failure — inside @track so it emits action_failed
                 if random.random() < 0.05:
@@ -323,10 +321,7 @@ def run_data_pipeline(hb: hiveloop.HiveBoard, speed: float):
                     # 8% chance of step failure with retry
                     if random.random() < 0.08:
                         task.plan_step(i, "failed", f"{step_name} — connection reset")
-                        task.event("retry_started", payload={
-                            "summary": f"Retry step {i}: {step_name}",
-                            "data": {"attempt": 1, "backoff_seconds": 1.0},
-                        })
+                        task.retry(f"Retry step {i}: {step_name}", attempt=1, backoff_seconds=1.0)
                         _sim_sleep(0.3, speed)
 
                     task.plan_step(i, "completed", step_name,
@@ -347,6 +342,24 @@ def run_data_pipeline(hb: hiveloop.HiveBoard, speed: float):
         _sim_sleep(random.uniform(4, 10), speed)
 
 
+def _ensure_projects(endpoint: str, api_key: str):
+    """Create simulator projects if they don't exist."""
+    import requests
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    projects = [
+            {"slug": "sales-pipeline", "name": "Sales Pipeline"},
+            {"slug": "customer-support", "name": "Customer Support"},
+            {"slug": "data-warehouse", "name": "Data Warehouse"},
+        ]
+    for proj in projects:
+        resp = requests.post(f"{endpoint}/v1/projects", json=proj, headers=headers)
+        if resp.status_code == 201:
+            logger.info("Created project: %s", proj["slug"])
+        elif resp.status_code == 409:
+            logger.info("Project already exists: %s", proj["slug"])
+        else:
+            logger.warning("Failed to create project %s: %s %s",
+                          proj["slug"], resp.status_code, resp.text)
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -355,7 +368,7 @@ def main():
     parser = argparse.ArgumentParser(description="HiveLoop Agent Simulator")
     parser.add_argument("--endpoint", default="http://localhost:8000",
                         help="HiveBoard API endpoint")
-    parser.add_argument("--api-key", default="hb_live_simulator_key_00000000",
+    parser.add_argument("--api-key", default="hb_live_dev000000000000000000000000000000",
                         help="API key")
     parser.add_argument("--fast", action="store_true",
                         help="Run at 5x speed for demos")
@@ -364,6 +377,9 @@ def main():
     args = parser.parse_args()
 
     speed = 5.0 if args.fast else args.speed
+    
+    # Ensure projects exist before sending events
+    _ensure_projects(args.endpoint, args.api_key)
 
     logger.info("Starting simulator: endpoint=%s, speed=%.1fx", args.endpoint, speed)
 

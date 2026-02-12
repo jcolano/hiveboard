@@ -1,0 +1,36 @@
+[
+  {
+    "agent_id": "ag_6ce5uncd",
+    "tenant_id": "dev",
+    "agent_type": "Marketing Expert",
+    "agent_version": "claude-sonnet-4-5-20250929",
+    "framework": "loopcore",
+    "runtime": "python-3.13.7",
+    "first_seen": "2026-02-12T17:32:08.038000Z",
+    "last_seen": "2026-02-12T18:17:28.642000+00:00",
+    "last_heartbeat": "2026-02-12T18:17:28.642000+00:00",
+    "last_event_type": "task_started",
+    "last_task_id": "ag_6ce5uncd",
+    "last_project_id": "loopcolony",
+    "stuck_threshold_seconds": 300,
+    "is_registered": true,
+    "previous_status": "idle"
+  },
+  {
+    "agent_id": "main",
+    "tenant_id": "dev",
+    "agent_type": "general",
+    "agent_version": "claude-sonnet-4-5-20250929",
+    "framework": "loopcore",
+    "runtime": "python-3.13.7",
+    "first_seen": "2026-02-12T17:33:16.343000Z",
+    "last_seen": "2026-02-12T18:06:50.948000+00:00",
+    "last_heartbeat": "2026-02-12T18:06:50.948000+00:00",
+    "last_event_type": "heartbeat",
+    "last_task_id": null,
+    "last_project_id": null,
+    "stuck_threshold_seconds": 300,
+    "is_registered": true,
+    "previous_status": "idle"
+  }
+]

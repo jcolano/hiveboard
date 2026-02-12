@@ -14,13 +14,14 @@ from uuid import uuid4
 from shared.enums import AgentStatus, EventType
 from shared.models import AlertHistoryRecord, Event
 
-from backend.storage_json import JsonStorageBackend, derive_agent_status
+from backend.storage_json import derive_agent_status
+from shared.storage import StorageBackend
 
 logger = logging.getLogger(__name__)
 
 
 async def evaluate_alerts(
-    storage: JsonStorageBackend,
+    storage: StorageBackend,
     tenant_id: str,
     new_events: list[Event],
 ) -> None:
@@ -103,7 +104,7 @@ async def evaluate_alerts(
 # ───────────────────────────────────────────────────────────────────
 
 async def _check_agent_stuck(
-    storage: JsonStorageBackend,
+    storage: StorageBackend,
     tenant_id: str,
     config: dict,
     now: datetime,
@@ -151,7 +152,7 @@ def _check_task_failed(
 
 
 async def _check_error_rate(
-    storage: JsonStorageBackend,
+    storage: StorageBackend,
     tenant_id: str,
     config: dict,
     now: datetime,
@@ -208,7 +209,7 @@ def _check_duration_exceeded(
 
 
 async def _check_heartbeat_lost(
-    storage: JsonStorageBackend,
+    storage: StorageBackend,
     tenant_id: str,
     config: dict,
     now: datetime,
@@ -242,7 +243,7 @@ async def _check_heartbeat_lost(
 
 
 async def _check_cost_threshold(
-    storage: JsonStorageBackend,
+    storage: StorageBackend,
     tenant_id: str,
     config: dict,
     now: datetime,
