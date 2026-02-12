@@ -47,7 +47,7 @@ async def client(tmp_path: Path):
 
 
 def _load_fixture() -> dict:
-    fp = Path(__file__).parent.parent / "shared" / "fixtures" / "sample_batch.json"
+    fp = Path(__file__).parent.parent / "src" / "shared" / "fixtures" / "sample_batch.json"
     with open(fp, "r", encoding="utf-8") as f:
         return json.load(f)
 

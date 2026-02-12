@@ -27,10 +27,8 @@ dev = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["shared*", "backend*", "sdk*", "hiveloop*"]
-
-[tool.setuptools.package-dir]
-hiveloop = "sdk/hiveloop"
+where = ["src"]
+include = ["shared*", "backend*", "sdk*", "dashboard*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
