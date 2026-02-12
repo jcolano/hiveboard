@@ -267,6 +267,10 @@ class WebSocketManager:
         try:
             await conn.ws.send_json(data)
         except Exception:
+            logger.warning(
+                "WebSocket send failed for tenant=%s key=%s type=%s",
+                conn.tenant_id, conn.key_id, data.get("type", "?"),
+            )
             self.disconnect(conn)
 
 

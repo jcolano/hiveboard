@@ -4,7 +4,9 @@
 
 const CONFIG = {
   endpoint: window.location.origin,
-  apiKey: 'hb_live_default_key_00000000',
+  apiKey: new URLSearchParams(window.location.search).get('apiKey')
+    || localStorage.getItem('hiveboard_api_key')
+    || 'hb_live_dev000000000000000000000000000000',
   pollInterval: 5000,
   maxStreamEvents: 50,
   refreshInterval: 30000,

@@ -161,6 +161,10 @@ class StorageBackend(Protocol):
         """Returns True if project was found and archived."""
         ...
 
+    async def unarchive_project(self, tenant_id: str, project_id: str) -> bool:
+        """Returns True if project was found and unarchived."""
+        ...
+
     # ───────────────────────────────────────────────────────────────────
     #  AGENTS
     # ───────────────────────────────────────────────────────────────────
@@ -240,7 +244,7 @@ class StorageBackend(Protocol):
     #  EVENT INGESTION
     # ───────────────────────────────────────────────────────────────────
 
-    async def insert_events(self, events: list[Event]) -> int:
+    async def insert_events(self, events: list[Event], *, key_type: str | None = None) -> int:
         """Batch insert events. Deduplicates by (tenant_id, event_id).
 
         Returns the number of events actually inserted (after dedup).

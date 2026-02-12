@@ -422,6 +422,8 @@ class AgentStats1h(BaseModel):
     avg_duration_ms: int | None = None
     total_cost: float | None = None
     throughput: int = 0                         # tasks completed in window
+    queue_depth: int = 0                        # from latest queue_snapshot
+    active_issues: int = 0                      # from pipeline issues
 
 
 class AgentSummary(BaseModel):

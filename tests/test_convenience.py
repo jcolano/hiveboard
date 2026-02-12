@@ -319,6 +319,120 @@ class TestIssues:
         assert issues[0]["payload"]["data"]["issue_id"] == "issue-crm"
 
 
+class TestEscalate:
+    """task.escalate()."""
+
+    def test_escalate(self, mock_server):
+        hb = hiveloop.init(
+            api_key="hb_test_abc123",
+            endpoint=mock_server.url,
+            flush_interval=60,
+        )
+        agent = hb.agent("esc-agent", heartbeat_interval=0)
+
+        with agent.task("task-esc", project="proj") as task:
+            task.escalate(
+                "Ticket escalated — complex billing issue",
+                assigned_to="senior-support",
+                reason="billing",
+            )
+
+        hb.flush()
+        time.sleep(0.3)
+
+        events = mock_server.all_events()
+        esc = [e for e in events if e.get("event_type") == "escalated"]
+        assert len(esc) == 1
+        assert esc[0]["task_id"] == "task-esc"
+        assert esc[0]["payload"]["summary"] == "Ticket escalated — complex billing issue"
+        assert esc[0]["payload"]["data"]["assigned_to"] == "senior-support"
+
+
+class TestRequestApproval:
+    """task.request_approval()."""
+
+    def test_request_approval(self, mock_server):
+        hb = hiveloop.init(
+            api_key="hb_test_abc123",
+            endpoint=mock_server.url,
+            flush_interval=60,
+        )
+        agent = hb.agent("appr-agent", heartbeat_interval=0)
+
+        with agent.task("task-appr", project="proj") as task:
+            task.request_approval(
+                "Need approval for account credit",
+                approver="support-lead",
+            )
+
+        hb.flush()
+        time.sleep(0.3)
+
+        events = mock_server.all_events()
+        appr = [e for e in events if e.get("event_type") == "approval_requested"]
+        assert len(appr) == 1
+        assert appr[0]["task_id"] == "task-appr"
+        assert appr[0]["payload"]["data"]["approver"] == "support-lead"
+
+
+class TestApprovalReceived:
+    """task.approval_received()."""
+
+    def test_approval_received(self, mock_server):
+        hb = hiveloop.init(
+            api_key="hb_test_abc123",
+            endpoint=mock_server.url,
+            flush_interval=60,
+        )
+        agent = hb.agent("appr-agent", heartbeat_interval=0)
+
+        with agent.task("task-appr-recv", project="proj") as task:
+            task.approval_received(
+                "Credit approved by support-lead",
+                approved_by="support-lead",
+                decision="approved",
+            )
+
+        hb.flush()
+        time.sleep(0.3)
+
+        events = mock_server.all_events()
+        recv = [e for e in events if e.get("event_type") == "approval_received"]
+        assert len(recv) == 1
+        assert recv[0]["task_id"] == "task-appr-recv"
+        assert recv[0]["payload"]["data"]["approved_by"] == "support-lead"
+        assert recv[0]["payload"]["data"]["decision"] == "approved"
+
+
+class TestRetry:
+    """task.retry()."""
+
+    def test_retry(self, mock_server):
+        hb = hiveloop.init(
+            api_key="hb_test_abc123",
+            endpoint=mock_server.url,
+            flush_interval=60,
+        )
+        agent = hb.agent("retry-agent", heartbeat_interval=0)
+
+        with agent.task("task-retry", project="proj") as task:
+            task.retry(
+                "Retrying enrichment",
+                attempt=1,
+                backoff_seconds=2.0,
+            )
+
+        hb.flush()
+        time.sleep(0.3)
+
+        events = mock_server.all_events()
+        retries = [e for e in events if e.get("event_type") == "retry_started"]
+        assert len(retries) == 1
+        assert retries[0]["task_id"] == "task-retry"
+        assert retries[0]["payload"]["data"]["attempt"] == 1
+        assert retries[0]["payload"]["data"]["backoff_seconds"] == 2.0
+
+
 class TestSampleFixtureShape:
     """Verify our events match the shape in shared/fixtures/sample_batch.json."""
 

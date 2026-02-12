@@ -21,8 +21,9 @@ AUTH_HEADERS = {"Authorization": f"Bearer {DEV_KEY}"}
 
 
 @pytest.fixture
-async def client(tmp_path: Path):
+async def client(tmp_path: Path, monkeypatch):
     """Test client with fresh storage per test."""
+    monkeypatch.setenv("HIVEBOARD_DEV_KEY", DEV_KEY)
     reset_rate_limits()
     storage = JsonStorageBackend(data_dir=tmp_path)
     await storage.initialize()

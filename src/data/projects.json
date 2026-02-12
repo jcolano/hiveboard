@@ -1,0 +1,26 @@
+[
+  {
+    "project_id": "85be862b-400a-49a6-a567-a003794e05fd",
+    "tenant_id": "dev",
+    "name": "Default",
+    "slug": "default",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "created_at": "2026-02-12T17:32:35.910088Z",
+    "updated_at": "2026-02-12T17:32:35.910088Z"
+  },
+  {
+    "project_id": "c4dcdfb6-c2f9-4f2e-a138-e20ec977662b",
+    "tenant_id": "dev",
+    "name": "loopColony",
+    "slug": "loopcolony",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "created_at": "2026-02-12T18:06:10.958742Z",
+    "updated_at": "2026-02-12T18:06:10.958742Z"
+  }
+]

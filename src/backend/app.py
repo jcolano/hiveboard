@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocket
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.middleware import AuthMiddleware, RateLimitMiddleware
 from backend.storage_json import JsonStorageBackend, derive_agent_status
@@ -83,18 +84,24 @@ async def _ws_ping_loop():
 
 
 async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
-    """Create a dev tenant and API key on first run for easy testing."""
+    """Create a dev tenant and API key on first run for easy testing.
+
+    The dev key is read from HIVEBOARD_DEV_KEY env var.
+    If unset, bootstrap is skipped (no hardcoded key in source).
+    """
+    raw_key = os.environ.get("HIVEBOARD_DEV_KEY")
+    if not raw_key:
+        return
     tenant = await storage.get_tenant("dev")
     if tenant is not None:
         return
     await storage.create_tenant("dev", "Development", "dev")
-    raw_key = "hb_live_dev000000000000000000000000000000"
     key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
     await storage.create_api_key(
         key_id="dev-key",
         tenant_id="dev",
         key_hash=key_hash,
-        key_prefix="hb_live_",
+        key_prefix=raw_key[:8],
         key_type="live",
         label="Development API Key",
     )
@@ -111,7 +118,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -173,11 +180,18 @@ async def health():
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
-    """Serve the v3 prototype HTML — interim until Team 2 delivers their dashboard."""
-    html_path = Path(__file__).parent.parent.parent / "docs" / "hiveboard-dashboard-v3.html"
-    if html_path.exists():
-        return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
+    """Redirect to the Team 2 dashboard served from /static/."""
+    static_dir = Path(__file__).parent.parent / "static"
+    index = static_dir / "index.html"
+    if index.exists():
+        return HTMLResponse(content=index.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Dashboard not found</h1>", status_code=404)
+
+
+# Mount Team 2's static dashboard files
+_static_dir = Path(__file__).parent.parent / "static"
+if _static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -284,9 +298,17 @@ async def ingest(body: IngestRequest, request: Request):
         env_str = body.envelope.environment or "production"
         env_override = env_str
         if len(env_override) > MAX_ENVIRONMENT_CHARS:
+            warnings.append({
+                "event_id": raw.event_id,
+                "warning": f"environment truncated from {len(env_override)} to {MAX_ENVIRONMENT_CHARS} chars",
+            })
             env_override = env_override[:MAX_ENVIRONMENT_CHARS]
         grp = body.envelope.group or "default"
         if len(grp) > MAX_GROUP_CHARS:
+            warnings.append({
+                "event_id": raw.event_id,
+                "warning": f"group truncated from {len(grp)} to {MAX_GROUP_CHARS} chars",
+            })
             grp = grp[:MAX_GROUP_CHARS]
 
         # Severity auto-defaults
@@ -635,6 +657,8 @@ async def get_task_timeline(
     plan_goal: str | None = None
     plan_completed = 0
     plan_total = 0
+    # Track per-step status from plan_step events
+    step_status: dict[int, dict] = {}  # step_index → {action, timestamp}
     for e in events:
         if e.payload and isinstance(e.payload, dict):
             kind = e.payload.get("kind")
@@ -645,8 +669,23 @@ async def get_task_timeline(
                 plan_total = len(plan_steps)
             elif kind == "plan_step" and isinstance(data, dict):
                 plan_total = data.get("total_steps", plan_total)
-                if data.get("action") == "completed":
+                idx = data.get("step_index")
+                action = data.get("action")
+                if idx is not None and action:
+                    step_status[idx] = {"action": action, "timestamp": e.timestamp}
+                if action == "completed":
                     plan_completed += 1
+    # Enrich plan steps with status from plan_step events
+    if plan_steps:
+        for step in plan_steps:
+            idx = step.get("index")
+            if idx is not None and idx in step_status:
+                ss = step_status[idx]
+                step["action"] = ss["action"]
+                if ss["action"] == "completed":
+                    step["completed_at"] = ss["timestamp"]
+                elif ss["action"] == "started":
+                    step["started_at"] = ss["timestamp"]
     if plan_steps or plan_total > 0:
         plan = {
             "goal": plan_goal,
@@ -672,13 +711,16 @@ async def get_task_timeline(
             if aid:
                 actions[aid]["events"].append(e.model_dump(mode="json"))
                 if e.event_type == "action_started":
-                    # Extract name from payload
+                    # Extract name from payload — SDK puts action_name at top level
                     if e.payload and isinstance(e.payload, dict):
-                        data = e.payload.get("data", {})
-                        if isinstance(data, dict):
-                            actions[aid]["name"] = data.get("action_name") or e.payload.get("summary")
-                    if not actions[aid]["name"]:
-                        actions[aid]["name"] = e.payload.get("summary") if e.payload else None
+                        name = e.payload.get("action_name")
+                        if not name:
+                            data = e.payload.get("data", {})
+                            if isinstance(data, dict):
+                                name = data.get("action_name")
+                        if not name:
+                            name = e.payload.get("summary")
+                        actions[aid]["name"] = name
                 elif e.event_type == "action_completed":
                     actions[aid]["status"] = e.status or "completed"
                     actions[aid]["duration_ms"] = e.duration_ms
@@ -989,18 +1031,9 @@ async def unarchive_project(
 ):
     storage = request.app.state.storage
     tenant_id = request.state.tenant_id
-    project = await storage.update_project(
-        tenant_id, project_id, ProjectUpdate()
-    )
-    if project is None:
+    ok = await storage.unarchive_project(tenant_id, project_id)
+    if not ok:
         raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
-    # Manually set is_archived to False since ProjectUpdate doesn't have it
-    async with storage._locks["projects"]:
-        for row in storage._tables["projects"]:
-            if row["project_id"] == project_id and row["tenant_id"] == tenant_id:
-                row["is_archived"] = False
-                storage._persist("projects")
-                break
     return {"status": "unarchived"}
 
 
