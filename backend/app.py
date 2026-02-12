@@ -16,6 +16,7 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 
@@ -33,6 +34,7 @@ from shared.enums import (
     MAX_TASK_ID_CHARS,
     SEVERITY_DEFAULTS,
     SEVERITY_BY_PAYLOAD_KIND,
+    VALID_SEVERITIES,
 )
 from shared.models import (
     AgentRecord,
@@ -125,6 +127,11 @@ app.add_middleware(AuthMiddleware)
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    if isinstance(exc.detail, dict):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.detail,
+        )
     return JSONResponse(
         status_code=exc.status_code,
         content={
@@ -135,15 +142,22 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-@app.exception_handler(422)
-async def validation_exception_handler(request: Request, exc):
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    field_errors = []
+    for err in exc.errors():
+        field_errors.append({
+            "field": ".".join(str(loc) for loc in err.get("loc", [])),
+            "message": err.get("msg", ""),
+            "type": err.get("type", ""),
+        })
     return JSONResponse(
-        status_code=422,
+        status_code=400,
         content={
             "error": "validation_error",
             "message": "Request validation failed",
-            "status": 422,
-            "details": str(exc),
+            "status": 400,
+            "details": {"fields": field_errors},
         },
     )
 
@@ -277,6 +291,12 @@ async def ingest(body: IngestRequest, request: Request):
 
         # Severity auto-defaults
         severity = raw.severity
+        if severity and severity not in VALID_SEVERITIES:
+            warnings.append({
+                "event_id": raw.event_id,
+                "warning": f"Unknown severity '{severity}', defaulting to auto",
+            })
+            severity = None
         if not severity:
             severity = SEVERITY_DEFAULTS.get(raw.event_type, "info")
             # Payload kind overrides
@@ -324,24 +344,30 @@ async def ingest(body: IngestRequest, request: Request):
         # Track metadata
         if raw.event_type == "heartbeat":
             has_heartbeat = True
-        last_event_type = raw.event_type
         if raw.task_id:
             last_task_id = raw.task_id
         if project_id:
             last_project_id = project_id
             project_ids_seen.add(project_id)
 
+    # W3: Sort accepted events by timestamp for correct last_event_type
+    accepted_events.sort(key=lambda e: e.timestamp)
+    if accepted_events:
+        last_event_type = accepted_events[-1].event_type
+
     # Step 6: Batch insert
+    ingestion_key_type = getattr(request.state, "key_type", "live")
     inserted = 0
     if accepted_events:
-        inserted = await storage.insert_events(accepted_events)
+        inserted = await storage.insert_events(accepted_events, key_type=ingestion_key_type)
 
     # Step 7: Agent cache update
+    agent_record = None
     if accepted_events:
         last_ts = max(
             _parse_dt(e.timestamp) for e in accepted_events
         ) or now
-        await storage.upsert_agent(
+        agent_record = await storage.upsert_agent(
             tenant_id,
             body.envelope.agent_id,
             agent_type=body.envelope.agent_type or "general",
@@ -367,20 +393,31 @@ async def ingest(body: IngestRequest, request: Request):
         event_dicts = [e.model_dump(mode="json") for e in accepted_events]
         await ws_manager.broadcast_events(tenant_id, event_dicts)
 
-        # Check for agent status change and broadcast
-        agent = await storage.get_agent(tenant_id, body.envelope.agent_id)
-        if agent:
-            new_status = derive_agent_status(agent)
-            # Broadcast status change (we track previous via agent record)
+        # F11: Check for agent status change and broadcast
+        if agent_record:
+            new_status = derive_agent_status(agent_record)
+            previous_status = agent_record.previous_status
+
+            if previous_status and previous_status != new_status.value:
+                hb_age = None
+                if agent_record.last_heartbeat:
+                    hb_age = int((datetime.now(timezone.utc) - agent_record.last_heartbeat).total_seconds())
+                await ws_manager.broadcast_agent_status_change(
+                    tenant_id, agent_record.agent_id,
+                    previous_status, new_status.value,
+                    agent_record.last_task_id, agent_record.last_project_id,
+                    hb_age,
+                )
+
             if new_status == AgentStatus.STUCK:
                 await ws_manager.broadcast_agent_stuck(
-                    tenant_id, agent.agent_id,
-                    agent.last_heartbeat.isoformat() if agent.last_heartbeat else None,
-                    agent.stuck_threshold_seconds,
-                    agent.last_task_id, agent.last_project_id,
+                    tenant_id, agent_record.agent_id,
+                    agent_record.last_heartbeat.isoformat() if agent_record.last_heartbeat else None,
+                    agent_record.stuck_threshold_seconds,
+                    agent_record.last_task_id, agent_record.last_project_id,
                 )
             else:
-                ws_manager.clear_stuck(tenant_id, agent.agent_id)
+                ws_manager.clear_stuck(tenant_id, agent_record.agent_id)
 
     # Step 10: Alert evaluation
     from backend.alerting import evaluate_alerts
@@ -417,12 +454,24 @@ def _parse_dt(s: str | None) -> datetime | None:
 #  These power Team 2's dashboard: agents, tasks, events, projects
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _agent_to_summary(agent: AgentRecord, now: datetime) -> AgentSummary:
+def _normalize_ts(iso_str: str | None) -> str | None:
+    """W10: Normalize timestamps to end with Z instead of +00:00."""
+    if iso_str is None:
+        return None
+    return iso_str.replace("+00:00", "Z")
+
+
+async def _agent_to_summary(agent: AgentRecord, now: datetime, storage=None) -> AgentSummary:
     """Convert agent record to API response with derived status."""
     status = derive_agent_status(agent, now)
     hb_age = None
     if agent.last_heartbeat:
         hb_age = int((now - agent.last_heartbeat).total_seconds())
+
+    stats = AgentStats1h()
+    if storage:
+        stats = await storage.compute_agent_stats_1h(agent.tenant_id, agent.agent_id)
+
     return AgentSummary(
         agent_id=agent.agent_id,
         agent_type=agent.agent_type,
@@ -433,12 +482,13 @@ def _agent_to_summary(agent: AgentRecord, now: datetime) -> AgentSummary:
         derived_status=status.value,
         current_task_id=agent.last_task_id,
         current_project_id=agent.last_project_id,
-        last_heartbeat=agent.last_heartbeat.isoformat() if agent.last_heartbeat else None,
+        last_heartbeat=_normalize_ts(agent.last_heartbeat.isoformat()) if agent.last_heartbeat else None,
         heartbeat_age_seconds=hb_age,
         is_stuck=(status == AgentStatus.STUCK),
         stuck_threshold_seconds=agent.stuck_threshold_seconds,
-        first_seen=agent.first_seen.isoformat() if agent.first_seen else None,
-        last_seen=agent.last_seen.isoformat() if agent.last_seen else None,
+        first_seen=_normalize_ts(agent.first_seen.isoformat()) if agent.first_seen else None,
+        last_seen=_normalize_ts(agent.last_seen.isoformat()) if agent.last_seen else None,
+        stats_1h=stats,
     )
 
 
@@ -463,7 +513,7 @@ async def list_agents(
         group=group, limit=limit,
     )
 
-    summaries = [_agent_to_summary(a, now) for a in agents]
+    summaries = [await _agent_to_summary(a, now, storage) for a in agents]
 
     # Filter by derived status
     if status:
@@ -495,9 +545,10 @@ async def get_agent(
 
     agent = await storage.get_agent(tenant_id, agent_id)
     if agent is None:
-        raise HTTPException(404, "Agent not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Agent not found", "status": 404})
 
-    return _agent_to_summary(agent, now).model_dump(mode="json")
+    summary = await _agent_to_summary(agent, now, storage)
+    return summary.model_dump(mode="json")
 
 
 # --- B2.3.3: GET /v1/agents/{agent_id}/pipeline ---
@@ -523,15 +574,20 @@ async def list_tasks(
     task_type: str | None = None,
     status: str | None = None,
     environment: str | None = None,
+    since: str | None = None,
+    until: str | None = None,
     sort: str = "newest",
     limit: int = Query(default=50, le=200),
     cursor: str | None = None,
 ):
     storage = request.app.state.storage
     tenant_id = request.state.tenant_id
+    since_dt = _parse_dt(since) if since else None
+    until_dt = _parse_dt(until) if until else None
     page = await storage.list_tasks(
         tenant_id, agent_id=agent_id, project_id=project_id,
         task_type=task_type, status=status, environment=environment,
+        since=since_dt, until=until_dt,
         sort=sort, limit=limit, cursor=cursor,
     )
     return page.model_dump(mode="json")
@@ -549,7 +605,7 @@ async def get_task_timeline(
 
     events = await storage.get_task_events(tenant_id, task_id)
     if not events:
-        raise HTTPException(404, "Task not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Task not found", "status": 404})
 
     event_dicts = [e.model_dump(mode="json") for e in events]
     event_types = {e.event_type for e in events}
@@ -573,7 +629,32 @@ async def get_task_timeline(
             if isinstance(data, dict):
                 total_cost += data.get("cost", 0) or 0
 
-    # Build action tree
+    # F6: Plan overlay — build plan from plan_created and plan_step payloads
+    plan = None
+    plan_steps: list[dict] = []
+    plan_goal: str | None = None
+    plan_completed = 0
+    plan_total = 0
+    for e in events:
+        if e.payload and isinstance(e.payload, dict):
+            kind = e.payload.get("kind")
+            data = e.payload.get("data", {})
+            if kind == "plan_created" and isinstance(data, dict):
+                plan_steps = data.get("steps", [])
+                plan_goal = e.payload.get("summary")
+                plan_total = len(plan_steps)
+            elif kind == "plan_step" and isinstance(data, dict):
+                plan_total = data.get("total_steps", plan_total)
+                if data.get("action") == "completed":
+                    plan_completed += 1
+    if plan_steps or plan_total > 0:
+        plan = {
+            "goal": plan_goal,
+            "steps": plan_steps,
+            "progress": {"completed": plan_completed, "total": plan_total},
+        }
+
+    # F5: Build action tree with name, status, duration_ms
     actions: dict[str, dict] = {}
     for e in events:
         if e.event_type in ("action_started", "action_completed", "action_failed"):
@@ -582,11 +663,28 @@ async def get_task_timeline(
                 actions[aid] = {
                     "action_id": aid,
                     "parent_action_id": e.parent_action_id,
+                    "name": None,
+                    "status": None,
+                    "duration_ms": None,
                     "events": [],
                     "children": [],
                 }
             if aid:
                 actions[aid]["events"].append(e.model_dump(mode="json"))
+                if e.event_type == "action_started":
+                    # Extract name from payload
+                    if e.payload and isinstance(e.payload, dict):
+                        data = e.payload.get("data", {})
+                        if isinstance(data, dict):
+                            actions[aid]["name"] = data.get("action_name") or e.payload.get("summary")
+                    if not actions[aid]["name"]:
+                        actions[aid]["name"] = e.payload.get("summary") if e.payload else None
+                elif e.event_type == "action_completed":
+                    actions[aid]["status"] = e.status or "completed"
+                    actions[aid]["duration_ms"] = e.duration_ms
+                elif e.event_type == "action_failed":
+                    actions[aid]["status"] = e.status or "failed"
+                    actions[aid]["duration_ms"] = e.duration_ms
 
     # Nest children
     roots: list[dict] = []
@@ -628,6 +726,7 @@ async def get_task_timeline(
         events=event_dicts,
         action_tree=roots,
         error_chains=error_chains,
+        plan=plan,
     )
     return timeline.model_dump(mode="json")
 
@@ -647,6 +746,7 @@ async def list_events(
     since: str | None = None,
     until: str | None = None,
     exclude_heartbeats: bool = True,
+    payload_kind: str | None = None,
     limit: int = Query(default=50, le=200),
     cursor: str | None = None,
 ):
@@ -668,6 +768,7 @@ async def list_events(
         since=since_dt,
         until=until_dt,
         exclude_heartbeats=exclude_heartbeats,
+        payload_kind=payload_kind,
         limit=limit,
         cursor=cursor,
     )
@@ -682,6 +783,8 @@ async def get_metrics(
     project_id: str | None = None,
     agent_id: str | None = None,
     environment: str | None = None,
+    metric: str | None = None,
+    group_by: str | None = None,
     range: str = "1h",
     interval: str | None = None,
 ):
@@ -692,6 +795,8 @@ async def get_metrics(
         agent_id=agent_id,
         project_id=project_id,
         environment=environment,
+        metric=metric,
+        group_by=group_by,
         range=range,
         interval=interval,
     )
@@ -829,7 +934,7 @@ async def get_project(
     tenant_id = request.state.tenant_id
     project = await storage.get_project(tenant_id, project_id)
     if project is None:
-        raise HTTPException(404, "Project not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
     return project.model_dump(mode="json")
 
 
@@ -843,7 +948,7 @@ async def update_project(
     tenant_id = request.state.tenant_id
     project = await storage.update_project(tenant_id, project_id, body)
     if project is None:
-        raise HTTPException(404, "Project not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
     return project.model_dump(mode="json")
 
 
@@ -856,8 +961,10 @@ async def delete_project(
     tenant_id = request.state.tenant_id
     project = await storage.get_project(tenant_id, project_id)
     if project is None:
-        raise HTTPException(404, "Project not found")
-    # TODO: delete events, project_agents, alert_rules for this project
+        raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
+    # W7: Protect default project
+    if project.slug == "default":
+        raise HTTPException(400, {"error": "cannot_delete_default", "message": "Cannot delete the default project", "status": 400})
     await storage.archive_project(tenant_id, project_id)
     return {"status": "deleted"}
 
@@ -871,7 +978,7 @@ async def archive_project(
     tenant_id = request.state.tenant_id
     ok = await storage.archive_project(tenant_id, project_id)
     if not ok:
-        raise HTTPException(404, "Project not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
     return {"status": "archived"}
 
 
@@ -886,7 +993,7 @@ async def unarchive_project(
         tenant_id, project_id, ProjectUpdate()
     )
     if project is None:
-        raise HTTPException(404, "Project not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
     # Manually set is_archived to False since ProjectUpdate doesn't have it
     async with storage._locks["projects"]:
         for row in storage._tables["projects"]:
@@ -906,7 +1013,7 @@ async def list_project_agents(
     tenant_id = request.state.tenant_id
     now = datetime.now(timezone.utc)
     agents = await storage.list_agents(tenant_id, project_id=project_id)
-    summaries = [_agent_to_summary(a, now) for a in agents]
+    summaries = [await _agent_to_summary(a, now, storage) for a in agents]
     return {"data": [s.model_dump(mode="json") for s in summaries]}
 
 
@@ -987,7 +1094,7 @@ async def update_alert_rule(
     tenant_id = request.state.tenant_id
     rule = await storage.update_alert_rule(tenant_id, rule_id, body)
     if rule is None:
-        raise HTTPException(404, "Alert rule not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Alert rule not found", "status": 404})
     return rule.model_dump(mode="json")
 
 
@@ -1000,7 +1107,7 @@ async def delete_alert_rule(
     tenant_id = request.state.tenant_id
     ok = await storage.delete_alert_rule(tenant_id, rule_id)
     if not ok:
-        raise HTTPException(404, "Alert rule not found")
+        raise HTTPException(404, {"error": "not_found", "message": "Alert rule not found", "status": 404})
     return {"status": "deleted"}
 
 
