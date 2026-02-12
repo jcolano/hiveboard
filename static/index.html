@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiveBoard v3 — Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link href="css/hiveboard.css" rel="stylesheet" />
+
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo"><div class="logo-hex"><div class="logo-hex-inner"></div></div>Hive<span>Board</span></div>
+            <div class="workspace-badge">acme-ai-ops</div>
+            <div class="view-tabs">
+                <button class="view-tab active" onclick="switchView('mission')">Mission Control</button>
+                <button class="view-tab" onclick="switchView('cost')">Cost Explorer</button>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="status-pill"><div class="status-dot"></div> Connected</div>
+            <select class="env-selector"><option>production</option><option>staging</option></select>
+        </div>
+    </div>
+
+    <div class="active-filter-bar" id="filterBar">
+        <div class="filter-pill-global" id="filterPillText">⬡ Filtering</div>
+        <button class="filter-clear-btn" onclick="clearGlobalFilter()">✕ Clear</button>
+    </div>
+
+    <div class="main-layout" id="mainLayout">
+        <!-- LEFT: THE HIVE -->
+        <div class="hive-panel">
+            <div class="panel-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="panel-title">The Hive</div>
+                    <div class="attention-badge" id="attentionBadge" style="display:none;"></div>
+                    <div class="panel-count" id="agentCount">6 agents</div>
+                </div>
+            </div>
+            <div class="hive-list" id="hiveList"></div>
+        </div>
+
+        <!-- CENTER -->
+        <div class="center-panel">
+            <!-- Mission Control View -->
+            <div class="center-view active" id="viewMission">
+                <div class="summary-bar" id="summaryBar"></div>
+                <div class="metrics-row" id="metricsRow"></div>
+
+                <div class="timeline-section">
+                    <div class="timeline-header" id="timelineHeader">
+                        <div class="timeline-header-left">
+                            <div class="panel-title">Timeline</div>
+                            <div class="timeline-task-id" id="tlTaskId">task_lead-4821</div>
+                            <div class="timeline-task-meta" id="tlMeta">
+                                <span>⏱ 12.4s</span>
+                                <span class="clickable-entity" onclick="selectAgent('lead-qualifier')">🤖 lead-qualifier</span>
+                                <span style="color: var(--success);">✓ completed</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div class="permalink-btn" onclick="copyPermalink()">⧉ Permalink</div>
+                        </div>
+                    </div>
+                    <div class="plan-bar" id="planBar">
+                        <div class="plan-bar-header">
+                            <div class="plan-bar-label" id="planLabel">Plan</div>
+                            <div class="plan-bar-progress" id="planProgress"></div>
+                        </div>
+                        <div class="plan-steps" id="planSteps"></div>
+                    </div>
+                    <div class="timeline-canvas" id="timelineCanvas"></div>
+                    <div class="pinned-detail" id="pinnedDetail">
+                        <div class="pinned-detail-header">
+                            <div class="pinned-detail-title" id="pinnedTitle">—</div>
+                            <button class="pinned-detail-close" onclick="unpinDetail()">✕ Close</button>
+                        </div>
+                        <div class="pinned-detail-body" id="pinnedBody"></div>
+                    </div>
+                </div>
+
+                <div class="tasks-table-section">
+                    <table class="tasks-table">
+                        <thead>
+                            <tr>
+                                <th>Task ID</th>
+                                <th>Agent</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                                <th>LLM</th>
+                                <th>Cost</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tasksBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Agent Detail View (v3) -->
+            <div class="center-view" id="viewAgentDetail">
+                <div class="agent-detail-header">
+                    <div class="agent-detail-identity">
+                        <div class="agent-detail-name" id="detailAgentName">—</div>
+                        <div id="detailAgentBadge"></div>
+                    </div>
+                    <button class="agent-detail-close" onclick="closeAgentDetail()">✕ Close Detail</button>
+                </div>
+                <div class="detail-tabs" id="detailTabs">
+                    <div class="detail-tab active" onclick="switchDetailTab('tasks')">Tasks</div>
+                    <div class="detail-tab" onclick="switchDetailTab('pipeline')">Pipeline</div>
+                </div>
+                <div class="detail-tab-content active" id="detailTabTasks"></div>
+                <div class="detail-tab-content" id="detailTabPipeline"></div>
+            </div>
+
+            <!-- Cost Explorer View (v3) -->
+            <div class="center-view" id="viewCost">
+                <div class="cost-ribbon" id="costRibbon"></div>
+                <div class="cost-tables" id="costTables"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT: ACTIVITY STREAM -->
+        <div class="stream-panel">
+            <div class="panel-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div class="panel-title">Activity</div>
+                    <div class="live-badge"><div class="live-dot"></div> Live</div>
+                </div>
+                <div class="panel-count" id="eventCount">0 events</div>
+            </div>
+            <div class="stream-filters" id="streamFilters"></div>
+            <div class="stream-list" id="streamList"></div>
+        </div>
+    </div>
+
+    <script src="js/hiveboard-data-v3.js"></script>
+
+</body>
+</html>

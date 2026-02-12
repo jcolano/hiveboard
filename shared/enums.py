@@ -45,6 +45,9 @@ class Severity(StrEnum):
     ERROR = "error"
 
 
+VALID_SEVERITIES = {s.value for s in Severity}
+
+
 # Auto-defaults by event type (Section 9)
 SEVERITY_DEFAULTS: dict[str, Severity] = {
     EventType.HEARTBEAT: Severity.DEBUG,

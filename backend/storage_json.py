@@ -44,6 +44,7 @@ from shared.models import (
     ApiKeyInfo,
     ApiKeyRecord,
     CostSummary,
+    CostTimeBucket,
     Event,
     LlmCallRecord,
     MetricsResponse,
@@ -406,7 +407,7 @@ class JsonStorageBackend:
         last_task_id: str | None = None,
         last_project_id: str | None = None,
         stuck_threshold_seconds: int = 300,
-    ) -> None:
+    ) -> AgentRecord:
         async with self._locks["agents"]:
             existing = None
             for row in self._tables["agents"]:
@@ -436,8 +437,13 @@ class JsonStorageBackend:
                 )
                 self._tables["agents"].append(rec.model_dump(mode="json"))
             else:
+                # Compute previous status before updating
+                prev_agent = AgentRecord(**existing)
+                prev_status = derive_agent_status(prev_agent).value
+
                 # Update with COALESCE semantics
                 existing["last_seen"] = last_seen.isoformat()
+                existing["previous_status"] = prev_status
                 if agent_type is not None:
                     existing["agent_type"] = agent_type
                 if agent_version is not None:
@@ -455,8 +461,10 @@ class JsonStorageBackend:
                 if last_project_id is not None:
                     existing["last_project_id"] = last_project_id
                 existing["stuck_threshold_seconds"] = stuck_threshold_seconds
+                rec = AgentRecord(**existing)
 
             self._persist("agents")
+            return rec
 
     async def get_agent(
         self, tenant_id: str, agent_id: str
@@ -502,6 +510,57 @@ class JsonStorageBackend:
         results.sort(key=lambda a: a.last_seen, reverse=True)
         return results[:limit]
 
+    async def compute_agent_stats_1h(
+        self,
+        tenant_id: str,
+        agent_id: str,
+    ) -> AgentStats1h:
+        now = _now_utc()
+        since = datetime.fromtimestamp(
+            now.timestamp() - 3600, tz=timezone.utc
+        )
+        events = self._filter_events(
+            tenant_id,
+            agent_id=agent_id,
+            since=since,
+            exclude_heartbeats=True,
+        )
+
+        tasks_completed = 0
+        tasks_failed = 0
+        durations: list[int] = []
+        total_cost = 0.0
+
+        for e in events:
+            if e["event_type"] == "task_completed":
+                tasks_completed += 1
+                if e.get("duration_ms"):
+                    durations.append(e["duration_ms"])
+            elif e["event_type"] == "task_failed":
+                tasks_failed += 1
+            p = e.get("payload")
+            if p and isinstance(p, dict) and p.get("kind") == "llm_call":
+                data = p.get("data", {})
+                if isinstance(data, dict):
+                    total_cost += data.get("cost", 0) or 0
+
+        total_tasks = tasks_completed + tasks_failed
+        success_rate = (
+            (tasks_completed / total_tasks * 100) if total_tasks > 0 else None
+        )
+        avg_duration = (
+            int(sum(durations) / len(durations)) if durations else None
+        )
+
+        return AgentStats1h(
+            tasks_completed=tasks_completed,
+            tasks_failed=tasks_failed,
+            success_rate=success_rate,
+            avg_duration_ms=avg_duration,
+            total_cost=total_cost if total_cost > 0 else None,
+            throughput=tasks_completed,
+        )
+
     # ───────────────────────────────────────────────────────────────────
     #  PROJECT-AGENT JUNCTION
     # ───────────────────────────────────────────────────────────────────
@@ -530,7 +589,7 @@ class JsonStorageBackend:
     #  EVENT INGESTION
     # ───────────────────────────────────────────────────────────────────
 
-    async def insert_events(self, events: list[Event]) -> int:
+    async def insert_events(self, events: list[Event], *, key_type: str | None = None) -> int:
         async with self._locks["events"]:
             existing_keys = {
                 (row["tenant_id"], row["event_id"])
@@ -542,7 +601,10 @@ class JsonStorageBackend:
                 if key in existing_keys:
                     continue
                 existing_keys.add(key)
-                self._tables["events"].append(evt.model_dump(mode="json"))
+                row = evt.model_dump(mode="json")
+                if key_type:
+                    row["key_type"] = key_type
+                self._tables["events"].append(row)
                 inserted += 1
             if inserted > 0:
                 self._persist("events")
@@ -566,6 +628,8 @@ class JsonStorageBackend:
         since: datetime | None = None,
         until: datetime | None = None,
         exclude_heartbeats: bool = True,
+        payload_kind: str | None = None,
+        key_type: str | None = None,
         limit: int = 50,
         cursor: str | None = None,
     ) -> Page[Event]:
@@ -581,6 +645,8 @@ class JsonStorageBackend:
             since=since,
             until=until,
             exclude_heartbeats=exclude_heartbeats,
+            payload_kind=payload_kind,
+            key_type=key_type,
         )
         # Reverse chronological
         rows.sort(key=lambda r: r["timestamp"], reverse=True)
@@ -635,6 +701,8 @@ class JsonStorageBackend:
         since: datetime | None = None,
         until: datetime | None = None,
         exclude_heartbeats: bool = True,
+        payload_kind: str | None = None,
+        key_type: str | None = None,
     ) -> list[dict[str, Any]]:
         """Filter events in memory — mirrors a SQL WHERE clause."""
         results = []
@@ -662,6 +730,16 @@ class JsonStorageBackend:
                 continue
             if exclude_heartbeats and row["event_type"] == "heartbeat":
                 continue
+            if payload_kind:
+                p = row.get("payload")
+                if not p or not isinstance(p, dict) or p.get("kind") != payload_kind:
+                    continue
+            if key_type:
+                row_key_type = row.get("key_type")
+                if key_type == "test":
+                    pass  # test keys see all events
+                elif key_type == "live" and row_key_type == "test":
+                    continue  # live keys don't see test events
             if since:
                 ts = _parse_dt(row["timestamp"])
                 if ts and ts < since:
@@ -686,6 +764,8 @@ class JsonStorageBackend:
         task_type: str | None = None,
         status: str | None = None,
         environment: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         sort: str = "newest",
         limit: int = 50,
         cursor: str | None = None,
@@ -721,6 +801,13 @@ class JsonStorageBackend:
             first = events[0]
             last = events[-1]
 
+            # F4: since/until filter on task started_at
+            started_at_dt = _parse_dt(first["timestamp"])
+            if since and started_at_dt and started_at_dt < since:
+                continue
+            if until and started_at_dt and started_at_dt > until:
+                continue
+
             # Duration from task_completed/task_failed event
             duration_ms = None
             completed_at = None
@@ -729,14 +816,20 @@ class JsonStorageBackend:
                     duration_ms = e.get("duration_ms")
                     completed_at = e["timestamp"]
 
-            # Cost: sum from llm_call payloads
+            # Cost + token counts: sum from llm_call payloads (F3)
             total_cost = 0.0
+            total_tokens_in = 0
+            total_tokens_out = 0
+            llm_call_count = 0
             for e in events:
                 p = e.get("payload")
                 if p and isinstance(p, dict) and p.get("kind") == "llm_call":
                     data = p.get("data", {})
                     if isinstance(data, dict):
                         total_cost += data.get("cost", 0) or 0
+                        total_tokens_in += data.get("tokens_in", 0) or 0
+                        total_tokens_out += data.get("tokens_out", 0) or 0
+                        llm_call_count += 1
 
             # Counts
             action_count = sum(
@@ -766,6 +859,9 @@ class JsonStorageBackend:
                     EventType.APPROVAL_REQUESTED in event_types
                     or EventType.APPROVAL_RECEIVED in event_types
                 ),
+                llm_call_count=llm_call_count,
+                total_tokens_in=total_tokens_in,
+                total_tokens_out=total_tokens_out,
             ))
 
         # Sort
@@ -964,11 +1060,46 @@ class JsonStorageBackend:
             ))
             t += interval_secs
 
+        # F10: group_by support
+        groups = None
+        if group_by and group_by in ("agent", "model"):
+            grouped: dict[str, dict] = {}
+            for e in events:
+                if group_by == "agent":
+                    key = e.get("agent_id", "unknown")
+                else:
+                    p = e.get("payload")
+                    if p and isinstance(p, dict) and p.get("kind") == "llm_call":
+                        data = p.get("data", {})
+                        key = data.get("model", "unknown") if isinstance(data, dict) else "unknown"
+                    else:
+                        continue
+
+                if key not in grouped:
+                    grouped[key] = {
+                        group_by: key,
+                        "tasks_completed": 0,
+                        "tasks_failed": 0,
+                        "total_cost": 0.0,
+                    }
+                if e["event_type"] == "task_completed":
+                    grouped[key]["tasks_completed"] += 1
+                elif e["event_type"] == "task_failed":
+                    grouped[key]["tasks_failed"] += 1
+                p = e.get("payload")
+                if p and isinstance(p, dict) and p.get("kind") == "llm_call":
+                    data = p.get("data", {})
+                    if isinstance(data, dict):
+                        grouped[key]["total_cost"] += data.get("cost", 0) or 0
+
+            groups = list(grouped.values())
+
         return MetricsResponse(
             range=range,
             interval=interval,
             summary=summary,
             timeseries=buckets,
+            groups=groups,
         )
 
     # ───────────────────────────────────────────────────────────────────
@@ -1031,29 +1162,41 @@ class JsonStorageBackend:
         )
 
         total_cost = 0.0
+        total_tokens_in = 0
+        total_tokens_out = 0
         by_agent: dict[str, dict] = {}
         by_model: dict[str, dict] = {}
 
         for row in rows:
             data = row["payload"]["data"]
             cost = data.get("cost", 0) or 0
+            t_in = data.get("tokens_in", 0) or 0
+            t_out = data.get("tokens_out", 0) or 0
             total_cost += cost
+            total_tokens_in += t_in
+            total_tokens_out += t_out
             aid = row["agent_id"]
             mdl = data.get("model", "unknown")
 
             if aid not in by_agent:
-                by_agent[aid] = {"agent_id": aid, "cost": 0, "call_count": 0}
+                by_agent[aid] = {"agent_id": aid, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0}
             by_agent[aid]["cost"] += cost
             by_agent[aid]["call_count"] += 1
+            by_agent[aid]["tokens_in"] += t_in
+            by_agent[aid]["tokens_out"] += t_out
 
             if mdl not in by_model:
-                by_model[mdl] = {"model": mdl, "cost": 0, "call_count": 0}
+                by_model[mdl] = {"model": mdl, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0}
             by_model[mdl]["cost"] += cost
             by_model[mdl]["call_count"] += 1
+            by_model[mdl]["tokens_in"] += t_in
+            by_model[mdl]["tokens_out"] += t_out
 
         return CostSummary(
             total_cost=total_cost,
             call_count=len(rows),
+            total_tokens_in=total_tokens_in,
+            total_tokens_out=total_tokens_out,
             by_agent=list(by_agent.values()),
             by_model=list(by_model.values()),
         )
@@ -1127,7 +1270,7 @@ class JsonStorageBackend:
         project_id: str | None = None,
         range: str = "24h",
         interval: str | None = None,
-    ) -> list[TimeseriesBucket]:
+    ) -> list[CostTimeBucket]:
         now = _now_utc()
         range_secs = RANGE_SECONDS.get(range, 86400)
         since = datetime.fromtimestamp(
@@ -1140,7 +1283,7 @@ class JsonStorageBackend:
             tenant_id, agent_id=agent_id, project_id=project_id, since=since
         )
 
-        buckets: list[TimeseriesBucket] = []
+        buckets: list[CostTimeBucket] = []
         t = since.timestamp()
         end = now.timestamp()
         while t < end:
@@ -1150,16 +1293,22 @@ class JsonStorageBackend:
             )
             b_cost = 0.0
             b_count = 0
+            b_tokens_in = 0
+            b_tokens_out = 0
             for r in rows:
                 ts = _parse_dt(r["timestamp"])
                 if ts and bucket_since <= ts < bucket_until:
                     data = r["payload"]["data"]
                     b_cost += data.get("cost", 0) or 0
+                    b_tokens_in += data.get("tokens_in", 0) or 0
+                    b_tokens_out += data.get("tokens_out", 0) or 0
                     b_count += 1
-            buckets.append(TimeseriesBucket(
+            buckets.append(CostTimeBucket(
                 timestamp=bucket_since.isoformat(),
                 cost=b_cost,
-                throughput=b_count,
+                call_count=b_count,
+                tokens_in=b_tokens_in,
+                tokens_out=b_tokens_out,
             ))
             t += interval_secs
 
@@ -1196,7 +1345,8 @@ class JsonStorageBackend:
         if queue_events:
             queue_events.sort(key=lambda e: e["timestamp"], reverse=True)
             latest = queue_events[0]
-            queue = latest["payload"].get("data", {})
+            queue = dict(latest["payload"].get("data", {}))
+            queue["snapshot_at"] = latest["timestamp"]
 
         # TODOs: group by todo_id, take latest action, filter active
         todo_events = [

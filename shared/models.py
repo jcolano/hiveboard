@@ -324,6 +324,7 @@ class AgentRecord(BaseModel):
     last_project_id: str | None = None
     stuck_threshold_seconds: int = 300
     is_registered: bool = True
+    previous_status: str | None = None
 
 
 class ProjectAgentRecord(BaseModel):
@@ -459,6 +460,9 @@ class TaskSummary(BaseModel):
     error_count: int = 0
     has_escalation: bool = False
     has_human_intervention: bool = False
+    llm_call_count: int = 0
+    total_tokens_in: int = 0
+    total_tokens_out: int = 0
 
 
 class TimelineSummary(BaseModel):
@@ -476,6 +480,7 @@ class TimelineSummary(BaseModel):
     events: list[dict[str, Any]]
     action_tree: list[dict[str, Any]]
     error_chains: list[dict[str, Any]]
+    plan: dict[str, Any] | None = None
 
 
 class MetricsSummary(BaseModel):
@@ -506,14 +511,25 @@ class MetricsResponse(BaseModel):
     interval: str
     summary: MetricsSummary
     timeseries: list[TimeseriesBucket]
+    groups: list[dict[str, Any]] | None = None
 
 
 class CostSummary(BaseModel):
     """GET /v1/cost response — API Spec Section 4.7."""
     total_cost: float
     call_count: int
+    total_tokens_in: int = 0
+    total_tokens_out: int = 0
     by_agent: list[dict[str, Any]] = Field(default_factory=list)
     by_model: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CostTimeBucket(BaseModel):
+    timestamp: str
+    cost: float = 0
+    call_count: int = 0
+    tokens_in: int = 0
+    tokens_out: int = 0
 
 
 class LlmCallRecord(BaseModel):

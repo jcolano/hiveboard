@@ -283,3 +283,207 @@ class TestQueryEndpoints:
         )
         assert r.status_code == 201
         assert r.json()["name"] == "Agent stuck"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  PHASE 2 FEATURE TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestPhase2Features:
+    async def _seed(self, client: AsyncClient):
+        batch = _load_fixture()
+        await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+
+    async def test_severity_validation_warning(self, client: AsyncClient):
+        """F1: Invalid severity should produce a warning, not rejection."""
+        batch = {
+            "envelope": {"agent_id": "test-agent"},
+            "events": [{
+                "event_id": "sev-1",
+                "timestamp": "2026-02-10T14:00:00.000Z",
+                "event_type": "heartbeat",
+                "severity": "not_a_severity",
+            }],
+        }
+        r = await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["accepted"] == 1
+        assert body["rejected"] == 0
+        assert len(body.get("warnings", [])) > 0
+        assert any("severity" in w.get("warning", "").lower() for w in body["warnings"])
+
+    async def test_agents_have_stats_1h(self, client: AsyncClient):
+        """F2: GET /v1/agents should include stats_1h."""
+        await self._seed(client)
+        r = await client.get("/v1/agents", headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        data = r.json()["data"]
+        assert len(data) >= 1
+        assert "stats_1h" in data[0]
+        assert "tasks_completed" in data[0]["stats_1h"]
+
+    async def test_tasks_since_until_params(self, client: AsyncClient):
+        """F4: Tasks endpoint should accept since/until."""
+        await self._seed(client)
+        r = await client.get(
+            "/v1/tasks?since=2026-02-10T14:00:00Z",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+
+    async def test_timeline_has_plan(self, client: AsyncClient):
+        """F6: Timeline should include plan field."""
+        await self._seed(client)
+        r = await client.get(
+            "/v1/tasks/task_lead-4821/timeline",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+        body = r.json()
+        # plan may be null if no plan events, but the field should exist
+        assert "plan" in body
+
+    async def test_timeline_action_tree_shape(self, client: AsyncClient):
+        """F5: Action tree nodes should have name, status, duration_ms."""
+        await self._seed(client)
+        r = await client.get(
+            "/v1/tasks/task_lead-4821/timeline",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+        body = r.json()
+        if body["action_tree"]:
+            node = body["action_tree"][0]
+            assert "name" in node
+            assert "status" in node
+            assert "duration_ms" in node
+
+    async def test_events_payload_kind_filter(self, client: AsyncClient):
+        """F7: Events endpoint should accept payload_kind."""
+        await self._seed(client)
+        r = await client.get(
+            "/v1/events?payload_kind=llm_call",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+        data = r.json()["data"]
+        for e in data:
+            assert e.get("payload", {}).get("kind") == "llm_call"
+
+    async def test_cost_has_token_totals(self, client: AsyncClient):
+        """F8: Cost response should include total_tokens_in/out."""
+        await self._seed(client)
+        r = await client.get("/v1/cost?range=30d", headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        body = r.json()
+        assert "total_tokens_in" in body
+        assert "total_tokens_out" in body
+
+    async def test_metrics_group_by(self, client: AsyncClient):
+        """F10: Metrics should support group_by parameter."""
+        await self._seed(client)
+        r = await client.get(
+            "/v1/metrics?range=30d&group_by=agent",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert "groups" in body
+
+    async def test_validation_error_format(self, client: AsyncClient):
+        """W1/W2: Validation errors should return 400 with field details."""
+        r = await client.post(
+            "/v1/projects",
+            json={},  # Missing required fields
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 400
+        body = r.json()
+        assert body["error"] == "validation_error"
+        assert "details" in body
+        assert "fields" in body["details"]
+
+    async def test_404_structured_error(self, client: AsyncClient):
+        """W8: 404 errors should use structured format."""
+        r = await client.get(
+            "/v1/agents/nonexistent",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 404
+        body = r.json()
+        assert body["error"] == "not_found"
+        assert "message" in body
+
+    async def test_default_project_cannot_be_deleted(self, client: AsyncClient):
+        """W7: Default project should be protected from deletion."""
+        # Find the default project
+        r = await client.get("/v1/projects", headers=AUTH_HEADERS)
+        projects = r.json()["data"]
+        default_project = next(
+            (p for p in projects if p["slug"] == "default"), None
+        )
+        assert default_project is not None
+
+        r = await client.delete(
+            f"/v1/projects/{default_project['project_id']}",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 400
+        assert r.json()["error"] == "cannot_delete_default"
+
+    async def test_pipeline_queue_snapshot_at(self, client: AsyncClient):
+        """W5: Queue should include snapshot_at."""
+        await self._seed(client)
+        r = await client.get(
+            "/v1/agents/lead-qualifier/pipeline",
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 200
+        body = r.json()
+        if body.get("queue"):
+            assert "snapshot_at" in body["queue"]
+
+    async def test_batch_event_ordering(self, client: AsyncClient):
+        """W3: Batch events should be sorted by timestamp so last_event_type is correct."""
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        earlier = (now - timedelta(seconds=5)).isoformat()
+        later = now.isoformat()
+        batch = {
+            "envelope": {"agent_id": "order-agent"},
+            "events": [
+                {
+                    "event_id": "later",
+                    "timestamp": later,
+                    "event_type": "task_started",
+                    "task_id": "t1",
+                },
+                {
+                    "event_id": "earlier",
+                    "timestamp": earlier,
+                    "event_type": "heartbeat",
+                },
+            ],
+        }
+        r = await client.post("/v1/ingest", json=batch, headers=AUTH_HEADERS)
+        assert r.status_code == 200
+
+        # Agent's last_event_type should be task_started (chronologically last)
+        r2 = await client.get("/v1/agents/order-agent", headers=AUTH_HEADERS)
+        assert r2.status_code == 200
+        # task_started is the later event, so status should be processing
+        assert r2.json()["derived_status"] == "processing"
+
+    async def test_tasks_have_token_counts(self, client: AsyncClient):
+        """F3: Tasks should include llm_call_count, total_tokens_in, total_tokens_out."""
+        await self._seed(client)
+        r = await client.get("/v1/tasks", headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        tasks = r.json()["data"]
+        assert len(tasks) > 0
+        for t in tasks:
+            assert "llm_call_count" in t
+            assert "total_tokens_in" in t
+            assert "total_tokens_out" in t

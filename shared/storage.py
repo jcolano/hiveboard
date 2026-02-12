@@ -32,6 +32,7 @@ from typing import Protocol, runtime_checkable
 
 from .models import (
     AgentRecord,
+    AgentStats1h,
     AgentSummary,
     AlertHistoryRecord,
     AlertRuleCreate,
@@ -40,6 +41,7 @@ from .models import (
     ApiKeyInfo,
     ApiKeyRecord,
     CostSummary,
+    CostTimeBucket,
     Event,
     LlmCallRecord,
     MetricsResponse,
@@ -163,6 +165,19 @@ class StorageBackend(Protocol):
     #  AGENTS
     # ───────────────────────────────────────────────────────────────────
 
+    async def compute_agent_stats_1h(
+        self,
+        tenant_id: str,
+        agent_id: str,
+    ) -> AgentStats1h:
+        """Compute rolling 1-hour stats for an agent.
+
+        Maps to: SELECT COUNT(*), AVG(...) FROM events
+                 WHERE tenant_id = ? AND agent_id = ?
+                   AND timestamp > NOW() - INTERVAL 1 HOUR
+        """
+        ...
+
     async def upsert_agent(
         self,
         tenant_id: str,
@@ -178,7 +193,7 @@ class StorageBackend(Protocol):
         last_task_id: str | None = None,
         last_project_id: str | None = None,
         stuck_threshold_seconds: int = 300,
-    ) -> None:
+    ) -> AgentRecord:
         """Create or update agent profile cache.
 
         Called on every ingestion batch. Sets first_seen on creation.
@@ -251,6 +266,8 @@ class StorageBackend(Protocol):
         since: datetime | None = None,
         until: datetime | None = None,
         exclude_heartbeats: bool = True,
+        payload_kind: str | None = None,
+        key_type: str | None = None,
         limit: int = 50,
         cursor: str | None = None,
     ) -> Page[Event]:
@@ -286,6 +303,8 @@ class StorageBackend(Protocol):
         task_type: str | None = None,
         status: str | None = None,
         environment: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
         sort: str = "newest",
         limit: int = 50,
         cursor: str | None = None,
@@ -369,7 +388,7 @@ class StorageBackend(Protocol):
         project_id: str | None = None,
         range: str = "24h",
         interval: str | None = None,
-    ) -> list[TimeseriesBucket]:
+    ) -> list[CostTimeBucket]:
         """Cost timeseries bucketed by interval."""
         ...
 

@@ -606,3 +606,228 @@ class TestAgentStatusDerivation:
             last_heartbeat=old, last_event_type="task_failed"
         )
         assert derive_agent_status(agent) == AgentStatus.STUCK
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  PHASE 2 FEATURE TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestComputeAgentStats1h:
+    async def _seed(self, storage: JsonStorageBackend, sample_batch: dict):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = _expand_fixture_events(sample_batch, "t1")
+        await storage.insert_events(events)
+
+    async def test_stats_1h_returns_defaults_for_unknown_agent(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        stats = await storage.compute_agent_stats_1h("t1", "nonexistent")
+        assert stats.tasks_completed == 0
+        assert stats.tasks_failed == 0
+        assert stats.success_rate is None
+        assert stats.total_cost is None
+
+    async def test_stats_1h_with_recent_events(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        now = datetime.now(timezone.utc)
+        events = [
+            Event(
+                event_id="tc1", tenant_id="t1", agent_id="a1",
+                timestamp=now.isoformat(), received_at=now.isoformat(),
+                event_type="task_completed", duration_ms=1000,
+            ),
+            Event(
+                event_id="tf1", tenant_id="t1", agent_id="a1",
+                timestamp=now.isoformat(), received_at=now.isoformat(),
+                event_type="task_failed",
+            ),
+            Event(
+                event_id="llm1", tenant_id="t1", agent_id="a1",
+                timestamp=now.isoformat(), received_at=now.isoformat(),
+                event_type="custom",
+                payload={"kind": "llm_call", "data": {"name": "test", "model": "gpt-4", "cost": 0.05}},
+            ),
+        ]
+        await storage.insert_events(events)
+        stats = await storage.compute_agent_stats_1h("t1", "a1")
+        assert stats.tasks_completed == 1
+        assert stats.tasks_failed == 1
+        assert stats.success_rate == 50.0
+        assert stats.avg_duration_ms == 1000
+        assert abs(stats.total_cost - 0.05) < 0.001
+
+
+class TestPayloadKindFilter:
+    async def test_filter_events_by_payload_kind(self, storage: JsonStorageBackend, sample_batch: dict):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = _expand_fixture_events(sample_batch, "t1")
+        await storage.insert_events(events)
+        page = await storage.get_events("t1", payload_kind="llm_call", exclude_heartbeats=False)
+        assert len(page.data) > 0
+        for e in page.data:
+            assert e.payload is not None
+            assert e.payload.get("kind") == "llm_call"
+
+    async def test_filter_events_payload_kind_no_match(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        page = await storage.get_events("t1", payload_kind="nonexistent", exclude_heartbeats=False)
+        assert len(page.data) == 0
+
+
+class TestTasksSinceUntil:
+    async def test_tasks_since_filter(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = [
+            Event(
+                event_id="e1", tenant_id="t1", agent_id="a1", task_id="old-task",
+                timestamp="2026-01-01T00:00:00Z", received_at="2026-01-01T00:00:00Z",
+                event_type="task_started",
+            ),
+            Event(
+                event_id="e2", tenant_id="t1", agent_id="a1", task_id="new-task",
+                timestamp="2026-02-10T12:00:00Z", received_at="2026-02-10T12:00:00Z",
+                event_type="task_started",
+            ),
+        ]
+        await storage.insert_events(events)
+        since = datetime(2026, 2, 1, tzinfo=timezone.utc)
+        page = await storage.list_tasks("t1", since=since)
+        task_ids = [t.task_id for t in page.data]
+        assert "new-task" in task_ids
+        assert "old-task" not in task_ids
+
+    async def test_tasks_until_filter(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = [
+            Event(
+                event_id="e1", tenant_id="t1", agent_id="a1", task_id="old-task",
+                timestamp="2026-01-01T00:00:00Z", received_at="2026-01-01T00:00:00Z",
+                event_type="task_started",
+            ),
+            Event(
+                event_id="e2", tenant_id="t1", agent_id="a1", task_id="new-task",
+                timestamp="2026-02-10T12:00:00Z", received_at="2026-02-10T12:00:00Z",
+                event_type="task_started",
+            ),
+        ]
+        await storage.insert_events(events)
+        until = datetime(2026, 2, 1, tzinfo=timezone.utc)
+        page = await storage.list_tasks("t1", until=until)
+        task_ids = [t.task_id for t in page.data]
+        assert "old-task" in task_ids
+        assert "new-task" not in task_ids
+
+
+class TestTokenCounts:
+    async def test_task_token_counts(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = [
+            Event(
+                event_id="ts1", tenant_id="t1", agent_id="a1", task_id="t-tokens",
+                timestamp="2026-02-10T12:00:00Z", received_at="2026-02-10T12:00:00Z",
+                event_type="task_started",
+            ),
+            Event(
+                event_id="llm1", tenant_id="t1", agent_id="a1", task_id="t-tokens",
+                timestamp="2026-02-10T12:01:00Z", received_at="2026-02-10T12:01:00Z",
+                event_type="custom",
+                payload={"kind": "llm_call", "data": {"name": "c1", "model": "gpt-4", "cost": 0.01, "tokens_in": 100, "tokens_out": 50}},
+            ),
+            Event(
+                event_id="llm2", tenant_id="t1", agent_id="a1", task_id="t-tokens",
+                timestamp="2026-02-10T12:02:00Z", received_at="2026-02-10T12:02:00Z",
+                event_type="custom",
+                payload={"kind": "llm_call", "data": {"name": "c2", "model": "gpt-4", "cost": 0.02, "tokens_in": 200, "tokens_out": 100}},
+            ),
+        ]
+        await storage.insert_events(events)
+        page = await storage.list_tasks("t1")
+        task = next(t for t in page.data if t.task_id == "t-tokens")
+        assert task.llm_call_count == 2
+        assert task.total_tokens_in == 300
+        assert task.total_tokens_out == 150
+
+
+class TestCostTokenTotals:
+    async def test_cost_summary_has_token_totals(self, storage: JsonStorageBackend, sample_batch: dict):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = _expand_fixture_events(sample_batch, "t1")
+        await storage.insert_events(events)
+        cost = await storage.get_cost_summary("t1", range="30d")
+        # Token counts from fixture llm_call events
+        assert cost.total_tokens_in >= 0
+        assert cost.total_tokens_out >= 0
+        # by_agent should also have token fields
+        if cost.by_agent:
+            assert "tokens_in" in cost.by_agent[0]
+            assert "tokens_out" in cost.by_agent[0]
+
+
+class TestCostTimeBuckets:
+    async def test_cost_timeseries_uses_cost_time_bucket(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        now = datetime.now(timezone.utc)
+        events = [
+            Event(
+                event_id="llm1", tenant_id="t1", agent_id="a1",
+                timestamp=now.isoformat(), received_at=now.isoformat(),
+                event_type="custom",
+                payload={"kind": "llm_call", "data": {"name": "c1", "model": "gpt-4", "cost": 0.05, "tokens_in": 100, "tokens_out": 50}},
+            ),
+        ]
+        await storage.insert_events(events)
+        buckets = await storage.get_cost_timeseries("t1", range="1h")
+        assert len(buckets) > 0
+        # Verify CostTimeBucket fields
+        from shared.models import CostTimeBucket
+        assert isinstance(buckets[0], CostTimeBucket)
+        # At least one bucket should have data
+        total = sum(b.call_count for b in buckets)
+        assert total == 1
+
+
+class TestMetricsGroupBy:
+    async def test_metrics_group_by_agent(self, storage: JsonStorageBackend, sample_batch: dict):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = _expand_fixture_events(sample_batch, "t1")
+        await storage.insert_events(events)
+        resp = await storage.get_metrics("t1", range="30d", group_by="agent")
+        assert resp.groups is not None
+        assert len(resp.groups) > 0
+        assert "agent" in resp.groups[0]
+
+    async def test_metrics_without_group_by(self, storage: JsonStorageBackend, sample_batch: dict):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = _expand_fixture_events(sample_batch, "t1")
+        await storage.insert_events(events)
+        resp = await storage.get_metrics("t1", range="30d")
+        assert resp.groups is None
+
+
+class TestPreviousStatusTracking:
+    async def test_upsert_tracks_previous_status(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        now = datetime.now(timezone.utc)
+        # First upsert — no previous status
+        rec1 = await storage.upsert_agent(
+            "t1", "a1", last_seen=now, last_heartbeat=now,
+            last_event_type="task_started",
+        )
+        assert rec1.previous_status is None  # New agent
+
+        # Second upsert — should have previous status
+        rec2 = await storage.upsert_agent(
+            "t1", "a1", last_seen=now, last_heartbeat=now,
+            last_event_type="task_completed",
+        )
+        assert rec2.previous_status == "processing"
+
+
+class TestPipelineSnapshotAt:
+    async def test_queue_has_snapshot_at(self, storage: JsonStorageBackend, sample_batch: dict):
+        await storage.create_tenant("t1", "Acme", "acme")
+        events = _expand_fixture_events(sample_batch, "t1")
+        await storage.insert_events(events)
+        pipeline = await storage.get_pipeline("t1", "lead-qualifier")
+        assert pipeline.queue is not None
+        assert "snapshot_at" in pipeline.queue
