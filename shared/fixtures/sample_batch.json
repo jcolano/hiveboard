@@ -1,0 +1,395 @@
+{
+  "_comment": "Sample ingest batch covering all 13 event types and all 7 well-known payload kinds. Used by both teams for testing.",
+  "envelope": {
+    "agent_id": "lead-qualifier",
+    "agent_type": "sales",
+    "agent_version": "1.2.0",
+    "framework": "custom",
+    "runtime": "python-3.12.1",
+    "sdk_version": "hiveloop-0.1.0",
+    "environment": "production",
+    "group": "sales-team"
+  },
+  "events": [
+    {
+      "_comment": "Layer 0 — agent_registered",
+      "event_id": "evt-001-registered",
+      "timestamp": "2026-02-10T14:00:00.000Z",
+      "event_type": "agent_registered",
+      "payload": {
+        "summary": "Agent lead-qualifier registered",
+        "data": {
+          "type": "sales",
+          "version": "1.2.0",
+          "framework": "custom",
+          "stuck_threshold": 300
+        }
+      }
+    },
+    {
+      "_comment": "Layer 0 — heartbeat (bare)",
+      "event_id": "evt-002-heartbeat-bare",
+      "timestamp": "2026-02-10T14:00:30.000Z",
+      "event_type": "heartbeat"
+    },
+    {
+      "_comment": "Layer 1 — task_started",
+      "event_id": "evt-003-task-started",
+      "timestamp": "2026-02-10T14:01:00.000Z",
+      "event_type": "task_started",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "payload": {
+        "summary": "Task task_lead-4821 started"
+      }
+    },
+    {
+      "_comment": "Layer 1 — action_started",
+      "event_id": "evt-004-action-started",
+      "timestamp": "2026-02-10T14:01:01.000Z",
+      "event_type": "action_started",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "action_id": "act-001-score",
+      "payload": {
+        "action_name": "score_lead",
+        "function": "agents.sales.score_lead"
+      }
+    },
+    {
+      "_comment": "Payload kind: llm_call (task-scoped)",
+      "event_id": "evt-005-llm-call",
+      "timestamp": "2026-02-10T14:01:02.000Z",
+      "event_type": "custom",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "action_id": "act-001-score",
+      "payload": {
+        "kind": "llm_call",
+        "summary": "phase1_reasoning: claude-sonnet-4-20250514 (1200→350)",
+        "data": {
+          "name": "phase1_reasoning",
+          "model": "claude-sonnet-4-20250514",
+          "tokens_in": 1200,
+          "tokens_out": 350,
+          "cost": 0.0078,
+          "duration_ms": 2100,
+          "prompt_preview": "Analyze the following lead data and determine...",
+          "response_preview": "Based on the lead's engagement history, I recommend...",
+          "metadata": {"phase": "reasoning", "attempt": 1}
+        },
+        "tags": ["llm", "phase1", "sonnet"]
+      }
+    },
+    {
+      "_comment": "Layer 1 — action_completed",
+      "event_id": "evt-006-action-completed",
+      "timestamp": "2026-02-10T14:01:05.000Z",
+      "event_type": "action_completed",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "action_id": "act-001-score",
+      "status": "success",
+      "duration_ms": 4000,
+      "payload": {
+        "action_name": "score_lead",
+        "function": "agents.sales.score_lead"
+      }
+    },
+    {
+      "_comment": "Layer 1 — action_started (nested — child of act-001)",
+      "event_id": "evt-007-action-started-nested",
+      "timestamp": "2026-02-10T14:01:06.000Z",
+      "event_type": "action_started",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "action_id": "act-002-enrich",
+      "parent_action_id": "act-001-score",
+      "payload": {
+        "action_name": "enrich_lead",
+        "function": "agents.sales.enrich_lead"
+      }
+    },
+    {
+      "_comment": "Layer 1 — action_failed",
+      "event_id": "evt-008-action-failed",
+      "timestamp": "2026-02-10T14:01:08.000Z",
+      "event_type": "action_failed",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "action_id": "act-002-enrich",
+      "parent_action_id": "act-001-score",
+      "status": "failure",
+      "duration_ms": 2000,
+      "payload": {
+        "action_name": "enrich_lead",
+        "exception_type": "ConnectionError",
+        "exception_message": "Clearbit API timeout after 2000ms"
+      }
+    },
+    {
+      "_comment": "Layer 2 — retry_started",
+      "event_id": "evt-009-retry",
+      "timestamp": "2026-02-10T14:01:09.000Z",
+      "event_type": "retry_started",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "parent_event_id": "evt-008-action-failed",
+      "payload": {
+        "summary": "Retry attempt 1 for enrich_lead",
+        "data": {"attempt": 1, "backoff_seconds": 2.0}
+      }
+    },
+    {
+      "_comment": "Layer 2 — escalated",
+      "event_id": "evt-010-escalated",
+      "timestamp": "2026-02-10T14:01:15.000Z",
+      "event_type": "escalated",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "parent_event_id": "evt-008-action-failed",
+      "payload": {
+        "summary": "Enrichment failed after 3 retries — escalating",
+        "data": {"assigned_to": "support-team"}
+      }
+    },
+    {
+      "_comment": "Layer 2 — approval_requested",
+      "event_id": "evt-011-approval-requested",
+      "timestamp": "2026-02-10T14:01:20.000Z",
+      "event_type": "approval_requested",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "payload": {
+        "summary": "Approval requested from ops-lead for manual enrichment",
+        "data": {"approver": "ops-lead"}
+      }
+    },
+    {
+      "_comment": "Layer 2 — approval_received",
+      "event_id": "evt-012-approval-received",
+      "timestamp": "2026-02-10T14:02:00.000Z",
+      "event_type": "approval_received",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "payload": {
+        "summary": "Approval approved by ops-lead",
+        "data": {"approved_by": "ops-lead", "decision": "approved"}
+      }
+    },
+    {
+      "_comment": "Layer 1 — task_completed",
+      "event_id": "evt-013-task-completed",
+      "timestamp": "2026-02-10T14:02:30.000Z",
+      "event_type": "task_completed",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4821",
+      "task_type": "lead_processing",
+      "task_run_id": "run_abc123",
+      "status": "success",
+      "duration_ms": 90000,
+      "payload": {
+        "summary": "Task task_lead-4821 completed — lead scored 42"
+      }
+    },
+    {
+      "_comment": "Layer 1 — task_failed (different task)",
+      "event_id": "evt-014-task-failed",
+      "timestamp": "2026-02-10T14:03:00.000Z",
+      "event_type": "task_failed",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4822",
+      "task_type": "lead_processing",
+      "task_run_id": "run_def456",
+      "status": "failure",
+      "duration_ms": 5000,
+      "payload": {
+        "summary": "Task task_lead-4822 failed",
+        "exception_type": "ValueError",
+        "exception_message": "Invalid lead data format"
+      }
+    },
+    {
+      "_comment": "Payload kind: plan_created (task-scoped)",
+      "event_id": "evt-015-plan-created",
+      "timestamp": "2026-02-10T14:04:00.000Z",
+      "event_type": "custom",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4823",
+      "task_type": "lead_processing",
+      "task_run_id": "run_ghi789",
+      "payload": {
+        "kind": "plan_created",
+        "summary": "3-step plan: qualify, score, route",
+        "data": {
+          "steps": [
+            {"index": 0, "description": "Qualify lead against ICP criteria"},
+            {"index": 1, "description": "Score lead using engagement model"},
+            {"index": 2, "description": "Route lead to appropriate rep"}
+          ],
+          "revision": 0
+        },
+        "tags": ["plan", "created"]
+      }
+    },
+    {
+      "_comment": "Payload kind: plan_step (task-scoped)",
+      "event_id": "evt-016-plan-step",
+      "timestamp": "2026-02-10T14:04:30.000Z",
+      "event_type": "custom",
+      "project_id": "sales-pipeline",
+      "task_id": "task_lead-4823",
+      "task_type": "lead_processing",
+      "task_run_id": "run_ghi789",
+      "payload": {
+        "kind": "plan_step",
+        "summary": "Step 0 completed: Qualify lead against ICP criteria",
+        "data": {
+          "step_index": 0,
+          "total_steps": 3,
+          "action": "completed",
+          "turns": 2,
+          "tokens": 3500,
+          "plan_revision": 0
+        },
+        "tags": ["plan", "step_completed"]
+      }
+    },
+    {
+      "_comment": "Payload kind: queue_snapshot (agent-level)",
+      "event_id": "evt-017-queue-snapshot",
+      "timestamp": "2026-02-10T14:05:00.000Z",
+      "event_type": "custom",
+      "payload": {
+        "kind": "queue_snapshot",
+        "summary": "Queue: 3 items, oldest 120s",
+        "data": {
+          "depth": 3,
+          "oldest_age_seconds": 120,
+          "items": [
+            {"id": "qi-001", "priority": "high", "source": "webhook", "summary": "New lead from HubSpot", "queued_at": "2026-02-10T14:03:00.000Z"},
+            {"id": "qi-002", "priority": "normal", "source": "scheduled", "summary": "Re-score lead batch #47"},
+            {"id": "qi-003", "priority": "low", "source": "human", "summary": "Manual review: lead-9001"}
+          ],
+          "processing": {
+            "id": "qi-000",
+            "summary": "Processing lead-4824",
+            "started_at": "2026-02-10T14:04:50.000Z",
+            "elapsed_ms": 10000
+          }
+        },
+        "tags": ["queue"]
+      }
+    },
+    {
+      "_comment": "Payload kind: todo (agent-level)",
+      "event_id": "evt-018-todo",
+      "timestamp": "2026-02-10T14:05:30.000Z",
+      "event_type": "custom",
+      "payload": {
+        "kind": "todo",
+        "summary": "Follow up on failed enrichment for lead-4821",
+        "data": {
+          "todo_id": "todo-001",
+          "action": "created",
+          "priority": "high",
+          "source": "failed_action",
+          "context": "Clearbit API timeout — needs manual enrichment"
+        },
+        "tags": ["todo", "created"]
+      }
+    },
+    {
+      "_comment": "Payload kind: scheduled (agent-level)",
+      "event_id": "evt-019-scheduled",
+      "timestamp": "2026-02-10T14:06:00.000Z",
+      "event_type": "custom",
+      "payload": {
+        "kind": "scheduled",
+        "summary": "3 scheduled items, next at 14:10:00",
+        "data": {
+          "items": [
+            {"id": "sched-001", "name": "Batch lead re-scoring", "next_run": "2026-02-10T14:10:00.000Z", "interval": "1h", "enabled": true, "last_status": "success"},
+            {"id": "sched-002", "name": "Stale lead cleanup", "next_run": "2026-02-10T15:00:00.000Z", "interval": "daily", "enabled": true, "last_status": null},
+            {"id": "sched-003", "name": "CRM sync", "next_run": "2026-02-10T14:15:00.000Z", "interval": "15m", "enabled": false, "last_status": "failure"}
+          ]
+        },
+        "tags": ["scheduled"]
+      }
+    },
+    {
+      "_comment": "Payload kind: issue (agent-level)",
+      "event_id": "evt-020-issue",
+      "timestamp": "2026-02-10T14:06:30.000Z",
+      "event_type": "custom",
+      "payload": {
+        "kind": "issue",
+        "summary": "Clearbit API rate limit exceeded",
+        "data": {
+          "issue_id": "issue-clearbit-ratelimit",
+          "severity": "high",
+          "category": "rate_limit",
+          "context": {"api": "clearbit", "status_code": 429, "retry_after": 60},
+          "action": "reported",
+          "occurrence_count": 3
+        },
+        "tags": ["issue", "rate_limit"]
+      }
+    },
+    {
+      "_comment": "Payload kind: llm_call (agent-level, no task)",
+      "event_id": "evt-021-llm-call-agent-level",
+      "timestamp": "2026-02-10T14:07:00.000Z",
+      "event_type": "custom",
+      "payload": {
+        "kind": "llm_call",
+        "summary": "queue_triage: gpt-4o (800→200)",
+        "data": {
+          "name": "queue_triage",
+          "model": "gpt-4o",
+          "tokens_in": 800,
+          "tokens_out": 200,
+          "cost": 0.0045,
+          "duration_ms": 1500
+        },
+        "tags": ["llm", "triage"]
+      }
+    },
+    {
+      "_comment": "Layer 0 — heartbeat with payload (heartbeat_status kind)",
+      "event_id": "evt-022-heartbeat-rich",
+      "timestamp": "2026-02-10T14:07:30.000Z",
+      "event_type": "heartbeat",
+      "payload": {
+        "kind": "heartbeat_status",
+        "summary": "Healthy — 3 in queue, 1 processing",
+        "data": {
+          "queue_depth": 3,
+          "active_task_id": "task_lead-4824",
+          "uptime_seconds": 450,
+          "memory_mb": 256
+        }
+      }
+    }
+  ]
+}
