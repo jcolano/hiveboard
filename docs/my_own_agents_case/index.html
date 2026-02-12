@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Loop Admin</title>
+
+    <link href="css/index.css" rel="stylesheet" />
+
+</head>
+<body>
+    <div class="container">
+        <h1>Agentic Loop</h1>
+        <p class="subtitle">Admin Panel</p>
+
+        <!-- Main Navigation Tabs -->
+        <div class="main-tabs">
+            <button class="main-tab active" data-panel="dashboard">Dashboard</button>
+            <button class="main-tab" data-panel="feed">Feed <span id="feed-badge" class="tab-badge" style="display: none;">0</span></button>
+            <button class="main-tab" data-panel="chat">Chat</button>
+            <button class="main-tab" data-panel="agents">Agents</button>
+            <button class="main-tab" data-panel="settings">Settings</button>
+            <button class="main-tab" data-panel="usage">Usage</button>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- DASHBOARD PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-dashboard" class="panel active">
+            <!-- Health Ribbon -->
+            <div class="stats-bar" id="health-bar" style="border-left: 3px solid #16a34a; margin-top: 1.5rem;">
+                <div class="stat-item">
+                    <span class="stat-label">Server:</span>
+                    <span class="stat-value" id="stat-server">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">LLM:</span>
+                    <span class="stat-value" id="stat-llm">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Scheduler:</span>
+                    <span class="stat-value" id="stat-scheduler">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Runtime:</span>
+                    <span class="stat-value" id="stat-runtime">--</span>
+                </div>
+                <div class="stat-item" style="margin-left: auto;">
+                    <button class="btn danger" onclick="shutdownServer()" style="font-size: 0.75rem; padding: 0.25rem 0.75rem;">Shutdown Server</button>
+                </div>
+            </div>
+
+            <!-- Stats Ribbon -->
+            <div class="stats-bar" id="stats-bar" style="border-left: 3px solid #2563eb;">
+                <div class="stat-item">
+                    <span class="stat-label">Provider:</span>
+                    <span class="stat-value" id="stat-provider">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Agents:</span>
+                    <span class="stat-value" id="stat-agents">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Global Skills:</span>
+                    <span class="stat-value" id="stat-skills">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tasks:</span>
+                    <span class="stat-value" id="stat-tasks">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active:</span>
+                    <span class="stat-value" id="stat-active-agents">--</span>
+                </div>
+            </div>
+
+            <!-- Scheduler Status Panel -->
+            <div class="form-section" id="scheduler-status-panel">
+                <div class="form-title">Scheduler Status <span id="sched-external-badge" class="card-badge hidden" style="margin-left: 0.5rem;">External Process</span></div>
+                <div class="stats-bar" style="margin-bottom: 0;">
+                    <div class="stat-item">
+                        <span class="stat-label">Status:</span>
+                        <span class="stat-value" id="sched-status">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Uptime:</span>
+                        <span class="stat-value" id="sched-uptime">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Heartbeat:</span>
+                        <span class="stat-value" id="sched-heartbeat">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Enabled Tasks:</span>
+                        <span class="stat-value" id="sched-enabled">--</span>
+                    </div>
+                    <div class="stat-item" id="sched-pid-item" style="display: none;">
+                        <span class="stat-label">PID:</span>
+                        <span class="stat-value" id="sched-pid">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Runtime Status Panel -->
+            <div class="form-section" id="runtime-status-panel">
+                <div class="form-title">Runtime Status</div>
+                <div class="stats-bar" style="margin-bottom: 0;">
+                    <div class="stat-item">
+                        <span class="stat-label">Status:</span>
+                        <span class="stat-value" id="rt-status">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Active Agents:</span>
+                        <span class="stat-value" id="rt-active-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Total Queued:</span>
+                        <span class="stat-value" id="rt-total-queued">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Running LLM Calls:</span>
+                        <span class="stat-value" id="rt-llm-calls">0</span>
+                    </div>
+                </div>
+                <div id="rt-active-agents-list" style="font-size: 0.8125rem; color: #57534e; margin-top: 0.5rem; display: none;"></div>
+            </div>
+
+            <!-- Quick Run -->
+            <div class="form-section">
+                <div class="form-title">Quick Run</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Agent</label>
+                        <select id="quick-agent">
+                            <option value="main">main</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Skill (optional)</label>
+                        <select id="quick-skill">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Message</label>
+                        <textarea id="quick-message" placeholder="Enter your message..."></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn primary" onclick="quickRun()">Run Agent</button>
+                </div>
+                <div id="quick-response" class="response-box hidden"></div>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- FEED PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-feed" class="panel">
+            <div class="feed-actions-bar">
+                <div class="feed-filters">
+                    <button class="feed-filter active" data-filter="all">All</button>
+                    <button class="feed-filter" data-filter="unread">Unread</button>
+                    <button class="feed-filter" data-filter="info">Info</button>
+                    <button class="feed-filter" data-filter="success">Success</button>
+                    <button class="feed-filter" data-filter="warning">Warning</button>
+                    <button class="feed-filter" data-filter="error">Error</button>
+                    <button class="feed-filter" data-filter="request">Request</button>
+                </div>
+                <div>
+                    <button class="btn" onclick="markAllFeedRead()" style="font-size: 0.75rem;">Mark All Read</button>
+                    <button class="btn" onclick="loadFeed()" style="font-size: 0.75rem;">Refresh</button>
+                </div>
+            </div>
+            <div id="feed-list" class="feed-list">
+                <div style="text-align: center; padding: 2rem; color: #78716c;">
+                    Loading feed...
+                </div>
+            </div>
+            <div id="feed-load-more" style="text-align: center; margin-top: 1rem; display: none;">
+                <button class="btn" onclick="loadMoreFeed()">Load More</button>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- AGENTS PANEL (with sub-tabs) -->
+        <!-- ================================================================ -->
+        <div id="panel-agents" class="panel">
+            <!-- Sub-tabs for Agents panel -->
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-subpanel="agents-list">Agents</button>
+                <button class="sub-tab" data-subpanel="agents-skills">Skills</button>
+                <button class="sub-tab" data-subpanel="agents-tasks">Tasks</button>
+                <button class="sub-tab" data-subpanel="agents-memory">Memory</button>
+                <button class="sub-tab" data-subpanel="agents-sessions">Sessions</button>
+                <button class="sub-tab" data-subpanel="agents-runs">Runs</button>
+                <button class="sub-tab" data-subpanel="agents-runtime">Runtime</button>
+            </div>
+
+            <!-- Agent Selector (shared across sub-panels, hidden on agents-list) -->
+            <div class="agent-selector" id="agent-selector" style="display: none;">
+                <label>Select Agent:</label>
+                <select id="selected-agent" onchange="onAgentSelected()">
+                    <option value="main">main</option>
+                </select>
+                <button class="btn" onclick="refreshCurrentSubPanel()">Refresh</button>
+                <button class="btn" id="rt-heartbeat-btn" onclick="triggerHeartbeatFromRuntime()" disabled>Heartbeat</button>
+                <button class="btn danger" id="rt-reset-btn" onclick="resetAgentFromRuntime()" title="Stop agent and clear all queues, TODOs, and event history">Reset</button>
+            </div>
+
+            <!-- Agents List Sub-panel -->
+            <div id="subpanel-agents-list" class="sub-panel active">
+                <div class="form-actions" style="margin-bottom: 1rem;">
+                    <button class="btn primary" onclick="showAgentModal()">+ Add Agent</button>
+                    <button class="btn" onclick="loadAgents()">Refresh</button>
+                    <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 1rem; font-size: 0.875rem;">
+                        <input type="checkbox" id="show-deleted-agents" onchange="loadAgents()">
+                        Show Deleted
+                    </label>
+                </div>
+                <div class="cards-grid" id="agents-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">...</div>
+                        <p>Loading agents...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Skills Sub-panel -->
+            <div id="subpanel-agents-skills" class="sub-panel">
+                <div class="form-actions" style="margin-bottom: 1rem;">
+                    <button class="btn primary" onclick="showSkillEditorModal()">+ Add Skill</button>
+                    <button class="btn" onclick="loadAgentSkills()">Refresh</button>
+                    <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 1rem; font-size: 0.875rem;">
+                        <input type="checkbox" id="show-deleted-skills" onchange="loadAgentSkills()">
+                        Show Deleted
+                    </label>
+                </div>
+                <div class="cards-grid" id="agent-skills-list">
+                    <div class="empty-state">Select an agent to view skills</div>
+                </div>
+            </div>
+
+            <!-- Agent Tasks Sub-panel -->
+            <div id="subpanel-agents-tasks" class="sub-panel">
+                <div class="form-actions" style="margin-bottom: 1rem;">
+                    <button class="btn primary" onclick="showCreateTaskModal()">+ Create Task</button>
+                    <button class="btn" onclick="loadAgentTasks()">Refresh</button>
+                    <label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-left: 1rem; font-size: 0.875rem;">
+                        <input type="checkbox" id="show-disabled-tasks" onchange="loadAgentTasks()">
+                        Show Disabled
+                    </label>
+                </div>
+                <div class="stats-bar" id="tasks-stats-bar" style="display: none; border-left: 3px solid #2563eb;">
+                    <div class="stat-item">
+                        <span class="stat-label">Total:</span>
+                        <span class="stat-value" id="tasks-total">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Enabled:</span>
+                        <span class="stat-value ok" id="tasks-enabled">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Last Run:</span>
+                        <span class="stat-value" id="tasks-last-run">--</span>
+                    </div>
+                </div>
+                <div class="cards-grid" id="agent-tasks-list">
+                    <div class="empty-state">Select an agent to view tasks</div>
+                </div>
+            </div>
+
+            <!-- Agent Memory Sub-panel -->
+            <div id="subpanel-agents-memory" class="sub-panel">
+                <div class="search-box">
+                    <input type="text" id="memory-query" placeholder="Search memory...">
+                    <select id="memory-topic">
+                        <option value="">All Topics</option>
+                    </select>
+                    <button class="btn primary" onclick="searchAgentMemory()">Search</button>
+                </div>
+                <div id="agent-memory-results"></div>
+                <div class="form-section" style="margin-top: 1.5rem;">
+                    <div class="form-title">Memory Topics</div>
+                    <div id="agent-memory-topics"></div>
+                </div>
+                <div class="form-section">
+                    <div class="form-title">Memory Stats</div>
+                    <div id="agent-memory-stats" class="stats-bar" style="margin-bottom: 0;"></div>
+                </div>
+            </div>
+
+            <!-- Agent Sessions Sub-panel -->
+            <div id="subpanel-agents-sessions" class="sub-panel">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Session ID</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Messages</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agent-sessions-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Agent Runs Sub-panel -->
+            <div id="subpanel-agents-runs" class="sub-panel">
+                <div class="search-box">
+                    <input type="date" id="runs-date">
+                    <button class="btn primary" onclick="loadAgentRuns()">Filter</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Turns</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agent-runs-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Agent Runtime Sub-panel -->
+            <div id="subpanel-agents-runtime" class="sub-panel">
+                <!-- Status Bar -->
+                <div class="stats-bar" id="rt-agent-stats-bar" style="display: none; border-left: 3px solid #2563eb;">
+                    <div class="stat-item">
+                        <span class="stat-label">Status:</span>
+                        <span class="stat-value" id="rt-agent-status">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Queue:</span>
+                        <span class="stat-value" id="rt-agent-queue-depth">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Pending:</span>
+                        <span class="stat-value" id="rt-agent-pending-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tick Count:</span>
+                        <span class="stat-value" id="rt-agent-tick-count">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Heartbeat:</span>
+                        <span class="stat-value" id="rt-agent-heartbeat-freq">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Processing:</span>
+                        <span class="stat-value" id="rt-agent-processing">--</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Started At:</span>
+                        <span class="stat-value" id="rt-agent-started-at">--</span>
+                    </div>
+                    <div class="stat-item" style="margin-left: auto;">
+                        <span id="rt-agent-next-tick" style="font-size: 0.75rem; color: #9ca3af;"></span>
+                    </div>
+                </div>
+
+                <!-- Timers -->
+                <div class="form-section" id="rt-agent-timers-section" style="display: none;">
+                    <div class="form-title">Heartbeat Timers</div>
+                    <div id="rt-agent-timers-list" style="font-size: 0.8125rem; color: #57534e;"></div>
+                </div>
+
+                <!-- Metrics -->
+                <div class="form-section" id="rt-agent-metrics-section" style="display: none;">
+                    <div class="form-title">Metrics</div>
+                    <div class="stats-bar" id="rt-agent-metrics-bar" style="margin-bottom: 0;"></div>
+                </div>
+
+                <!-- Agent Issues -->
+                <div class="form-section" id="rt-agent-issues-section" style="display: none;">
+                    <div class="form-title" style="display:flex; align-items:center; gap:0.5rem;">
+                        Issues
+                        <span id="rt-agent-issues-count" style="font-size:0.75rem; font-weight:normal; color:#78716c;"></span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:70px;">Severity</th>
+                                    <th>Title</th>
+                                    <th style="width:80px;">Category</th>
+                                    <th style="width:60px;">Age</th>
+                                    <th style="width:120px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rt-agent-issues-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Agent TO-DO List -->
+                <div class="form-section" id="rt-agent-todo-section" style="display: none;">
+                    <div class="form-title" style="display:flex; align-items:center; gap:0.5rem;">
+                        Agent TO-DO List
+                        <span id="rt-agent-todo-counts" style="font-size:0.75rem; font-weight:normal; color:#78716c;"></span>
+                        <button id="rt-agent-todo-clear-btn" class="btn btn-sm" style="margin-left:auto; font-size:0.7rem; padding:2px 8px; display:none;" onclick="clearAgentTodo()">Clear</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:30px;"></th>
+                                    <th>ID</th>
+                                    <th>Priority</th>
+                                    <th>Task</th>
+                                    <th>Context</th>
+                                    <th>Created</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rt-agent-todo-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Heartbeat History -->
+                <div class="form-section" id="rt-agent-hb-history-section" style="display: none;">
+                    <div class="form-title" style="display:flex; align-items:center; gap:0.5rem;">
+                        Heartbeat History
+                        <span id="rt-agent-hb-history-count" style="font-size:0.75rem; font-weight:normal; color:#78716c;"></span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                    <th>Skills</th>
+                                    <th>Turns</th>
+                                    <th>Tokens</th>
+                                    <th>Summary</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rt-agent-hb-history-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pending Approval -->
+                <div class="form-section" id="rt-agent-pending-section" style="display: none;">
+                    <div class="form-title">Pending Approval</div>
+                    <div id="rt-agent-pending-list"></div>
+                </div>
+
+                <!-- Currently Processing -->
+                <div class="form-section" id="rt-agent-processing-section" style="display: none;">
+                    <div class="form-title">Currently Processing</div>
+                    <div id="rt-agent-processing-card"></div>
+                </div>
+
+                <!-- Queue -->
+                <div class="form-section" id="rt-agent-queue-section">
+                    <div class="form-title">Queue</div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Priority</th>
+                                    <th>Source</th>
+                                    <th>Title / ID</th>
+                                    <th>Skill</th>
+                                    <th>Queued</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rt-agent-queue-table">
+                                <tr><td colspan="6" style="text-align:center;color:#9ca3af;">Select an agent to view runtime data</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Event History -->
+                <div class="form-section" id="rt-agent-history-section">
+                    <div class="form-title">Event History (last 20)</div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Source</th>
+                                    <th>Title / ID</th>
+                                    <th>Completed</th>
+                                    <th>Duration</th>
+                                    <th>Message</th>
+                                    <th>Response</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rt-agent-history-table">
+                                <tr><td colspan="7" style="text-align:center;color:#9ca3af;">No events yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- SETTINGS PANEL (with sub-tabs) -->
+        <!-- ================================================================ -->
+        <div id="panel-settings" class="panel">
+            <!-- Sub-tabs for Settings panel -->
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-subpanel="settings-global-skills">Global Skills</button>
+                <button class="sub-tab" data-subpanel="settings-vendors">Skill Vendors</button>
+                <button class="sub-tab" data-subpanel="settings-config">Configuration</button>
+            </div>
+
+            <!-- Global Skills Sub-panel -->
+            <div id="subpanel-settings-global-skills" class="sub-panel active">
+                <div class="form-section">
+                    <div class="form-title">Fetch Skill from URL</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Skill ID</label>
+                            <input type="text" id="fetch-skill-id" disabled style="background: #f5f5f4; color: #78716c;">
+                        </div>
+                        <div class="form-group">
+                            <label>URL *</label>
+                            <input type="text" id="fetch-skill-url" placeholder="https://...">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn primary" onclick="fetchSkill()">Fetch Skill</button>
+                    </div>
+                </div>
+                <p style="font-size: 0.875rem; color: #78716c; margin-bottom: 1rem;">
+                    Global skills are inherited by all agents. Agent-specific skills can be added in the Agents &gt; Skills tab.
+                </p>
+                <div class="cards-grid" id="global-skills-list">
+                </div>
+            </div>
+
+            <!-- Skill Vendors Sub-panel -->
+            <div id="subpanel-settings-vendors" class="sub-panel">
+                <div class="form-actions" style="margin-bottom: 1rem;">
+                    <button class="btn primary" onclick="showAddVendorModal()">+ Add Vendor</button>
+                    <button class="btn" onclick="loadVendors()">Refresh</button>
+                </div>
+                <p style="font-size: 0.875rem; color: #78716c; margin-bottom: 1rem;">
+                    Skill vendors are external providers of skills. Add vendors here to make their skills available when creating agent skills.
+                </p>
+                <div class="cards-grid" id="vendors-list">
+                    <div class="empty-state">Loading vendors...</div>
+                </div>
+            </div>
+
+            <!-- Configuration Sub-panel -->
+            <div id="subpanel-settings-config" class="sub-panel">
+                <div class="form-section">
+                    <div class="form-title">Debug</div>
+                    <div class="stats-bar" style="margin-bottom: 0;">
+                        <div class="stat-item" style="display:flex; align-items:center; gap:0.5rem;">
+                            <span class="stat-label">Log LLM Prompts:</span>
+                            <label style="position:relative; display:inline-block; width:40px; height:22px; margin:0;">
+                                <input type="checkbox" id="toggle-prompt-logging" onchange="togglePromptLogging(this.checked)"
+                                    style="opacity:0; width:0; height:0;">
+                                <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+                                    background:#d6d3d1; border-radius:11px; transition:.2s;"
+                                    id="toggle-prompt-slider"></span>
+                            </label>
+                            <span class="stat-value" id="prompt-logging-status" style="font-size:0.75rem; color:#78716c;">off</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-title">Directory Structure</div>
+                    <div class="stats-bar" style="margin-bottom: 0;">
+                        <div class="stat-item">
+                            <span class="stat-label">Global Skills:</span>
+                            <span class="stat-value" id="cfg-skills-dir">data/SKILLS</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Agents:</span>
+                            <span class="stat-value" id="cfg-agents-dir">data/AGENTS</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Config:</span>
+                            <span class="stat-value" id="cfg-config-dir">data/CONFIG</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-section">
+                    <div class="form-title">Per-Agent Directory Structure</div>
+                    <pre style="background: #f5f5f4; padding: 1rem; font-size: 0.75rem; overflow-x: auto;">
+data/AGENTS/{agent_id}/
+  ├── config.json     # Agent configuration
+  ├── skills/         # Private skills (only this agent)
+  ├── tasks/          # Scheduled tasks
+  ├── memory/         # Long-term memory
+  ├── sessions/       # Conversation sessions
+  └── runs/           # Run logs (by date)
+                    </pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- CHAT PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-chat" class="panel">
+            <!-- Chat Setup Bar -->
+            <div class="stats-bar" style="border-left: 3px solid #7c3aed; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div class="stat-item" style="flex: 1; min-width: 150px;">
+                    <span class="stat-label">Agent:</span>
+                    <select id="chat-agent-select" class="stat-value" style="background: white; border: 1px solid #d6d3d1; border-radius: 4px; padding: 0.25rem;" onchange="onChatAgentChange()">
+                        <option value="">Select agent...</option>
+                    </select>
+                </div>
+                <div class="stat-item" style="flex: 1; min-width: 150px;">
+                    <span class="stat-label">Skill (optional):</span>
+                    <select id="chat-skill-select" class="stat-value" style="background: white; border: 1px solid #d6d3d1; border-radius: 4px; padding: 0.25rem;">
+                        <option value="">Auto-match</option>
+                    </select>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Session:</span>
+                    <span class="stat-value" id="chat-session-id" style="font-family: monospace; font-size: 0.75rem;">New</span>
+                </div>
+                <div class="stat-item">
+                    <button class="btn" onclick="newChatSession()" title="Start new session">New Chat</button>
+                </div>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div id="chat-messages" style="flex: 1; min-height: 300px; max-height: calc(100vh - 350px); overflow-y: auto; padding: 1rem; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 4px; margin: 1rem 0;">
+                <div class="empty-state" id="chat-empty">
+                    Select an agent and type a message to start chatting.<br><br>
+                    Optionally select a skill to guide the conversation.
+                </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <textarea id="chat-input" placeholder="Type your message..." style="flex: 1; min-height: 60px; max-height: 150px; resize: vertical; padding: 0.75rem; border: 1px solid #d6d3d1; border-radius: 4px; font-size: 0.875rem;" onkeydown="handleChatKeydown(event)"></textarea>
+                <button class="btn primary" onclick="sendChatMessage()" id="chat-send-btn" style="height: 60px; padding: 0 1.5rem;">
+                    <span id="chat-send-text">Send</span>
+                    <span id="chat-send-loading" class="loading" style="display: none;"></span>
+                </button>
+            </div>
+            <div style="font-size: 0.75rem; color: #78716c; margin-top: 0.5rem;">
+                Press Enter to send, Shift+Enter for new line
+            </div>
+        </div>
+    </div>
+
+        <!-- ================================================================ -->
+        <!-- USAGE PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-usage" class="panel">
+            <!-- Controls -->
+            <div class="stats-bar" style="border-left: 3px solid #7c3aed; margin-top: 1.5rem;">
+                <div class="stat-item">
+                    <span class="stat-label">Date:</span>
+                    <input type="date" id="usage-date" style="font-family: inherit; font-size: 0.8125rem; border: 1px solid #d6d3d1; border-radius: 4px; padding: 0.25rem 0.5rem;">
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">System:</span>
+                    <select id="usage-system" style="font-family: inherit; font-size: 0.8125rem; border: 1px solid #d6d3d1; border-radius: 4px; padding: 0.25rem 0.5rem;">
+                        <option value="">All</option>
+                        <option value="loopCore">loopCore</option>
+                        <option value="loopColony">loopColony</option>
+                    </select>
+                </div>
+                <div class="stat-item">
+                    <button class="btn primary" onclick="loadUsage()" style="font-size: 0.75rem;">Load</button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="stats-bar" id="usage-summary-bar" style="border-left: 3px solid #2563eb; margin-top: 0.5rem;">
+                <div class="stat-item">
+                    <span class="stat-label">Total Calls:</span>
+                    <span class="stat-value" id="usage-total-calls">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Input Tokens:</span>
+                    <span class="stat-value" id="usage-total-input">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Output Tokens:</span>
+                    <span class="stat-value" id="usage-total-output">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Cost:</span>
+                    <span class="stat-value usage-cost" id="usage-total-cost">--</span>
+                </div>
+            </div>
+
+            <!-- Per-Agent Breakdown -->
+            <div class="form-section" style="margin-top: 1rem;">
+                <div class="form-title">Per-Agent Breakdown</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Agent</th>
+                                <th>System</th>
+                                <th>Calls</th>
+                                <th>Input Tokens</th>
+                                <th>Output Tokens</th>
+                                <th>Input Cost</th>
+                                <th>Output Cost</th>
+                                <th>Total Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usage-agent-table">
+                            <tr><td colspan="8" style="text-align:center;color:#9ca3af;">Select a date and click Load</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Per-Model Breakdown -->
+            <div class="form-section" style="margin-top: 1rem;">
+                <div class="form-title">Per-Model Breakdown</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th>Calls</th>
+                                <th>Input Tokens</th>
+                                <th>Output Tokens</th>
+                                <th>Total Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usage-model-table">
+                            <tr><td colspan="5" style="text-align:center;color:#9ca3af;">--</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Calls -->
+            <div class="form-section" style="margin-top: 1rem;">
+                <div class="form-title">Recent Calls (last 50)</div>
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>System</th>
+                                <th>Agent</th>
+                                <th>Skill</th>
+                                <th>Caller</th>
+                                <th>Model</th>
+                                <th>In Tokens</th>
+                                <th>Out Tokens</th>
+                                <th>Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usage-calls-table">
+                            <tr><td colspan="9" style="text-align:center;color:#9ca3af;">--</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    <!-- Modal -->
+    <div id="modal-backdrop" class="modal-backdrop hidden" onclick="closeModal()"></div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-header">
+            <h2 id="modal-title">Modal</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+        </div>
+        <div class="modal-actions" id="modal-actions">
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="js/index.js"></script>
+
+</body>
+</html>
