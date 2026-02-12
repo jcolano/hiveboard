@@ -136,6 +136,7 @@ def run_lead_qualifier(hb: hiveloop.HiveBoard, speed: float):
                     agent.report_issue(
                         summary="Clearbit API timeout",
                         severity=random.choice(["medium", "high"]),
+                        issue_id="clearbit-timeout",
                         category="connectivity",
                         context={"api": "clearbit", "timeout_ms": 5000},
                     )
@@ -145,6 +146,7 @@ def run_lead_qualifier(hb: hiveloop.HiveBoard, speed: float):
                     })
                     _sim_sleep(0.5, speed)
                     task.plan_step(1, "completed", "Enrichment succeeded on retry")
+                    agent.resolve_issue("Clearbit API recovered", issue_id="clearbit-timeout")
                 else:
                     @agent.track("enrich_lead")
                     def enrich():
@@ -236,9 +238,13 @@ def run_support_triage(hb: hiveloop.HiveBoard, speed: float):
                         "data": {"approved_by": "support-lead", "decision": "approved"},
                     })
 
-                # 5% chance of failure
+                # 5% chance of failure — inside @track so it emits action_failed
                 if random.random() < 0.05:
-                    raise RuntimeError(f"CRM API error processing ticket-{ticket_num}")
+                    @agent.track("submit_to_crm")
+                    def submit_crm():
+                        raise RuntimeError(f"CRM API error processing ticket-{ticket_num}")
+
+                    submit_crm()
 
             logger.info("[support-triage] Completed %s (%s)", task_id, category)
 
