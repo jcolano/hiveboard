@@ -79,8 +79,9 @@ function fmtDuration(ms) {
   if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
   return Math.floor(ms / 60000) + 'm' + Math.round((ms % 60000) / 1000) + 's';
 }
-function fmtCost(c) {
+function fmtCost(c, costSource) {
   if (c == null) return '—';
+  if (costSource === 'estimated') return '~$' + c.toFixed(2);
   return '$' + c.toFixed(2);
 }
 function timeAgo(ts) {
@@ -688,12 +689,18 @@ function renderCostExplorer() {
   const totalOut = d.total_tokens_out || 0;
   const avgCost = totalCalls > 0 ? totalCost / totalCalls : 0;
 
+  const reportedCost = d.reported_cost || 0;
+  const estimatedCost = d.estimated_cost || 0;
+  const hasEstimates = estimatedCost > 0;
+
   document.getElementById('costRibbon').innerHTML = `
-    <div class="cost-stat"><div class="stat-label">Total Cost</div><div class="stat-value purple">$${totalCost.toFixed(2)}</div></div>
+    <div class="cost-stat"><div class="stat-label">Total Cost</div><div class="stat-value purple">${hasEstimates ? '~' : ''}$${totalCost.toFixed(2)}</div></div>
     <div class="cost-stat"><div class="stat-label">LLM Calls</div><div class="stat-value">${totalCalls}</div></div>
     <div class="cost-stat"><div class="stat-label">Tokens In</div><div class="stat-value">${fmtTokens(totalIn)}</div></div>
     <div class="cost-stat"><div class="stat-label">Tokens Out</div><div class="stat-value">${fmtTokens(totalOut)}</div></div>
     <div class="cost-stat"><div class="stat-label">Avg Cost/Call</div><div class="stat-value">$${avgCost.toFixed(3)}</div></div>
+    ${hasEstimates ? `<div class="cost-stat"><div class="stat-label">Reported</div><div class="stat-value">$${reportedCost.toFixed(2)}</div></div>
+    <div class="cost-stat"><div class="stat-label">Estimated</div><div class="stat-value" title="Server-estimated costs may differ from actual billing">~$${estimatedCost.toFixed(2)}</div></div>` : ''}
   `;
 
   let html = '';
@@ -704,7 +711,10 @@ function renderCostExplorer() {
     const maxModelCost = Math.max(...byModel.map(m => m.cost || 0), 0.01);
     html += `<div><div class="cost-section-title">Cost by Model</div><table class="cost-table"><thead><tr><th>Model</th><th>Calls</th><th>Tokens In</th><th>Tokens Out</th><th>Cost</th><th></th></tr></thead><tbody>`;
     byModel.forEach(m => {
-      html += `<tr><td><span class="model-badge">${escHtml(m.model || '—')}</span></td><td>${m.call_count || 0}</td><td>${fmtTokens(m.tokens_in)}</td><td>${fmtTokens(m.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;">$${(m.cost || 0).toFixed(2)}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((m.cost || 0) / maxModelCost * 100)}%"></div></td></tr>`;
+      const mEst = (m.estimated_cost || 0) > 0;
+      const mCostStr = mEst ? '~$' + (m.cost || 0).toFixed(2) : '$' + (m.cost || 0).toFixed(2);
+      const mTitle = mEst ? 'title="Includes server-estimated costs"' : '';
+      html += `<tr><td><span class="model-badge">${escHtml(m.model || '—')}</span></td><td>${m.call_count || 0}</td><td>${fmtTokens(m.tokens_in)}</td><td>${fmtTokens(m.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;" ${mTitle}>${mCostStr}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((m.cost || 0) / maxModelCost * 100)}%"></div></td></tr>`;
     });
     html += `</tbody></table></div>`;
   }
@@ -717,7 +727,10 @@ function renderCostExplorer() {
     html += `<div><div class="cost-section-title">Cost by Agent</div><table class="cost-table"><thead><tr><th>Agent</th><th>Calls</th><th>Tokens In</th><th>Tokens Out</th><th>Cost</th><th></th></tr></thead><tbody>`;
     sortedAgents.forEach(a => {
       const agentId = a.agent_id || a.agent || '—';
-      html += `<tr><td><span class="clickable-entity" onclick="openAgentDetail('${agentId}')" style="color: var(--accent);">${escHtml(agentId)}</span></td><td>${a.call_count || 0}</td><td>${fmtTokens(a.tokens_in)}</td><td>${fmtTokens(a.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;">$${(a.cost || 0).toFixed(2)}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((a.cost || 0) / maxAgentCost * 100)}%"></div></td></tr>`;
+      const aEst = (a.estimated_cost || 0) > 0;
+      const aCostStr = aEst ? '~$' + (a.cost || 0).toFixed(2) : '$' + (a.cost || 0).toFixed(2);
+      const aTitle = aEst ? 'title="Includes server-estimated costs"' : '';
+      html += `<tr><td><span class="clickable-entity" onclick="openAgentDetail('${agentId}')" style="color: var(--accent);">${escHtml(agentId)}</span></td><td>${a.call_count || 0}</td><td>${fmtTokens(a.tokens_in)}</td><td>${fmtTokens(a.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;" ${aTitle}>${aCostStr}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((a.cost || 0) / maxAgentCost * 100)}%"></div></td></tr>`;
     });
     html += `</tbody></table></div>`;
   }

@@ -23,6 +23,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.middleware import AuthMiddleware, RateLimitMiddleware
 from backend.storage_json import JsonStorageBackend, derive_agent_status
+from backend.llm_pricing import LlmPricingEngine
 from shared.enums import (
     AgentStatus,
     EventType,
@@ -66,6 +67,10 @@ async def lifespan(app: FastAPI):
     storage = JsonStorageBackend()
     await storage.initialize()
     app.state.storage = storage
+    # Initialize LLM pricing engine
+    pricing = LlmPricingEngine()
+    await pricing.initialize()
+    app.state.pricing = pricing
     # Bootstrap: create default tenant + key if none exist
     await _bootstrap_dev_tenant(storage)
     # Start WebSocket ping task
@@ -374,6 +379,12 @@ async def ingest(body: IngestRequest, request: Request):
                 # Resolve slug to project_id if get_project matched by slug
                 project_id = proj.project_id
 
+        # Step 5b: LLM cost estimation (Issue #15)
+        enriched_payload = raw.payload
+        if isinstance(enriched_payload, dict) and enriched_payload.get("kind") == "llm_call":
+            pricing: LlmPricingEngine = request.app.state.pricing
+            enriched_payload = pricing.process_llm_event(enriched_payload)
+
         event = Event(
             event_id=raw.event_id,
             tenant_id=tenant_id,
@@ -395,7 +406,7 @@ async def ingest(body: IngestRequest, request: Request):
             status=raw.status,
             duration_ms=raw.duration_ms,
             parent_event_id=raw.parent_event_id,
-            payload=raw.payload,
+            payload=enriched_payload,
         )
         accepted_events.append(event)
 
@@ -971,6 +982,46 @@ async def list_llm_calls(
             "call_count": len(page.data),
         },
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  ADMIN — LLM PRICING (Issue #15)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.get("/v1/admin/pricing")
+async def list_pricing(request: Request):
+    pricing: LlmPricingEngine = request.app.state.pricing
+    return {"data": await pricing.list_entries()}
+
+
+@app.post("/v1/admin/pricing", status_code=201)
+async def add_pricing(request: Request):
+    body = await request.json()
+    required = {"model_pattern", "provider", "input_per_m", "output_per_m"}
+    if not required.issubset(body.keys()):
+        raise HTTPException(400, f"Missing required fields: {required - body.keys()}")
+    pricing: LlmPricingEngine = request.app.state.pricing
+    entry = await pricing.add_entry(body)
+    return entry
+
+
+@app.put("/v1/admin/pricing/{pattern}")
+async def update_pricing(pattern: str, request: Request):
+    body = await request.json()
+    pricing: LlmPricingEngine = request.app.state.pricing
+    entry = await pricing.update_entry(pattern, body)
+    if entry is None:
+        raise HTTPException(404, f"Pricing pattern '{pattern}' not found")
+    return entry
+
+
+@app.delete("/v1/admin/pricing/{pattern}")
+async def delete_pricing(pattern: str, request: Request):
+    pricing: LlmPricingEngine = request.app.state.pricing
+    deleted = await pricing.delete_entry(pattern)
+    if not deleted:
+        raise HTTPException(404, f"Pricing pattern '{pattern}' not found")
+    return {"deleted": pattern}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
