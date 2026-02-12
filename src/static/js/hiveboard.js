@@ -449,7 +449,7 @@ function renderTimeline() {
           const bFilled = bn.type === 'error';
           html += `<div class="tl-node" data-idx="${bIdx}" onclick="pinNode(${bIdx})" style="pointer-events: auto;">`;
           html += `<div class="tl-node-dot" style="border-color: ${bColor}; width: 10px; height: 10px; ${bFilled ? 'background: ' + bColor : ''}"></div>`;
-          html += `<div style="position: absolute; bottom: -16px; font-family: var(--font-mono); font-size: 8px; color: var(--text-muted); white-space: nowrap;">${escHtml(bn.label)}</div></div>`;
+          html += `<div style="position: absolute; bottom: -16px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); white-space: nowrap;">${escHtml(bn.label)}</div></div>`;
           if (bi < branchNodes.filter(n => !n.isBranchStart).length - 1) html += `<div style="height: 2px; width: 40px; background: var(--error); opacity: 0.25;"></div>`;
         });
         html += `</div>`;
