@@ -125,6 +125,7 @@ class TestPlan:
         assert len(plans) == 1
         p = plans[0]
         assert p["payload"]["summary"] == "Process lead"
+        assert p["payload"]["data"]["goal"] == "Process lead"
         assert len(p["payload"]["data"]["steps"]) == 3
         assert p["payload"]["data"]["revision"] == 0
 
