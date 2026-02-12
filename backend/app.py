@@ -10,14 +10,15 @@ GET  /dashboard    — Serve the live dashboard
 """
 
 import json
+import os
 import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from db import init_db, insert_events, get_db, SEVERITY_DEFAULTS
+from db import init_db, insert_events, load_events, SEVERITY_DEFAULTS
 
 app = FastAPI(title="HiveBoard", version="0.1.0")
 
@@ -28,7 +29,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# For MVP, a single hardcoded tenant. API key → tenant mapping.
+# For MVP, a single hardcoded tenant. API key -> tenant mapping.
 API_KEY_MAP = {
     "hb_dev_key": "tenant_dev",
 }
@@ -87,9 +88,8 @@ async def ingest_events(request: Request):
         # Severity auto-default (spec Section 9)
         severity = evt.get("severity") or SEVERITY_DEFAULTS.get(event_type, "info")
 
-        # Serialize payload to JSON string
+        # Store payload as dict directly (JSON file, no serialization needed)
         payload = evt.get("payload")
-        payload_str = json.dumps(payload) if payload is not None else None
 
         expanded.append({
             "event_id": event_id,
@@ -111,7 +111,7 @@ async def ingest_events(request: Request):
             "status": evt.get("status"),
             "duration_ms": evt.get("duration_ms"),
             "parent_event_id": evt.get("parent_event_id"),
-            "payload": payload_str,
+            "payload": payload,
         })
 
     insert_events(expanded)
@@ -130,45 +130,37 @@ def get_agents():
     - Most recent event_type determines status
     - Stuck = no heartbeat in 5 minutes
     """
-    with get_db() as conn:
-        # Get distinct agents with their latest event
-        rows = conn.execute("""
-            SELECT
-                e.agent_id,
-                e.agent_type,
-                e.event_type AS last_event_type,
-                e.task_id AS current_task,
-                e.timestamp AS last_event_time,
-                hb.last_heartbeat
-            FROM events e
-            INNER JOIN (
-                SELECT agent_id, MAX(timestamp) AS max_ts
-                FROM events
-                GROUP BY agent_id
-            ) latest ON e.agent_id = latest.agent_id AND e.timestamp = latest.max_ts
-            LEFT JOIN (
-                SELECT agent_id, MAX(timestamp) AS last_heartbeat
-                FROM events
-                WHERE event_type = 'heartbeat'
-                GROUP BY agent_id
-            ) hb ON e.agent_id = hb.agent_id
-            ORDER BY e.agent_id
-        """).fetchall()
-
+    all_events = load_events()
     now = datetime.now(timezone.utc)
+
+    # Group events by agent, find latest event and latest heartbeat
+    agent_latest = {}  # agent_id -> latest event
+    agent_heartbeats = {}  # agent_id -> latest heartbeat timestamp
+
+    for evt in all_events:
+        aid = evt.get("agent_id")
+        if not aid:
+            continue
+        ts = evt.get("timestamp", "")
+
+        if aid not in agent_latest or ts > agent_latest[aid]["timestamp"]:
+            agent_latest[aid] = evt
+
+        if evt.get("event_type") == "heartbeat":
+            if aid not in agent_heartbeats or ts > agent_heartbeats[aid]:
+                agent_heartbeats[aid] = ts
+
     agents = []
-    for row in rows:
-        # Compute status from last event type
-        last_type = row["last_event_type"]
+    for aid, evt in agent_latest.items():
+        last_type = evt.get("event_type", "")
+
         if last_type in ("task_started", "action_started"):
             status = "processing"
         elif last_type == "task_completed":
             status = "idle"
         elif last_type == "task_failed":
             status = "error"
-        elif last_type == "approval_requested":
-            status = "waiting_approval"
-        elif last_type == "escalated":
+        elif last_type in ("approval_requested", "escalated"):
             status = "waiting_approval"
         elif last_type in ("heartbeat", "agent_registered"):
             status = "idle"
@@ -177,9 +169,10 @@ def get_agents():
 
         # Stuck detection: no heartbeat in 5 minutes
         hb_age_seconds = None
-        if row["last_heartbeat"]:
+        hb_ts = agent_heartbeats.get(aid)
+        if hb_ts:
             try:
-                hb_time = datetime.fromisoformat(row["last_heartbeat"].replace("Z", "+00:00"))
+                hb_time = datetime.fromisoformat(hb_ts.replace("Z", "+00:00"))
                 hb_age_seconds = (now - hb_time).total_seconds()
                 if hb_age_seconds > 300:
                     status = "stuck"
@@ -187,10 +180,10 @@ def get_agents():
                 pass
 
         agents.append({
-            "id": row["agent_id"],
-            "type": row["agent_type"],
+            "id": aid,
+            "type": evt.get("agent_type"),
             "status": status,
-            "task": row["current_task"] if status == "processing" else row["current_task"],
+            "task": evt.get("task_id"),
             "hb": int(hb_age_seconds) if hb_age_seconds is not None else None,
         })
 
@@ -200,104 +193,103 @@ def get_agents():
 @app.get("/api/tasks")
 def get_tasks(agent_id: str | None = None, limit: int = 50):
     """Task list derived from task lifecycle events."""
-    with get_db() as conn:
-        query = """
-            SELECT
-                task_id,
-                agent_id,
-                task_type,
-                MAX(CASE WHEN event_type = 'task_completed' THEN 'completed'
-                         WHEN event_type = 'task_failed' THEN 'failed'
-                         WHEN event_type = 'escalated' THEN 'escalated'
-                         WHEN event_type = 'approval_requested' THEN 'waiting'
-                         ELSE 'processing' END) AS status,
-                MAX(CASE WHEN event_type IN ('task_completed', 'task_failed')
-                    THEN duration_ms END) AS duration_ms,
-                MIN(timestamp) AS started_at,
-                MAX(timestamp) AS last_event_at,
-                MAX(CASE WHEN event_type IN ('task_completed', 'task_failed')
-                    THEN json_extract(payload, '$.data.cost')
-                    END) AS cost
-            FROM events
-            WHERE task_id IS NOT NULL
-        """
-        params = []
-        if agent_id:
-            query += " AND agent_id = ?"
-            params.append(agent_id)
+    all_events = load_events()
 
-        query += " GROUP BY task_id ORDER BY started_at DESC LIMIT ?"
-        params.append(limit)
-
-        rows = conn.execute(query, params).fetchall()
+    # Group events by task_id
+    task_events = {}
+    for evt in all_events:
+        tid = evt.get("task_id")
+        if not tid:
+            continue
+        if agent_id and evt.get("agent_id") != agent_id:
+            continue
+        task_events.setdefault(tid, []).append(evt)
 
     tasks = []
-    for row in rows:
-        dur_ms = row["duration_ms"]
-        if dur_ms is not None:
-            duration_str = f"{dur_ms / 1000:.1f}s" if dur_ms < 60000 else f"{dur_ms / 60000:.1f}m"
-        else:
-            duration_str = None
+    for tid, events in task_events.items():
+        events.sort(key=lambda e: e.get("timestamp", ""))
 
+        # Derive status from event types present
+        event_types = {e.get("event_type") for e in events}
+        if "task_completed" in event_types:
+            status = "completed"
+        elif "task_failed" in event_types:
+            status = "failed"
+        elif "escalated" in event_types:
+            status = "escalated"
+        elif "approval_requested" in event_types:
+            status = "waiting"
+        else:
+            status = "processing"
+
+        # Duration and cost from terminal events
+        duration_ms = None
+        cost = None
+        for e in events:
+            if e.get("event_type") in ("task_completed", "task_failed"):
+                duration_ms = e.get("duration_ms")
+                payload = e.get("payload")
+                if isinstance(payload, dict):
+                    cost = payload.get("data", {}).get("cost") if isinstance(payload.get("data"), dict) else payload.get("cost")
+
+        dur_str = None
+        if duration_ms is not None:
+            dur_str = f"{duration_ms / 1000:.1f}s" if duration_ms < 60000 else f"{duration_ms / 60000:.1f}m"
+
+        first = events[0]
         tasks.append({
-            "id": row["task_id"],
-            "agent": row["agent_id"],
-            "type": row["task_type"],
-            "status": row["status"],
-            "duration": duration_str,
-            "duration_ms": dur_ms,
-            "cost": row["cost"],
-            "time": row["started_at"],
+            "id": tid,
+            "agent": first.get("agent_id"),
+            "type": first.get("task_type"),
+            "status": status,
+            "duration": dur_str,
+            "duration_ms": duration_ms,
+            "cost": cost,
+            "time": first.get("timestamp"),
         })
 
-    return tasks
+    # Sort by time descending, limit
+    tasks.sort(key=lambda t: t.get("time", ""), reverse=True)
+    return tasks[:limit]
 
 
 @app.get("/api/timeline/{task_id}")
 def get_timeline(task_id: str):
     """All events for a task, ordered chronologically for timeline rendering."""
-    with get_db() as conn:
-        rows = conn.execute("""
-            SELECT
-                event_id, agent_id, event_type, timestamp,
-                duration_ms, status, severity, payload,
-                action_id, parent_action_id, parent_event_id
-            FROM events
-            WHERE task_id = ?
-            ORDER BY timestamp ASC
-        """, (task_id,)).fetchall()
+    all_events = load_events()
+
+    task_events = [e for e in all_events if e.get("task_id") == task_id]
+    task_events.sort(key=lambda e: e.get("timestamp", ""))
 
     nodes = []
-    for row in rows:
-        payload = None
-        if row["payload"]:
-            try:
-                payload = json.loads(row["payload"])
-            except (json.JSONDecodeError, TypeError):
-                pass
+    for evt in task_events:
+        event_type = evt.get("event_type", "")
+        payload = evt.get("payload")
+        status = evt.get("status")
 
-        # Map event_type to visual type for the timeline
-        event_type = row["event_type"]
-        visual_type = _event_type_to_visual(event_type, row["status"])
+        visual_type = _event_type_to_visual(event_type, status)
 
-        # Determine if this is an error branch node
-        is_branch = event_type in ("retry_started",) and row["parent_event_id"] is not None
-        is_branch_start = event_type in ("action_failed", "task_failed") and row["status"] == "failure"
+        is_branch = event_type == "retry_started" and evt.get("parent_event_id") is not None
+        is_branch_start = event_type in ("action_failed", "task_failed") and status == "failure"
 
-        dur_ms = row["duration_ms"]
+        dur_ms = evt.get("duration_ms")
         dur_str = None
         if dur_ms is not None:
             dur_str = f"{dur_ms / 1000:.1f}s" if dur_ms < 60000 else f"{dur_ms / 60000:.1f}m"
 
-        label = _event_label(event_type, payload, row["status"])
+        label = _event_label(event_type, payload, status)
+
+        tags = []
+        if isinstance(payload, dict):
+            tags = payload.get("tags", [])
 
         nodes.append({
             "label": label,
-            "time": row["timestamp"],
+            "time": evt.get("timestamp"),
             "type": visual_type,
             "dur": dur_str,
-            "detail": payload or {},
-            "tags": payload.get("tags", []) if payload else [],
+            "detail": payload if isinstance(payload, dict) else {},
+            "tags": tags,
             "isBranch": is_branch,
             "isBranchStart": is_branch_start,
         })
@@ -308,42 +300,32 @@ def get_timeline(task_id: str):
 @app.get("/api/events")
 def get_events(agent_id: str | None = None, event_type: str | None = None, limit: int = 50):
     """Recent events for the activity stream."""
-    with get_db() as conn:
-        query = "SELECT * FROM events WHERE 1=1"
-        params = []
+    all_events = load_events()
 
-        if agent_id:
-            query += " AND agent_id = ?"
-            params.append(agent_id)
-        if event_type:
-            query += " AND event_type = ?"
-            params.append(event_type)
+    filtered = all_events
+    if agent_id:
+        filtered = [e for e in filtered if e.get("agent_id") == agent_id]
+    if event_type:
+        filtered = [e for e in filtered if e.get("event_type") == event_type]
 
-        query += " ORDER BY timestamp DESC LIMIT ?"
-        params.append(limit)
-
-        rows = conn.execute(query, params).fetchall()
+    # Sort by timestamp descending (most recent first)
+    filtered.sort(key=lambda e: e.get("timestamp", ""), reverse=True)
+    filtered = filtered[:limit]
 
     events = []
-    for row in rows:
-        payload = None
-        if row["payload"]:
-            try:
-                payload = json.loads(row["payload"])
-            except (json.JSONDecodeError, TypeError):
-                pass
-
+    for evt in filtered:
+        payload = evt.get("payload")
         summary = ""
-        if payload:
+        if isinstance(payload, dict):
             summary = payload.get("summary", "")
 
         events.append({
-            "type": row["event_type"],
-            "agent": row["agent_id"],
-            "task": row["task_id"],
+            "type": evt.get("event_type"),
+            "agent": evt.get("agent_id"),
+            "task": evt.get("task_id"),
             "summary": summary,
-            "time": row["timestamp"],
-            "severity": row["severity"],
+            "time": evt.get("timestamp"),
+            "severity": evt.get("severity"),
         })
 
     return events
@@ -357,31 +339,35 @@ def get_summary():
     for a in agents:
         status_counts[a["status"]] = status_counts.get(a["status"], 0) + 1
 
-    with get_db() as conn:
-        # Success rate: completed / (completed + failed) in last hour
-        row = conn.execute("""
-            SELECT
-                COUNT(CASE WHEN event_type = 'task_completed' THEN 1 END) AS completed,
-                COUNT(CASE WHEN event_type = 'task_failed' THEN 1 END) AS failed
-            FROM events
-            WHERE event_type IN ('task_completed', 'task_failed')
-              AND timestamp >= datetime('now', '-1 hour')
-        """).fetchone()
+    all_events = load_events()
+    now = datetime.now(timezone.utc)
 
-        completed = row["completed"] or 0
-        failed = row["failed"] or 0
-        success_rate = round(completed / (completed + failed) * 100) if (completed + failed) > 0 else None
+    # Success rate: completed / (completed + failed) in last hour
+    completed = 0
+    failed = 0
+    durations = []
+    for evt in all_events:
+        et = evt.get("event_type")
+        if et not in ("task_completed", "task_failed"):
+            continue
+        # Check if within last hour
+        try:
+            ts = datetime.fromisoformat(evt["timestamp"].replace("Z", "+00:00"))
+            if (now - ts).total_seconds() > 3600:
+                continue
+        except (ValueError, TypeError, KeyError):
+            continue
 
-        # Average duration of completed tasks in last hour
-        avg_row = conn.execute("""
-            SELECT AVG(duration_ms) as avg_dur
-            FROM events
-            WHERE event_type = 'task_completed'
-              AND duration_ms IS NOT NULL
-              AND timestamp >= datetime('now', '-1 hour')
-        """).fetchone()
-        avg_dur = avg_row["avg_dur"]
-        avg_dur_str = f"{avg_dur / 1000:.1f}s" if avg_dur else None
+        if et == "task_completed":
+            completed += 1
+            if evt.get("duration_ms") is not None:
+                durations.append(evt["duration_ms"])
+        elif et == "task_failed":
+            failed += 1
+
+    success_rate = round(completed / (completed + failed) * 100) if (completed + failed) > 0 else None
+    avg_dur = sum(durations) / len(durations) if durations else None
+    avg_dur_str = f"{avg_dur / 1000:.1f}s" if avg_dur else None
 
     return {
         "total_agents": len(agents),
@@ -397,7 +383,6 @@ def get_summary():
 # Serve dashboard
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
-    import os
     dashboard_path = os.path.join(os.path.dirname(__file__), "..", "docs", "hiveboard-v2.html")
     with open(dashboard_path) as f:
         return HTMLResponse(f.read())
@@ -427,14 +412,12 @@ def _event_type_to_visual(event_type: str, status: str | None) -> str:
 
 
 def _event_label(event_type: str, payload: dict | None, status: str | None) -> str:
-    if payload and payload.get("summary"):
-        return payload["summary"]
-    if payload and payload.get("action_name"):
-        suffix = ""
-        if event_type == "action_failed":
-            suffix = " \u2717"
-        elif event_type == "action_completed":
+    if isinstance(payload, dict):
+        if payload.get("summary"):
+            return payload["summary"]
+        if payload.get("action_name"):
             suffix = ""
-        return payload["action_name"] + suffix
-    # Fallback to event_type
+            if event_type == "action_failed":
+                suffix = " \u2717"
+            return payload["action_name"] + suffix
     return event_type
