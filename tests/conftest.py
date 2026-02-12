@@ -43,7 +43,7 @@ async def storage(tmp_path: Path) -> JsonStorageBackend:
 @pytest.fixture
 def sample_batch() -> dict:
     """Load the shared sample batch fixture."""
-    fixture_path = Path(__file__).parent.parent / "shared" / "fixtures" / "sample_batch.json"
+    fixture_path = Path(__file__).parent.parent / "src" / "shared" / "fixtures" / "sample_batch.json"
     with open(fixture_path, "r", encoding="utf-8") as f:
         return json.load(f)
 

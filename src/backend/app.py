@@ -174,7 +174,7 @@ async def health():
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     """Serve the v3 prototype HTML — interim until Team 2 delivers their dashboard."""
-    html_path = Path(__file__).parent.parent / "docs" / "hiveboard-dashboard-v3.html"
+    html_path = Path(__file__).parent.parent.parent / "docs" / "hiveboard-dashboard-v3.html"
     if html_path.exists():
         return HTMLResponse(content=html_path.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Dashboard not found</h1>", status_code=404)
