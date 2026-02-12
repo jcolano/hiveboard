@@ -13,9 +13,11 @@ against these types.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel, Field
+
+T = TypeVar("T")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -387,9 +389,9 @@ class PaginationInfo(BaseModel):
     has_more: bool = False
 
 
-class Page[T](BaseModel):
+class Page(BaseModel, Generic[T]):
     """Generic paginated response wrapper."""
-    data: list[T]
+    data: list[Any]
     pagination: PaginationInfo = Field(default_factory=PaginationInfo)
 
 
