@@ -76,7 +76,7 @@ def derive_agent_status(
 ) -> AgentStatus:
     """Derive agent status using the priority cascade.
 
-    1. stuck:            last_heartbeat is None OR age > stuck_threshold_seconds
+    1. stuck:            heartbeat/activity age > stuck_threshold_seconds
     2. error:            last_event_type in (task_failed, action_failed)
     3. waiting_approval: last_event_type = approval_requested
     4. processing:       last_event_type in (task_started, action_started)
@@ -85,11 +85,13 @@ def derive_agent_status(
     if now is None:
         now = datetime.now(timezone.utc)
 
-    # 1. Stuck check
-    if agent.last_heartbeat is None:
+    # 1. Stuck check — use last_heartbeat if available, fall back to last_seen
+    # An agent that recently sent events but no heartbeat yet is NOT stuck
+    reference_time = agent.last_heartbeat or agent.last_seen
+    if reference_time is None:
         return AgentStatus.STUCK
-    hb_age = (now - agent.last_heartbeat).total_seconds()
-    if hb_age > agent.stuck_threshold_seconds:
+    age = (now - reference_time).total_seconds()
+    if age > agent.stuck_threshold_seconds:
         return AgentStatus.STUCK
 
     # 2. Error
@@ -408,6 +410,41 @@ class JsonStorageBackend:
                     self._persist("projects")
                     return True
         return False
+
+    async def count_projects(self, tenant_id: str) -> int:
+        return sum(
+            1 for row in self._tables["projects"]
+            if row["tenant_id"] == tenant_id
+            and not row.get("is_archived", False)
+        )
+
+    async def count_project_events(
+        self, tenant_id: str, project_id: str
+    ) -> int:
+        return sum(
+            1 for row in self._tables["events"]
+            if row["tenant_id"] == tenant_id
+            and row.get("project_id") == project_id
+        )
+
+    async def reassign_events(
+        self,
+        tenant_id: str,
+        from_project_id: str,
+        to_project_id: str,
+    ) -> int:
+        count = 0
+        async with self._locks["events"]:
+            for row in self._tables["events"]:
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row.get("project_id") == from_project_id
+                ):
+                    row["project_id"] = to_project_id
+                    count += 1
+            if count > 0:
+                self._persist("events")
+        return count
 
     # ───────────────────────────────────────────────────────────────────
     #  AGENTS
