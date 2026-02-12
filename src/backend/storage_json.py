@@ -1231,6 +1231,8 @@ class JsonStorageBackend:
         total_cost = 0.0
         total_tokens_in = 0
         total_tokens_out = 0
+        reported_cost = 0.0
+        estimated_cost = 0.0
         by_agent: dict[str, dict] = {}
         by_model: dict[str, dict] = {}
 
@@ -1239,25 +1241,34 @@ class JsonStorageBackend:
             cost = data.get("cost", 0) or 0
             t_in = data.get("tokens_in", 0) or 0
             t_out = data.get("tokens_out", 0) or 0
+            cost_source = data.get("cost_source")
             total_cost += cost
             total_tokens_in += t_in
             total_tokens_out += t_out
+            if cost_source == "reported":
+                reported_cost += cost
+            elif cost_source == "estimated":
+                estimated_cost += cost
             aid = row["agent_id"]
             mdl = data.get("model", "unknown")
 
             if aid not in by_agent:
-                by_agent[aid] = {"agent_id": aid, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0}
+                by_agent[aid] = {"agent_id": aid, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0}
             by_agent[aid]["cost"] += cost
             by_agent[aid]["call_count"] += 1
             by_agent[aid]["tokens_in"] += t_in
             by_agent[aid]["tokens_out"] += t_out
+            if cost_source == "estimated":
+                by_agent[aid]["estimated_cost"] += cost
 
             if mdl not in by_model:
-                by_model[mdl] = {"model": mdl, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0}
+                by_model[mdl] = {"model": mdl, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0}
             by_model[mdl]["cost"] += cost
             by_model[mdl]["call_count"] += 1
             by_model[mdl]["tokens_in"] += t_in
             by_model[mdl]["tokens_out"] += t_out
+            if cost_source == "estimated":
+                by_model[mdl]["estimated_cost"] += cost
 
         return CostSummary(
             total_cost=total_cost,
@@ -1266,6 +1277,8 @@ class JsonStorageBackend:
             total_tokens_out=total_tokens_out,
             by_agent=list(by_agent.values()),
             by_model=list(by_model.values()),
+            reported_cost=reported_cost,
+            estimated_cost=estimated_cost,
         )
 
     async def get_cost_calls(
@@ -1322,6 +1335,8 @@ class JsonStorageBackend:
                 tokens_out=data.get("tokens_out"),
                 cost=data.get("cost"),
                 duration_ms=data.get("duration_ms"),
+                cost_source=data.get("cost_source"),
+                cost_model_matched=data.get("cost_model_matched"),
             ))
 
         return Page[LlmCallRecord](
