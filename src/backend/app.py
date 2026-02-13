@@ -443,6 +443,9 @@ async def ingest(body: IngestRequest, request: Request):
             agent_version=body.envelope.agent_version,
             framework=body.envelope.framework,
             runtime=body.envelope.runtime,
+            sdk_version=body.envelope.sdk_version,
+            environment=body.envelope.environment,
+            group=body.envelope.group,
             last_seen=last_ts,
             last_heartbeat=last_ts if has_heartbeat else None,
             last_event_type=last_event_type,
@@ -546,8 +549,10 @@ async def _agent_to_summary(agent: AgentRecord, now: datetime, storage=None) -> 
         agent_type=agent.agent_type,
         agent_version=agent.agent_version,
         framework=agent.framework,
-        environment="production",
-        group="default",
+        runtime=agent.runtime,
+        sdk_version=agent.sdk_version,
+        environment=agent.environment,
+        group=agent.group,
         derived_status=status.value,
         current_task_id=agent.last_task_id,
         current_project_id=agent.last_project_id,
@@ -631,6 +636,18 @@ async def get_agent_pipeline(
     tenant_id = request.state.tenant_id
     pipeline = await storage.get_pipeline(tenant_id, agent_id)
     return pipeline.model_dump(mode="json")
+
+
+# --- B2.3.3b: GET /v1/pipeline (fleet-level) ---
+
+@app.get("/v1/pipeline")
+async def get_fleet_pipeline(
+    request: Request,
+):
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    fleet = await storage.get_fleet_pipeline(tenant_id)
+    return fleet.model_dump(mode="json")
 
 
 # --- B2.3.4: GET /v1/tasks ---
