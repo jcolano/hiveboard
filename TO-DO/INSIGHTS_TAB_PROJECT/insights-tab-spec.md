@@ -30,7 +30,7 @@ The four "moments" map to four collapsible sections:
 static/js/insights.js    # ~800–1000 lines, all Insights tab logic
 static/js/hiveboard.js   # Existing — add switchView('insights') case only
 templates/index.html      # Add tab button + container div
-static/css/style.css      # Add Insights-specific styles
+static/css/hiveboard.css  # Add Insights-specific styles
 ```
 
 ### 2.2 Coupling Strategy
@@ -235,7 +235,7 @@ Each section header is a `<div class="insights-section-header">` with a chevron 
 
 ### Moment 2: The Investigation (Q6–Q16)
 
-> **Agent Selector**: This section requires a selected agent. The toolbar's agent dropdown filters all Q6–Q9 cards. Default: first agent in the list (sorted by attention priority: stuck > error > waiting > processing > idle).
+> **Agent Selector**: This section requires a selected agent. The toolbar's agent dropdown filters all Q6–Q9 cards. Default: first agent in the list (sorted by attention priority: stuck > error > waiting > processing > idle). **Cross-section navigation**: When a user clicks an agent name in The Glance section (e.g., a stuck agent in Q3, or an attention item in Q2), the Investigation section auto-scrolls into view and the agent selector updates to that agent. Implementation: call `selectInsightsAgent(agentId)` which sets `insightsAgent`, updates the dropdown, re-fetches per-agent data, and scrolls the Investigation section header into view.
 
 ---
 
@@ -261,7 +261,7 @@ Each section header is a `<div class="insights-section-header">` with a chevron 
 | **Endpoint** | `GET /v1/agents/{agent_id}` |
 | **Response model** | `AgentSummary` |
 | **Key fields** | `last_heartbeat`, `heartbeat_age_seconds`, `stuck_threshold_seconds` |
-| **Processing** | Classify: HEALTHY if `heartbeat_age_seconds < stuck_threshold_seconds * 0.5`, STALE if `< stuck_threshold_seconds`, DEAD if `>=`. Use `hbClass()` for CSS class |
+| **Processing** | Classify using `hbClass()` which uses hardcoded thresholds: FRESH if `heartbeat_age_seconds < 60`, STALE if `< 300`, DEAD if `>= 300`. These match the existing dashboard behavior (hiveboard.js:83-86). Do **not** use `stuck_threshold_seconds` for classification — that field controls the `is_stuck` derivation on the backend, not the heartbeat CSS state |
 | **UI component** | **Heartbeat Health Card** — three-state indicator (green circle / amber circle / red circle) with label. Shows: "Last heartbeat: {timeAgo(last_heartbeat)}", "Threshold: {stuck_threshold_seconds}s", health classification. Visual: horizontal bar showing heartbeat_age relative to threshold |
 | **Update** | On agent selection or fetch cycle. Heartbeat age auto-increments client-side every second |
 
@@ -289,7 +289,7 @@ Each section header is a `<div class="insights-section-header">` with a chevron 
 | **Endpoint** | `GET /v1/agents/{agent_id}/pipeline` |
 | **Response model** | `PipelineState` |
 | **Key fields** | `issues[]` — each: `severity`, `issue_id`, `category`, `context`, `action` (reported/resolved/dismissed), `occurrence_count` |
-| **Processing** | Filter to active issues (`action='reported'`). Sort by severity (critical first), then by occurrence_count descending |
+| **Processing** | Filter to active issues: `action not in ('resolved',)` — this matches backend logic (storage_json.py:1504-1507) which considers any non-resolved issue as active (including `reported`, `dismissed`, etc.). Sort by severity (critical first), then by occurrence_count descending |
 | **UI component** | **Issues Panel** — header: "{count} active issues". Each issue is a card: `[severity-badge] category: context (×{occurrence_count})`. Severity badge colors: critical=red, high=orange, medium=amber, low=blue. Issues with `occurrence_count > 5` get a "Recurring" tag |
 | **Update** | On agent selection or fetch cycle |
 
@@ -338,11 +338,11 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | Field | Value |
 |-------|-------|
 | **Scope** | Global |
-| **Endpoint** | `GET /v1/cost/calls?limit=200` + `GET /v1/tasks?limit=100` |
-| **Response models** | `LlmCallRecord[]`, `TaskSummary[]` |
-| **Key fields** | `LlmCallRecord.model`, `LlmCallRecord.cost`, `LlmCallRecord.tokens_in`, `LlmCallRecord.tokens_out`, `LlmCallRecord.task_id`, `TaskSummary.derived_status`, `TaskSummary.error_count` |
-| **Processing** | Join LLM calls to tasks by `task_id`. For each model, compute: avg cost per call, success rate of tasks using that model, avg tokens. Flag models where: cost > 2× cheapest model AND task success rate is similar (within 5%) to a cheaper model |
-| **UI component** | **Model Efficiency Matrix** — table with columns: `Model`, `Calls`, `Avg Cost/Call`, `Avg Tokens`, `Task Success Rate`, `Verdict`. Verdict column: "Efficient" (green), "Review" (amber, if cheaper alternative exists with similar success rate), "Expensive" (red, if >3× cheapest with no better success rate). Tooltip on "Review"/"Expensive" explains the cheaper alternative |
+| **Endpoint** | `GET /v1/cost/calls?limit=200` |
+| **Response model** | `LlmCallRecord[]` |
+| **Key fields** | `LlmCallRecord.model`, `LlmCallRecord.cost`, `LlmCallRecord.tokens_in`, `LlmCallRecord.tokens_out`, `LlmCallRecord.name` |
+| **Processing** | Group LLM calls by `model`. For each model, compute: avg cost per call, avg cost per 1K tokens (`cost / (tokens_in + tokens_out) * 1000`), total calls, avg tokens. Flag models where: cost per 1K tokens is >2× higher than the cheapest model used for calls with the **same `name`** (i.e., same purpose). This compares models doing equivalent work rather than conflating task failure causes with model choice |
+| **UI component** | **Model Efficiency Matrix** — table with columns: `Model`, `Calls`, `Avg Cost/Call`, `Avg $/1K Tokens`, `Avg Tokens`, `Verdict`. Verdict column: "Efficient" (green), "Review" (amber, if a cheaper model handles the same call purpose), "Expensive" (red, if >3× more expensive per token than an alternative for the same purpose). Tooltip on "Review"/"Expensive" explains the cheaper alternative and which call `name` it applies to |
 | **Update** | On range change or fetch cycle |
 
 ---
@@ -369,7 +369,7 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | **Endpoint** | `GET /v1/cost/calls?limit=200` |
 | **Response model** | `LlmCallRecord[]` |
 | **Key fields** | `tokens_in`, `tokens_out`, `name`, `model`, `agent_id` |
-| **Processing** | For each call, compute `ratio = tokens_in / tokens_out`. Flag calls where `ratio > 10` (10× more input than output). Group flagged calls by `name` (LLM call purpose) to find systematic bloat. Compute fleet-wide `avg_ratio`. Also compute per-agent average ratio |
+| **Processing** | For each call, compute `ratio = tokens_in / tokens_out`. Flag calls where `ratio > 10 AND tokens_in > 5000` — the absolute minimum prevents false positives from small classification calls (e.g., a 200-token prompt with a 15-token "yes/no" is ratio 13:1 but not bloat). Group flagged calls by `name` (LLM call purpose) to find systematic bloat. Compute fleet-wide `avg_ratio`. Also compute per-agent average ratio |
 | **UI component** | **Prompt Bloat Detector** (Smart Detector card) — header: "Prompt Bloat Analysis". Metrics: fleet-wide avg in/out ratio, count of calls with ratio >10. If bloat detected: table of top offenders grouped by `name`: `LLM Call Name | Avg Ratio | Calls | Agents Affected`. Each row shows `tokenBarHtml(tokens_in, tokens_out)` for visual. If no bloat: green "No prompt bloat detected" message |
 | **Update** | On range change or fetch cycle |
 
@@ -397,7 +397,7 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | **Endpoint** | `GET /v1/pipeline` |
 | **Response model** | `FleetPipelineState` |
 | **Key fields** | `agents[].queue_depth`, `FleetPipelineState.totals.queue_depth`, per-agent `PipelineState.queue.oldest_age_seconds`, `PipelineState.queue.items[].queued_at` |
-| **Processing** | For each agent pipeline, check for items where `oldest_age_seconds > 300` (5 minutes) while agent is not actively processing a queue item. These are potential silent drops. Also check: agent status is `idle` but queue depth > 0 |
+| **Processing** | For each agent pipeline, compute an adaptive threshold: `threshold = max(300, agent.stats_1h.avg_duration_ms / 1000 * 5)` — i.e., 5× the agent's average task duration, with a floor of 5 minutes. Flag items where `oldest_age_seconds > threshold` while agent is not actively processing a queue item. This avoids false positives for slow agents (where 5min queue age is normal) and catches issues faster for fast agents. Also check: agent status is `idle` but queue depth > 0 |
 | **UI component** | **Silent Drop Detector** (Smart Detector card) — header: "Silent Drop Detection". If issues found: table of `Agent | Queue Depth | Oldest Item Age | Agent Status | Verdict`. Verdict: "Possible drop" (red) if idle with queued items >5min, "Slow" (amber) if processing but oldest >5min, "OK" (green) otherwise. If no issues: green "No silent drops detected" |
 | **Update** | On fetch cycle |
 
@@ -422,10 +422,10 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | Field | Value |
 |-------|-------|
 | **Scope** | Global |
-| **Endpoints** | `GET /v1/pipeline`, per-agent `GET /v1/agents/{id}/pipeline` |
-| **Response model** | `PipelineState` |
+| **Endpoints** | `GET /v1/pipeline` (fleet summary for counts), then `GET /v1/agents/{id}/pipeline` per agent with `active_issues > 0` (for full issue details) |
+| **Response models** | `FleetPipelineState` (for identifying which agents have issues), `PipelineState` (for issue detail: severity, category, context, occurrence_count) |
 | **Key fields** | `issues[].occurrence_count`, `issues[].category`, `issues[].severity`, `issues[].context` |
-| **Processing** | Across all agents, collect issues where `occurrence_count > 3`. These indicate recurring problems that may represent silent credential failures. Group by `category`. Sort by total occurrence count descending |
+| **Processing** | **Two-phase fetch**: (1) Read `FleetPipelineState.agents[]` to find agents where `active_issues > 0`. (2) For those agents only, fetch `GET /v1/agents/{id}/pipeline` to get full issue details (the fleet endpoint only provides summary counts, not issue content). Across all fetched issues, filter for `occurrence_count > 3`. Group by `category`. Sort by total occurrence count descending. **Note**: To bound API calls, limit to the top 10 agents by `active_issues` count |
 | **UI component** | **Recurring Failure Detector** — table: `Category | Agent(s) | Total Occurrences | Severity | Context Preview`. Rows with `occurrence_count > 10` get a "Critical" highlight. Each row expandable to show full `context` text |
 | **Update** | On fetch cycle |
 
@@ -481,7 +481,7 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | **Endpoint** | `GET /v1/pipeline` (fleet pipeline) or iterate `GET /v1/agents/{id}/pipeline` |
 | **Response model** | `FleetPipelineState` / `PipelineState` |
 | **Key fields** | `issues[].issue_id`, `issues[].occurrence_count`, `issues[].action`, `issues[].category`, `issues[].context` |
-| **Processing** | Collect all issues with `action == 'reported'` (still active) and `occurrence_count > 1`. Sort by `occurrence_count` descending. These are unresolved recurring issues |
+| **Processing** | Collect all issues where `action not in ('resolved',)` (active — matches backend logic) and `occurrence_count > 1`. Sort by `occurrence_count` descending. These are unresolved recurring issues |
 | **UI component** | **Unresolved Issues Board** — table: `Issue ID | Category | Agent | Occurrences | Severity | Context`. Issues with `occurrence_count > 5` get "Chronic" badge. Issues with `severity == 'critical'` get top placement regardless of count. Click row → navigates to agent in Investigation section |
 | **Update** | On fetch cycle |
 
@@ -526,8 +526,8 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | **Scope** | Global |
 | **Endpoint** | `GET /v1/metrics?range={selectedRange}&group_by=agent` |
 | **Response model** | `MetricsResponse` (with `groups[]`) |
-| **Key fields** | `groups[].key` (agent_id), `groups[].summary.success_rate`, `groups[].summary.total_tasks`, `groups[].summary.failed` |
-| **Processing** | Sort groups by `success_rate` ascending (worst first). Filter to agents with at least 5 tasks (avoid noise from low-volume agents) |
+| **Key fields** | `groups[].agent` (agent_id — the field name matches the `group_by` parameter value), `groups[].tasks_completed`, `groups[].tasks_failed`, `groups[].total_cost` |
+| **Processing** | Compute per-group success rate: `tasks_completed / (tasks_completed + tasks_failed)`. Sort groups by success_rate ascending (worst first). Filter to agents with at least 5 total tasks (avoid noise from low-volume agents). **Note**: When `group_by=model`, the field name is `groups[].model` instead |
 | **UI component** | **Agent Reliability Ranking** — horizontal bar chart. Each bar represents an agent. Bar length = success rate (0-100%). Color: green >90%, amber 70-90%, red <70%. Label: `agent_id: {success_rate}% ({completed}/{total} tasks)`. Worst agent at top |
 | **Update** | On range change or fetch cycle |
 
@@ -541,7 +541,7 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | **Endpoints** | `GET /v1/metrics?range=7d`, `GET /v1/agents` |
 | **Response models** | `MetricsResponse`, `AgentSummary[]` |
 | **Key fields** | `AgentSummary.agent_version`, `MetricsResponse.timeseries[]` |
-| **Processing** | Group metrics before and after version changes (detected from `agent_version` field). Compare success rate and avg duration. **Note**: PARTIAL — no deploy event type exists yet; version changes in agent records serve as proxy |
+| **Processing** | Detect deploys by querying `GET /v1/events?event_type=agent_registered&limit=100` and grouping by `agent_id`. For each agent, if `agent_version` changes between consecutive `agent_registered` events, that timestamp marks a deploy. Split the metrics timeseries at each detected deploy timestamp and compare before/after success rate and avg duration. **Note**: PARTIAL — this heuristic works because `agent_registered` events carry the agent's version in the envelope fields. The current `AgentRecord` only stores the latest version, so the event stream is more reliable for historical version detection |
 | **UI component** | **Before/After Comparison** — if version changes detected: table with `Agent | Old Version | New Version | Success Rate (Before) | Success Rate (After) | Duration (Before) | Duration (After)`. Delta cells color-coded green/red. If no version changes detected: "No version changes detected in selected range. Consider adding deploy marker events." |
 | **Data availability** | PARTIAL — relies on `agent_version` changes as deploy proxy |
 
@@ -584,7 +584,7 @@ These questions relate to individual task timelines (steps, plan progress, tool 
 | **Response models** | `MetricsResponse`, `CostSummary` |
 | **Key fields** | `MetricsResponse.summary`, `CostSummary.total_cost` |
 | **Processing** | User provides baseline values (pre-observability) via input fields. Calculator computes: `cost_saved = baseline_cost - current_cost`, `time_saved = baseline_avg_duration - current_avg_duration`, `error_reduction = baseline_error_rate - current_success_rate`. **Note**: PARTIAL — requires user-input baseline since no historical pre-HiveBoard data exists |
-| **UI component** | **ROI Calculator Card** — input fields: "Baseline cost/month ($)", "Baseline avg task duration (s)", "Baseline error rate (%)". Calculate button computes and displays: "Cost savings: {fmtCost(delta)}/month", "Time saved per task: {fmtDuration(delta)}", "Error rate improvement: {delta}%", "Projected annual savings: {fmtCost(annual)}". If no baseline entered: show current 30d metrics with prompt "Enter your pre-observability baselines to calculate ROI" |
+| **UI component** | **ROI Calculator Card** — input fields: "Baseline cost/month ($)", "Baseline avg task duration (s)", "Baseline error rate (%)". Calculate button computes and displays: "Cost savings: {fmtCost(delta)}/month", "Time saved per task: {fmtDuration(delta)}", "Error rate improvement: {delta}%", "Projected annual savings: {fmtCost(annual)}". If no baseline entered: show current 30d metrics with prompt "Enter your pre-observability baselines to calculate ROI". **Export**: "Copy as Text" button copies a plain-text summary to clipboard (for pasting into reports/emails). Format: `ROI Summary (30d) — Cost savings: $X/mo, Time saved: Xs/task, Error reduction: X%, Annual projection: $X` |
 | **Data availability** | PARTIAL — current metrics are available; baseline requires user input |
 
 ---
@@ -679,8 +679,8 @@ Smart Detectors are cross-cutting anomaly detection widgets that appear in the O
 
 | Detector | Questions Served | Data Sources | Detection Logic |
 |----------|-----------------|--------------|-----------------|
-| **Prompt Bloat Detector** | Q20 | `GET /v1/cost/calls` | `tokens_in / tokens_out > 10` across multiple calls |
-| **Silent Drop Detector** | Q22 | `GET /v1/pipeline`, `GET /v1/agents` | Queue items aged >5min with idle agent |
+| **Prompt Bloat Detector** | Q20 | `GET /v1/cost/calls` | `tokens_in / tokens_out > 10 AND tokens_in > 5000` across multiple calls |
+| **Silent Drop Detector** | Q22 | `GET /v1/pipeline`, `GET /v1/agents` | Queue items aged > adaptive threshold (5× avg task duration, floor 5min) with idle agent |
 | **Contradiction Detector** | Q23 | `GET /v1/agents`, `GET /v1/pipeline` | Agent idle but queue_depth > 0 |
 | **Recurring Failure Detector** | Q24, Q28 | `GET /v1/agents/{id}/pipeline` (issues) | `occurrence_count > 3` on active issues |
 | **Heartbeat Drift Detector** | Q25 | `GET /v1/events?event_type=heartbeat` | Payload structure changes over time |
@@ -728,6 +728,9 @@ let insTasks = [];                  // TaskSummary[] from GET /v1/tasks
 let insEvents = [];                 // Event[] (recent non-heartbeat)
 let insHeartbeatEvents = [];        // Event[] (heartbeats for selected agent, Q25)
 
+// Error tracking (per data source, set during fetch)
+let insErrors = {};                 // { agents: Error|null, metrics: Error|null, ... }
+
 // Derived state (computed from cached data)
 let insHealthScore = null;          // { score, classification, penalties }
 let insScaleReadiness = null;       // { checks[], verdict }
@@ -757,44 +760,56 @@ async function initInsights() {
 
 ### 8.2 Fetch Strategy
 
-All independent API calls are made in parallel using `Promise.all`:
+All independent API calls are made in parallel using `Promise.allSettled` to handle partial failures gracefully (see Section 8.5 for error handling):
 
 ```javascript
 async function refreshInsights() {
   const range = insightsRange;
   const agentId = insightsAgent;
 
-  // Phase 1: Parallel fetch of all global data
-  const [agents, metrics, cost, costTs, costCalls, pipeline, tasks, events] =
-    await Promise.all([
-      apiFetch('/v1/agents'),
-      apiFetch('/v1/metrics', { range }),
-      apiFetch('/v1/cost', { range }),
-      apiFetch('/v1/cost/timeseries', { range }),
-      apiFetch('/v1/cost/calls', { limit: 200 }),
-      apiFetch('/v1/pipeline'),
-      apiFetch('/v1/tasks', { limit: 100, sort: '-started_at' }),
-      apiFetch('/v1/events', { exclude_heartbeats: true, limit: 20 }),
-    ]);
+  // Phase 1: Parallel fetch of all global data (resilient to partial failures)
+  const results = await Promise.allSettled([
+    apiFetch('/v1/agents'),
+    apiFetch('/v1/metrics', { range }),
+    apiFetch('/v1/cost', { range }),
+    apiFetch('/v1/cost/timeseries', { range }),
+    apiFetch('/v1/cost/calls', { limit: 200 }),
+    apiFetch('/v1/pipeline'),
+    apiFetch('/v1/tasks', { limit: 100, sort: '-started_at' }),
+    apiFetch('/v1/events', { exclude_heartbeats: true, limit: 20 }),
+  ]);
 
-  // Store results
-  insAgents = agents?.agents || [];
-  insMetrics = metrics || null;
-  insCost = cost || null;
-  insCostTimeseries = costTs?.buckets || costTs || [];
-  insCostCalls = costCalls?.items || [];
-  insFleetPipeline = pipeline || null;
-  insTasks = tasks?.items || [];
-  insEvents = events?.items || [];
+  // Extract values with per-card error tracking
+  // All list endpoints use { "data": [...] } envelope; paginated endpoints
+  // use { "data": [...], "pagination": {...} } (Page model).
+  const val = (i) => results[i].status === 'fulfilled' ? results[i].value : null;
+  const err = (i) => results[i].status === 'rejected' ? results[i].reason : null;
+
+  insAgents         = val(0)?.data || [];
+  insMetrics        = val(1) || null;          // MetricsResponse (not wrapped)
+  insCost           = val(2) || null;          // CostSummary (not wrapped)
+  insCostTimeseries = val(3)?.data || [];      // { data: CostTimeBucket[] }
+  insCostCalls      = val(4)?.data || [];      // Page: { data: LlmCallRecord[] }
+  insFleetPipeline  = val(5) || null;          // FleetPipelineState (not wrapped)
+  insTasks          = val(6)?.data || [];      // Page: { data: TaskSummary[] }
+  insEvents         = val(7)?.data || [];      // Page: { data: Event[] }
+
+  // Track which data sources failed (for per-card error states)
+  insErrors = {
+    agents: err(0), metrics: err(1), cost: err(2), costTimeseries: err(3),
+    costCalls: err(4), pipeline: err(5), tasks: err(6), events: err(7),
+  };
 
   // Phase 2: Per-agent fetch (if agent selected)
   if (agentId) {
-    const [agentPipeline, hbEvents] = await Promise.all([
+    const agentResults = await Promise.allSettled([
       apiFetch(`/v1/agents/${agentId}/pipeline`),
       apiFetch('/v1/events', { agent_id: agentId, event_type: 'heartbeat', limit: 50 }),
     ]);
-    insAgentPipeline = agentPipeline || null;
-    insHeartbeatEvents = hbEvents?.items || [];
+    insAgentPipeline   = agentResults[0].status === 'fulfilled' ? agentResults[0].value : null;
+    insHeartbeatEvents = agentResults[1].status === 'fulfilled' ? (agentResults[1].value?.data || []) : [];
+    insErrors.agentPipeline = agentResults[0].status === 'rejected' ? agentResults[0].reason : null;
+    insErrors.heartbeats    = agentResults[1].status === 'rejected' ? agentResults[1].reason : null;
   }
 
   // Phase 3: Compute derived state
@@ -802,7 +817,7 @@ async function refreshInsights() {
   computeScaleReadiness();
   runDetectors();
 
-  // Phase 4: Render all sections
+  // Phase 4: Render all sections (each card checks insErrors for its data source)
   renderAllInsightsSections();
 }
 ```
@@ -825,18 +840,92 @@ Per refresh cycle, the Insights tab makes:
 - **2 parallel per-agent calls** (if agent selected: pipeline, heartbeat events)
 - **Total: 8–10 API calls per cycle**, well within rate limits (30 req/s/key)
 
+### 8.5 Empty States and Error States
+
+Each card must handle three render states: **data**, **empty**, and **error**.
+
+**Empty states** — shown when the API returns successfully but with no data:
+
+| Card | Empty State Message |
+|------|-------------------|
+| Q1 Fleet Status Bar | "No agents registered yet. Start by connecting an agent with the HiveLoop SDK." |
+| Q2 Attention Badge | Green "0" — "Nothing needs attention" |
+| Q4 Mini-Charts | "No task data in this range. Try a wider range or wait for agents to complete tasks." |
+| Q5 Activity Feed | "No recent activity. Events will appear here as agents run." |
+| Q6 Agent Status | "Select an agent from the dropdown above" (no agent selected) |
+| Q8 Queue Panel | "Queue is empty" (green) |
+| Q9 Issues Panel | "No active issues" (green) |
+| Q17 Cost Overview | "No cost data in this range. LLM call costs will appear once agents make LLM calls." |
+| Q29–Q30 Trend Charts | "Not enough data points for trend analysis. Need at least 4 timeseries buckets." |
+| Q31 Agent Ranking | "Not enough agents with task history for ranking." |
+
+**Error states** — shown when the API call for that card's data source failed (tracked in `insErrors`):
+
+```
+┌─────────────────────────────────────────┐
+│  [!] Card Title                         │
+│─────────────────────────────────────────│
+│  Failed to load data.                   │
+│  [Retry] button                         │
+└─────────────────────────────────────────┘
+```
+
+Each card checks `insErrors.{source}` before rendering. If the error is non-null, render the error state with a retry button that re-fetches only that specific endpoint. Cards whose data source succeeded should render normally even if other sources failed.
+
+### 8.6 WebSocket Integration
+
+For real-time updates to Q5 (Activity Feed) and Q1-Q3 (agent status), `insights.js` listens to the **existing** WebSocket connection managed by `hiveboard.js`.
+
+**Approach**: `hiveboard.js` exposes a global event hook that `insights.js` can subscribe to:
+
+```javascript
+// In hiveboard.js — add a global event dispatcher
+window.hiveBoardEvents = window.hiveBoardEvents || [];
+// In WS message handler, after processing:
+window.hiveBoardEvents.forEach(fn => fn(msg));
+
+// In insights.js — subscribe when tab is active
+function onWsMessage(msg) {
+  if (currentView !== 'insights') return;
+  if (msg.type === 'event.new') {
+    insEvents.unshift(msg.data);
+    insEvents = insEvents.slice(0, 20);
+    renderActivityFeed();
+  }
+  if (msg.type === 'agent.status_changed' || msg.type === 'agent.stuck') {
+    // Refresh agent-dependent cards (Q1-Q3, Q6-Q7)
+    refreshAgentCards();
+  }
+}
+window.hiveBoardEvents.push(onWsMessage);
+```
+
+This avoids opening a second WebSocket connection (which counts against the 5-connection-per-key limit).
+
+### 8.7 Differential Refresh Rates
+
+Not all data changes at the same speed. To reduce API load while keeping the Glance section responsive:
+
+| Data Group | Endpoints | Refresh Interval |
+|-----------|-----------|-----------------|
+| Fast (agent status, events) | `/v1/agents`, `/v1/events`, `/v1/pipeline` | 15 seconds |
+| Slow (metrics, cost) | `/v1/metrics`, `/v1/cost`, `/v1/cost/timeseries`, `/v1/cost/calls` | 60 seconds |
+| Per-agent | `/v1/agents/{id}/pipeline`, heartbeat events | 15 seconds (when agent selected) |
+
+Implementation: track `lastSlowRefresh` timestamp. On each fast tick, always fetch fast endpoints. Only fetch slow endpoints if `>60s` since last slow refresh.
+
 ---
 
 ## 9. CSS
 
-New styles are added to `static/css/style.css`. All new classes are prefixed with `insights-` to avoid conflicts.
+New styles are added to `static/css/hiveboard.css` (the existing dashboard stylesheet). All new classes are prefixed with `insights-` to avoid conflicts.
 
 ### 9.1 Reused CSS Variables
 
 The Insights tab reuses the existing CSS custom properties:
 
 ```css
-/* Already defined in style.css */
+/* Already defined in hiveboard.css */
 --bg-primary, --bg-secondary, --bg-tertiary
 --text-primary, --text-secondary, --text-muted
 --border-color, --border-subtle
@@ -950,7 +1039,9 @@ range               : str          # 1h | 6h | 24h | 7d | 30d
 interval            : str          # 5m | 15m | 1h | 6h | 1d
 summary             : MetricsSummary
 timeseries          : list[TimeseriesBucket]
-groups              : list[MetricsGroup] | None  # present when group_by is set
+groups              : list[dict] | None   # present when group_by is set; each dict has
+                                         # the group_by value as a key (e.g., "agent" or "model")
+                                         # plus: tasks_completed, tasks_failed, total_cost, etc.
 ```
 
 ### `MetricsSummary`
@@ -1208,6 +1299,80 @@ These are nice-to-have endpoints that would improve specific questions. None are
 
 ---
 
+## 13. Chart Rendering
+
+The Insights tab uses multiple chart types across Q4, Q19, Q29, Q30, Q34, and Q37. A consistent rendering approach is required.
+
+### 13.1 Approach: Inline SVG
+
+All charts are rendered as **inline SVG** elements generated by JavaScript. This matches the existing dashboard pattern (hiveboard.js renders sparklines as inline HTML/CSS) but extends it to support line charts and area charts.
+
+**No external charting library is used.** Rationale: the charts are simple (single-series line/area, horizontal bars, donut gauge) and a library dependency (Chart.js, D3) would add weight for minimal benefit.
+
+### 13.2 Chart Types
+
+| Chart Type | Used By | Implementation |
+|-----------|---------|---------------|
+| **Sparkline** | Q4 mini-charts | SVG `<polyline>` with gradient fill. 200×60px. Reuse existing sparkline pattern from agent cards |
+| **Line chart** | Q29, Q30, Q34 | SVG `<polyline>` + `<circle>` for data points. Full-width, 180px height. X-axis: `<text>` labels for first/mid/last bucket. Y-axis: `<text>` for min/max. Hover: `<rect>` overlay triggers tooltip via `mousemove` |
+| **Area chart** | Q19 cost timeline | SVG `<polygon>` with gradient fill. Spike markers as `<line>` elements with red stroke |
+| **Horizontal bar** | Q17, Q21, Q31 | CSS `<div>` bars (not SVG). Width set via `style="width: {pct}%"`. Colored fill via `background-color`. Same pattern as existing cost explorer bars |
+| **Donut gauge** | Q37 health score | SVG `<circle>` with `stroke-dasharray` for the filled portion. Center text via `<text>`. Color set by health classification |
+
+### 13.3 Tooltip Pattern
+
+All charts use a shared tooltip implementation:
+
+```javascript
+// Single tooltip element, repositioned on hover
+const tooltip = document.getElementById('insightsTooltip');
+// On mousemove over chart: compute nearest data point, position tooltip, set innerHTML
+// On mouseleave: hide tooltip
+```
+
+---
+
+## 14. Accessibility
+
+### 14.1 Keyboard Navigation
+
+| Element | Keyboard Behavior |
+|---------|------------------|
+| Section headers (collapse/expand) | `Enter` or `Space` toggles, `Tab` moves between sections |
+| Agent selector dropdown | Standard `<select>` keyboard behavior |
+| Range selector | Standard `<select>` keyboard behavior |
+| Expandable table rows | `Enter` toggles detail row, `Tab` moves between rows |
+| Cards | Focusable via `tabindex="0"`, descriptive `aria-label` |
+
+### 14.2 ARIA Attributes
+
+```html
+<!-- Collapsible sections -->
+<div class="insights-section-header" role="button" aria-expanded="true" aria-controls="insights-section-0-body">
+<div class="insights-section-body" id="insights-section-0-body" role="region">
+
+<!-- Health gauge -->
+<svg class="insights-gauge" role="img" aria-label="Fleet health score: 85 out of 100, Healthy">
+
+<!-- Status badges -->
+<span class="insights-badge--red" role="status" aria-label="2 stuck agents">
+
+<!-- Trend indicators -->
+<span class="insights-trend--up" aria-label="Improving: up 3.2% from previous period">
+```
+
+### 14.3 Screen Reader Support
+
+- All charts include an `aria-label` with a text summary of the data (e.g., "Throughput sparkline: 12 tasks/hour, trending up")
+- Color-coded elements always have a text/icon alternative (not color-only)
+- Status dots include adjacent text labels
+
+### 14.4 High Contrast
+
+The existing CSS variables support theme overrides. The `insights-` classes should use these variables (not hardcoded colors) so that future high-contrast or light themes apply automatically.
+
+---
+
 ## Appendix A: Question-to-Endpoint Quick Reference
 
 | Q# | Primary Endpoint(s) | Key Fields |
@@ -1223,7 +1388,7 @@ These are nice-to-have endpoints that would improve specific questions. None are
 | 9 | `/v1/agents/{id}/pipeline` | `issues[]` |
 | 10–16 | `/v1/tasks/{id}/timeline` | Link to Mission Control |
 | 17 | `/v1/cost` | `total_cost`, `by_agent[]`, `by_model[]` |
-| 18 | `/v1/cost/calls` + `/v1/tasks` | `model`, `cost`, `task_id` |
+| 18 | `/v1/cost/calls` | `model`, `cost`, `tokens_in`, `tokens_out`, `name` |
 | 19 | `/v1/cost/timeseries` | `timestamp`, `cost`, `call_count` |
 | 20 | `/v1/cost/calls` | `tokens_in`, `tokens_out` |
 | 21 | `/v1/cost` + `/v1/agents` | `by_agent[]`, `agent_type` |
@@ -1236,8 +1401,8 @@ These are nice-to-have endpoints that would improve specific questions. None are
 | 28 | `/v1/pipeline` | `issues[].occurrence_count`, `issues[].action` |
 | 29 | `/v1/metrics` | `timeseries[]` → success rate |
 | 30 | `/v1/metrics` | `timeseries[].avg_duration_ms` |
-| 31 | `/v1/metrics?group_by=agent` | `groups[].summary.success_rate` |
-| 32 | `/v1/metrics` + `/v1/agents` | `agent_version`, timeseries |
+| 31 | `/v1/metrics?group_by=agent` | `groups[].agent`, `groups[].tasks_completed`, `groups[].tasks_failed` |
+| 32 | `/v1/metrics` + `/v1/events?event_type=agent_registered` | `agent_version` changes in event stream |
 | 33 | `/v1/cost` | `total_cost` |
 | 34 | `/v1/metrics` + `/v1/cost/timeseries` | cost per task trend |
 | 35 | `/v1/metrics?range=30d` + `/v1/cost?range=30d` | summary + user baseline |
