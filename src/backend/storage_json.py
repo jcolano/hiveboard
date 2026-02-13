@@ -45,7 +45,9 @@ from shared.models import (
     ApiKeyRecord,
     CostSummary,
     CostTimeBucket,
+    AgentPipelineSummary,
     Event,
+    FleetPipelineState,
     LlmCallRecord,
     MetricsResponse,
     MetricsSummary,
@@ -459,6 +461,9 @@ class JsonStorageBackend:
         agent_version: str | None = None,
         framework: str | None = "custom",
         runtime: str | None = None,
+        sdk_version: str | None = None,
+        environment: str = "production",
+        group: str = "default",
         last_seen: datetime,
         last_heartbeat: datetime | None = None,
         last_event_type: str | None = None,
@@ -485,6 +490,9 @@ class JsonStorageBackend:
                     agent_version=agent_version,
                     framework=framework,
                     runtime=runtime,
+                    sdk_version=sdk_version,
+                    environment=environment,
+                    group=group,
                     first_seen=last_seen,
                     last_seen=last_seen,
                     last_heartbeat=last_heartbeat,
@@ -510,6 +518,10 @@ class JsonStorageBackend:
                     existing["framework"] = framework
                 if runtime is not None:
                     existing["runtime"] = runtime
+                if sdk_version is not None:
+                    existing["sdk_version"] = sdk_version
+                existing["environment"] = environment
+                existing["group"] = group
                 if last_heartbeat is not None:
                     existing["last_heartbeat"] = last_heartbeat.isoformat()
                 if last_event_type is not None:
@@ -1493,6 +1505,56 @@ class JsonStorageBackend:
             todos=active_todos,
             scheduled=scheduled,
             issues=active_issues,
+        )
+
+    async def get_fleet_pipeline(
+        self,
+        tenant_id: str,
+    ) -> FleetPipelineState:
+        # Get all agent IDs for this tenant
+        agent_ids = [
+            row["agent_id"]
+            for row in self._tables["agents"]
+            if row["tenant_id"] == tenant_id
+        ]
+
+        total_queue = 0
+        total_issues = 0
+        total_todos = 0
+        total_scheduled = 0
+        agent_summaries = []
+
+        for aid in agent_ids:
+            pipeline = await self.get_pipeline(tenant_id, aid)
+            queue_depth = 0
+            if pipeline.queue:
+                queue_depth = pipeline.queue.get("depth", len(pipeline.queue.get("items", [])))
+            n_issues = len(pipeline.issues)
+            n_todos = len(pipeline.todos)
+            n_scheduled = len(pipeline.scheduled)
+
+            total_queue += queue_depth
+            total_issues += n_issues
+            total_todos += n_todos
+            total_scheduled += n_scheduled
+
+            if queue_depth or n_issues or n_todos or n_scheduled:
+                agent_summaries.append(AgentPipelineSummary(
+                    agent_id=aid,
+                    queue_depth=queue_depth,
+                    active_issues=n_issues,
+                    active_todos=n_todos,
+                    scheduled_count=n_scheduled,
+                ))
+
+        return FleetPipelineState(
+            totals={
+                "queue_depth": total_queue,
+                "active_issues": total_issues,
+                "active_todos": total_todos,
+                "scheduled_count": total_scheduled,
+            },
+            agents=agent_summaries,
         )
 
     # ───────────────────────────────────────────────────────────────────

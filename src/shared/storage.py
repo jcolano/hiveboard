@@ -43,6 +43,7 @@ from .models import (
     CostSummary,
     CostTimeBucket,
     Event,
+    FleetPipelineState,
     LlmCallRecord,
     MetricsResponse,
     Page,
@@ -222,6 +223,9 @@ class StorageBackend(Protocol):
         agent_version: str | None = None,
         framework: str | None = "custom",
         runtime: str | None = None,
+        sdk_version: str | None = None,
+        environment: str = "production",
+        group: str = "default",
         last_seen: datetime,
         last_heartbeat: datetime | None = None,
         last_event_type: str | None = None,
@@ -445,6 +449,21 @@ class StorageBackend(Protocol):
                  WHERE tenant_id = ? AND agent_id = ?
                    AND event_type = 'custom'
                    AND json_extract(payload, '$.kind') IN (...)
+        """
+        ...
+
+    async def get_fleet_pipeline(
+        self,
+        tenant_id: str,
+    ) -> FleetPipelineState:
+        """Fleet-wide pipeline aggregation across all agents.
+
+        Iterates all agents, calls get_pipeline() for each, aggregates totals.
+
+        Maps to: SELECT agent_id, ... FROM events
+                 WHERE tenant_id = ? AND event_type = 'custom'
+                   AND json_extract(payload, '$.kind') IN (...)
+                 GROUP BY agent_id
         """
         ...
 

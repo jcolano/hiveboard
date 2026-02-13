@@ -330,6 +330,9 @@ class AgentRecord(BaseModel):
     agent_version: str | None = None
     framework: str | None = "custom"
     runtime: str | None = None
+    sdk_version: str | None = None
+    environment: str = "production"
+    group: str = "default"
     first_seen: datetime
     last_seen: datetime
     last_heartbeat: datetime | None = None
@@ -446,6 +449,8 @@ class AgentSummary(BaseModel):
     agent_type: str
     agent_version: str | None = None
     framework: str | None = None
+    runtime: str | None = None
+    sdk_version: str | None = None
     environment: str
     group: str
     derived_status: str                         # idle / processing / waiting_approval / error / stuck
@@ -574,6 +579,26 @@ class PipelineState(BaseModel):
     todos: list[dict[str, Any]] = Field(default_factory=list)
     scheduled: list[dict[str, Any]] = Field(default_factory=list)
     issues: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class AgentPipelineSummary(BaseModel):
+    """Per-agent summary within the fleet pipeline view."""
+    agent_id: str
+    queue_depth: int = 0
+    active_todos: int = 0
+    active_issues: int = 0
+    scheduled_count: int = 0
+
+
+class FleetPipelineState(BaseModel):
+    """GET /v1/pipeline response — fleet-level pipeline aggregation."""
+    totals: dict[str, int] = Field(default_factory=lambda: {
+        "queue_depth": 0,
+        "active_issues": 0,
+        "active_todos": 0,
+        "scheduled_count": 0,
+    })
+    agents: list[AgentPipelineSummary] = Field(default_factory=list)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
