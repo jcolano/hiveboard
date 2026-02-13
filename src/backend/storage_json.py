@@ -1349,6 +1349,8 @@ class JsonStorageBackend:
                 duration_ms=data.get("duration_ms"),
                 cost_source=data.get("cost_source"),
                 cost_model_matched=data.get("cost_model_matched"),
+                prompt_preview=data.get("prompt_preview"),
+                response_preview=data.get("response_preview"),
             ))
 
         return Page[LlmCallRecord](

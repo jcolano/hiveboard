@@ -46,6 +46,17 @@ let lastEventTimestamp = null;
 // Timeline auto-scroll state
 let timelineAutoScroll = true;
 
+// LLM modal state
+let llmModalOpen = false;
+let llmModalData = null;
+
+// Cost drilldown state
+let costExpandedAgent = null;
+let costExpandedModel = null;
+let costDrilldownData = [];
+let costDrilldownCursor = null;
+let costDrilldownLoading = false;
+
 // ═══════════════════════════════════════════════════
 //  CONSTANTS
 // ═══════════════════════════════════════════════════
@@ -238,6 +249,12 @@ async function fetchTimeline(taskId) {
     var tokensOut = (kind === 'llm_call' && payload.data) ? payload.data.tokens_out : null;
     var llmCost = (kind === 'llm_call' && payload.data) ? payload.data.cost : null;
 
+    // ★ LLM Modal: Extract prompt/response previews and metadata
+    var promptPreview = (kind === 'llm_call' && payload.data) ? payload.data.prompt_preview : null;
+    var responsePreview = (kind === 'llm_call' && payload.data) ? payload.data.response_preview : null;
+    var llmMetadata = (kind === 'llm_call' && payload.data) ? payload.data.metadata : null;
+    var llmName = (kind === 'llm_call' && payload.data) ? payload.data.name : null;
+
     return {
       label: label, rawLabel: rawLabel, time: time, type: nodeType, dur: dur,
       detail: detail, tags: tags, llmModel: llmModel,
@@ -248,6 +265,14 @@ async function fetchTimeline(taskId) {
       tokensIn: tokensIn,
       tokensOut: tokensOut,
       llmCost: llmCost,
+      promptPreview: promptPreview,
+      responsePreview: responsePreview,
+      llmMetadata: llmMetadata,
+      llmName: llmName,
+      eventId: e.event_id,
+      agentId: e.agent_id,
+      taskId: e.task_id,
+      timestamp: e.timestamp,
     };
   });
 
@@ -267,6 +292,56 @@ async function fetchTimeline(taskId) {
 
   // ★ Feature 4: Store action tree from response
   var actionTree = data.action_tree || null;
+
+  // ★ Enrich action tree with LLM events as pseudo-children
+  if (actionTree) {
+    var llmEvents = (data.events || []).filter(function(e) {
+      return e.payload && e.payload.kind === 'llm_call';
+    });
+    if (llmEvents.length > 0) {
+      var treeRoots = Array.isArray(actionTree) ? actionTree : [actionTree];
+      // Build map of action_id → tree node for fast lookup
+      var actionMap = {};
+      (function mapTree(nodeList) {
+        (nodeList || []).forEach(function(node) {
+          if (node.action_id) actionMap[node.action_id] = node;
+          mapTree(node.children);
+        });
+      })(treeRoots);
+
+      llmEvents.forEach(function(e) {
+        var pd = (e.payload && e.payload.data) || {};
+        var llmNode = {
+          action_id: e.event_id,
+          name: pd.name || pd.model || (e.payload && e.payload.summary) || 'LLM call',
+          status: 'completed',
+          duration_ms: e.duration_ms || pd.duration_ms || null,
+          type: 'llm_call',
+          kind: 'llm_call',
+          tokens_in: pd.tokens_in || null,
+          tokens_out: pd.tokens_out || null,
+          model: pd.model || null,
+          cost: pd.cost || null,
+          summary: e.payload && e.payload.summary,
+          prompt_preview: pd.prompt_preview || null,
+          response_preview: pd.response_preview || null,
+          metadata: pd.metadata || null,
+          event_id: e.event_id,
+          agent_id: e.agent_id,
+          task_id: e.task_id,
+          timestamp: e.timestamp,
+          children: [],
+        };
+        // Insert as child of parent action, or as root if no parent
+        if (e.action_id && actionMap[e.action_id]) {
+          actionMap[e.action_id].children.push(llmNode);
+        } else {
+          treeRoots.push(llmNode);
+        }
+      });
+      actionTree = treeRoots;
+    }
+  }
 
   // ★ Feature 5: Store error chains from response
   var errorChains = data.error_chains || [];
@@ -310,6 +385,11 @@ async function fetchEvents(since) {
       toolResult: pd.result || pd.output || null,
       queueDepth: pd.depth || pd.queue_depth || null,
       oldestAge: pd.oldest_age || pd.oldest || null,
+      // ★ LLM Modal: prompt/response previews
+      promptPreview: pd.prompt_preview || null,
+      responsePreview: pd.response_preview || null,
+      llmMetadata: pd.metadata || null,
+      llmName: pd.name || null,
     };
   });
   if (since) {
@@ -463,9 +543,18 @@ function renderMetrics() {
 // ═══════════════════════════════════════════════════
 
 function computeDurationBreakdown(nodes) {
-  var llmMs = 0, toolMs = 0, otherMs = 0, totalMs = 0;
+  var llmMs = 0, toolMs = 0, otherMs = 0;
+  var taskDurationMs = 0;
   nodes.forEach(function(n) {
+    // Task-level events carry the total wall-clock duration, not a category
+    if (n.eventType === 'task_started' || n.eventType === 'task_completed' || n.eventType === 'task_failed') {
+      if (n.durationMs > taskDurationMs) taskDurationMs = n.durationMs;
+      return;
+    }
+    // action_started events have no duration — skip
+    if (n.eventType === 'action_started') return;
     var ms = n.durationMs || 0;
+    if (ms === 0) return;
     if (n.kind === 'llm_call' || n.type === 'llm') {
       llmMs += ms;
     } else if (n.type === 'action' || n.eventType === 'action_completed' || n.eventType === 'action_failed') {
@@ -473,11 +562,15 @@ function computeDurationBreakdown(nodes) {
     } else {
       otherMs += ms;
     }
-    totalMs += ms;
   });
-  // If nodes include task-level events with overlapping durations, use max as total
-  var task = nodes.find(function(n) { return n.eventType === 'task_completed' || n.eventType === 'task_failed'; });
-  if (task && task.durationMs > totalMs) totalMs = task.durationMs;
+  var accountedMs = llmMs + toolMs + otherMs;
+  // Use task duration as total if available (represents wall-clock time)
+  var totalMs = taskDurationMs > accountedMs ? taskDurationMs : accountedMs;
+  // Recompute "other" as the gap between total and categorized time (overhead, wait, etc.)
+  if (taskDurationMs > accountedMs) {
+    otherMs = taskDurationMs - llmMs - toolMs;
+    if (otherMs < 0) otherMs = 0;
+  }
   if (totalMs === 0) totalMs = 1; // prevent division by zero
   return { llmMs: llmMs, toolMs: toolMs, otherMs: otherMs, totalMs: totalMs };
 }
@@ -529,6 +622,7 @@ function renderDurationBreakdown() {
 function renderActionTreeNode(node, errorChains, depth) {
   if (!node) return '';
   var status = node.status || 'completed';
+  var isDone = status === 'completed' || status === 'success';
   var isFailed = status === 'failed' || status === 'error';
   var name = escHtml(node.name || node.action_name || 'unknown');
   var dur = node.duration_ms != null ? fmtDuration(node.duration_ms) : '';
@@ -538,14 +632,14 @@ function renderActionTreeNode(node, errorChains, depth) {
   var nodeType = 'action';
   if (node.type === 'llm_call' || node.kind === 'llm_call') nodeType = 'llm';
   else if (isFailed) nodeType = 'error';
-  else if (status === 'completed') nodeType = 'action';
+  else if (isDone) nodeType = 'action';
   else if (node.type === 'retry') nodeType = 'retry';
-  if (depth === 0) nodeType = 'system';
+  if (depth === 0 && nodeType !== 'llm') nodeType = 'system';
 
   var icon = TREE_ICON[nodeType] || '•';
   var statusHtml = '';
   if (isFailed) statusHtml = '<div class="tree-status failed">✗ failed</div>';
-  else if (status === 'completed') statusHtml = '<div class="tree-status completed">✓</div>';
+  else if (isDone) statusHtml = '<div class="tree-status completed">✓</div>';
   else if (status === 'processing' || status === 'active') statusHtml = '<div class="tree-status processing">◉</div>';
 
   // Build detail line
@@ -588,8 +682,17 @@ function renderActionTreeNode(node, errorChains, depth) {
   var rowBg = isFailed ? ' style="background: rgba(220,38,38,0.03);"' : '';
   var nameColor = isFailed ? ' style="color:var(--error)"' : '';
 
+  // ★ Clickable tree nodes: LLM → modal, action → pinned detail
+  var isLlmNode = node.type === 'llm_call' || node.kind === 'llm_call';
+  var clickClass = isLlmNode ? ' llm-clickable' : ' action-clickable';
+  var nodeDataAttr = ' data-node-id="' + escHtml(node.action_id || '') + '"';
+  var clickHandler = isLlmNode
+    ? ` onclick="openLlmDetailFromTree(this)"`
+    : ` onclick="openActionDetailFromTree(this)"`;
+  var expandHint = isLlmNode ? '<span class="tree-expand-hint">details</span>' : '';
+
   var html = `<div class="tree-node">
-    <div class="tree-node-row"${rowBg}>
+    <div class="tree-node-row${clickClass}"${rowBg}${nodeDataAttr}${clickHandler}>
       <div class="tree-indent">${guideHtml}</div>
       <div class="tree-icon ${nodeType}">${icon}</div>
       <div class="tree-content">
@@ -598,6 +701,7 @@ function renderActionTreeNode(node, errorChains, depth) {
         ${detailLine}
       </div>
       ${statusHtml}
+      ${expandHint}
     </div>`;
 
   if (children.length > 0) {
@@ -748,6 +852,27 @@ function pinNode(idx) {
   const nodes = tl ? tl.nodes : [];
   const node = nodes[idx];
   if (!node) return;
+
+  // ★ LLM nodes get the full modal
+  if (node.kind === 'llm_call' || node.type === 'llm') {
+    openLlmModal({
+      name: node.llmName || node.rawLabel || node.label,
+      model: node.llmModel,
+      tokens_in: node.tokensIn,
+      tokens_out: node.tokensOut,
+      cost: node.llmCost,
+      duration_ms: node.durationMs || null,
+      prompt_preview: node.promptPreview,
+      response_preview: node.responsePreview,
+      metadata: node.llmMetadata,
+      agent_id: node.agentId,
+      task_id: node.taskId || selectedTask,
+      event_id: node.eventId,
+      timestamp: node.timestamp,
+    });
+    return;
+  }
+
   if (pinnedNode === idx) { unpinDetail(); return; }
   pinnedNode = idx;
 
@@ -860,6 +985,7 @@ function buildStreamDetailTags(e) {
     if (e.tokensIn != null || e.tokensOut != null) tags.push(`<span class="stream-detail-tag tokens">${fmtTokens(e.tokensIn)} in → ${fmtTokens(e.tokensOut)} out</span>`);
     if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(3)}</span>`);
     if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
+    tags.push(`<span class="stream-detail-btn" onclick="event.stopPropagation(); openLlmDetailFromStream('${escHtml(e.eventId)}')">&#x2922; Details</span>`);
   }
   // Task events
   else if (e.type.startsWith('task_')) {
@@ -1050,7 +1176,13 @@ function renderCostExplorer() {
       const mEst = (m.estimated_cost || 0) > 0;
       const mCostStr = mEst ? '~$' + (m.cost || 0).toFixed(2) : '$' + (m.cost || 0).toFixed(2);
       const mTitle = mEst ? 'title="Includes server-estimated costs"' : '';
-      html += `<tr><td><span class="model-badge">${escHtml(m.model || '—')}</span></td><td>${m.call_count || 0}</td><td>${fmtTokens(m.tokens_in)}</td><td>${fmtTokens(m.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;" ${mTitle}>${mCostStr}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((m.cost || 0) / maxModelCost * 100)}%"></div></td></tr>`;
+      const modelName = m.model || '—';
+      const isExpanded = costExpandedModel === modelName;
+      const chevron = isExpanded ? '▾' : '▸';
+      html += `<tr class="cost-row clickable ${isExpanded ? 'cost-row-expanded' : ''}" onclick="toggleCostModelDrilldown('${escHtml(modelName)}')" title="Click to view individual calls"><td><span class="cost-row-chevron">${chevron}</span><span class="model-badge">${escHtml(modelName)}</span></td><td>${m.call_count || 0}</td><td>${fmtTokens(m.tokens_in)}</td><td>${fmtTokens(m.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;" ${mTitle}>${mCostStr}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((m.cost || 0) / maxModelCost * 100)}%"></div></td></tr>`;
+      if (isExpanded) {
+        html += `<tr class="cost-drilldown-row"><td colspan="6">${renderCostDrilldownPanel('model', modelName)}</td></tr>`;
+      }
     });
     html += `</tbody></table></div>`;
   }
@@ -1064,11 +1196,124 @@ function renderCostExplorer() {
       const aEst = (a.estimated_cost || 0) > 0;
       const aCostStr = aEst ? '~$' + (a.cost || 0).toFixed(2) : '$' + (a.cost || 0).toFixed(2);
       const aTitle = aEst ? 'title="Includes server-estimated costs"' : '';
-      html += `<tr><td><span class="clickable-entity" onclick="openAgentDetail('${agentId}')" style="color: var(--accent);">${escHtml(agentId)}</span></td><td>${a.call_count || 0}</td><td>${fmtTokens(a.tokens_in)}</td><td>${fmtTokens(a.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;" ${aTitle}>${aCostStr}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((a.cost || 0) / maxAgentCost * 100)}%"></div></td></tr>`;
+      const isExpanded = costExpandedAgent === agentId;
+      const chevron = isExpanded ? '▾' : '▸';
+      html += `<tr class="cost-row clickable ${isExpanded ? 'cost-row-expanded' : ''}" onclick="toggleCostAgentDrilldown('${escHtml(agentId)}')" title="Click to view individual calls"><td><span class="cost-row-chevron">${chevron}</span><span style="color: var(--accent);">${escHtml(agentId)}</span></td><td>${a.call_count || 0}</td><td>${fmtTokens(a.tokens_in)}</td><td>${fmtTokens(a.tokens_out)}</td><td style="color: var(--llm); font-weight: 600;" ${aTitle}>${aCostStr}</td><td style="width: 100px;"><div class="cost-bar" style="width: ${((a.cost || 0) / maxAgentCost * 100)}%"></div></td></tr>`;
+      if (isExpanded) {
+        html += `<tr class="cost-drilldown-row"><td colspan="6">${renderCostDrilldownPanel('agent', agentId)}</td></tr>`;
+      }
     });
     html += `</tbody></table></div>`;
   }
   document.getElementById('costTables').innerHTML = html || '<div class="empty-state">No cost data available</div>';
+}
+
+// ── Cost Drilldown Functions ──
+
+async function toggleCostAgentDrilldown(agentId) {
+  if (costExpandedAgent === agentId) {
+    costExpandedAgent = null;
+    costDrilldownData = [];
+    costDrilldownCursor = null;
+    renderCostExplorer();
+    return;
+  }
+  costExpandedAgent = agentId;
+  costExpandedModel = null;
+  costDrilldownData = [];
+  costDrilldownCursor = null;
+  costDrilldownLoading = true;
+  renderCostExplorer();
+  var since = new Date(Date.now() - 3600000).toISOString();
+  var resp = await apiFetch('/v1/llm-calls', { agent_id: agentId, since: since, limit: 10 });
+  costDrilldownLoading = false;
+  if (resp && resp.data) {
+    costDrilldownData = resp.data;
+    costDrilldownCursor = resp.pagination && resp.pagination.has_more ? resp.pagination.cursor : null;
+  }
+  renderCostExplorer();
+}
+
+async function toggleCostModelDrilldown(modelName) {
+  if (costExpandedModel === modelName) {
+    costExpandedModel = null;
+    costDrilldownData = [];
+    costDrilldownCursor = null;
+    renderCostExplorer();
+    return;
+  }
+  costExpandedModel = modelName;
+  costExpandedAgent = null;
+  costDrilldownData = [];
+  costDrilldownCursor = null;
+  costDrilldownLoading = true;
+  renderCostExplorer();
+  var since = new Date(Date.now() - 3600000).toISOString();
+  var resp = await apiFetch('/v1/llm-calls', { model: modelName, since: since, limit: 10 });
+  costDrilldownLoading = false;
+  if (resp && resp.data) {
+    costDrilldownData = resp.data;
+    costDrilldownCursor = resp.pagination && resp.pagination.has_more ? resp.pagination.cursor : null;
+  }
+  renderCostExplorer();
+}
+
+async function loadMoreCostDrilldown() {
+  if (!costDrilldownCursor || costDrilldownLoading) return;
+  costDrilldownLoading = true;
+  renderCostExplorer();
+  var since = new Date(Date.now() - 3600000).toISOString();
+  var params = { since: since, limit: 10, cursor: costDrilldownCursor };
+  if (costExpandedAgent) params.agent_id = costExpandedAgent;
+  if (costExpandedModel) params.model = costExpandedModel;
+  var resp = await apiFetch('/v1/llm-calls', params);
+  costDrilldownLoading = false;
+  if (resp && resp.data) {
+    costDrilldownData = costDrilldownData.concat(resp.data);
+    costDrilldownCursor = resp.pagination && resp.pagination.has_more ? resp.pagination.cursor : null;
+  }
+  renderCostExplorer();
+}
+
+function renderCostDrilldownPanel(filterType, filterValue) {
+  if (costDrilldownLoading && costDrilldownData.length === 0) {
+    return '<div class="cost-drilldown"><div class="cost-drilldown-loading">Loading calls…</div></div>';
+  }
+  if (costDrilldownData.length === 0) {
+    return '<div class="cost-drilldown"><div class="cost-drilldown-empty">No individual calls found in the last hour</div></div>';
+  }
+  var label = filterType === 'agent' ? 'Agent: ' + escHtml(filterValue) : 'Model: ' + escHtml(filterValue);
+  var totalCost = costDrilldownData.reduce(function(s, c) { return s + (c.cost || 0); }, 0);
+  var headerHtml = '<div class="cost-drilldown-header"><span>' + label + ' — ' + costDrilldownData.length + ' calls</span><span style="color:var(--llm);font-weight:600;">$' + totalCost.toFixed(4) + '</span></div>';
+  var tableHtml = '<table class="cost-drilldown-table"><thead><tr><th>Time</th><th>Name</th>' +
+    (filterType === 'model' ? '<th>Agent</th>' : '<th>Model</th>') +
+    '<th>Tokens</th><th>Cost</th><th></th></tr></thead><tbody>';
+  costDrilldownData.forEach(function(call, idx) {
+    var ts = call.timestamp ? new Date(call.timestamp).toLocaleTimeString() : '—';
+    var name = escHtml(call.name || '—');
+    var secondCol = filterType === 'model' ? escHtml(call.agent_id || '—') : '<span class="model-badge">' + escHtml(call.model || '—') + '</span>';
+    var tokens = (call.tokens_in != null ? call.tokens_in.toLocaleString() : '?') + ' / ' + (call.tokens_out != null ? call.tokens_out.toLocaleString() : '?');
+    var costStr = call.cost != null ? '$' + call.cost.toFixed(4) : '—';
+    tableHtml += '<tr onclick="openLlmModalFromCostDrilldown(' + idx + ')" style="cursor:pointer;" title="View full LLM call detail">' +
+      '<td>' + ts + '</td><td>' + name + '</td><td>' + secondCol + '</td><td>' + tokens + '</td>' +
+      '<td style="color:var(--llm);font-weight:600;">' + costStr + '</td>' +
+      '<td style="text-align:center;font-size:14px;color:var(--text-muted);">⤢</td></tr>';
+  });
+  tableHtml += '</tbody></table>';
+  var moreHtml = '';
+  if (costDrilldownLoading) {
+    moreHtml = '<div class="cost-drilldown-loading">Loading more…</div>';
+  } else if (costDrilldownCursor) {
+    moreHtml = '<button class="cost-drilldown-more" onclick="event.stopPropagation(); loadMoreCostDrilldown();">Load more</button>';
+  }
+  return '<div class="cost-drilldown">' + headerHtml + tableHtml + moreHtml + '</div>';
+}
+
+function openLlmModalFromCostDrilldown(idx) {
+  event.stopPropagation();
+  var call = costDrilldownData[idx];
+  if (!call) return;
+  openLlmModal(call);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1132,6 +1377,10 @@ function switchView(view) {
     document.querySelector('.view-tab[data-view="mission"]').classList.add('active');
     document.getElementById('viewMission').classList.add('active');
   } else if (view === 'cost') {
+    costExpandedAgent = null;
+    costExpandedModel = null;
+    costDrilldownData = [];
+    costDrilldownCursor = null;
     document.querySelector('.view-tab[data-view="cost"]').classList.add('active');
     document.getElementById('viewCost').classList.add('active');
     fetchCostData().then(renderCostExplorer);
@@ -1299,6 +1548,235 @@ function updatePipelineBadge() {
 }
 
 // ═══════════════════════════════════════════════════
+//  LLM DETAIL MODAL
+// ═══════════════════════════════════════════════════
+
+function openLlmModal(data) {
+  llmModalData = data;
+  llmModalOpen = true;
+  renderLlmModal();
+}
+
+function closeLlmModal() {
+  llmModalOpen = false;
+  llmModalData = null;
+  var overlay = document.getElementById('llmModalOverlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+function renderLlmModal() {
+  var d = llmModalData;
+  if (!d) return;
+  var overlay = document.getElementById('llmModalOverlay');
+  var modal = document.getElementById('llmModalContent');
+  if (!overlay || !modal) return;
+
+  // Stats row
+  var statsHtml = '<div class="llm-modal-stats">' +
+    '<div class="llm-modal-stat"><div class="stat-label">Tokens In</div><div class="stat-value">' + (d.tokens_in != null ? d.tokens_in.toLocaleString() : '\u2014') + '</div></div>' +
+    '<div class="llm-modal-stat"><div class="stat-label">Tokens Out</div><div class="stat-value">' + (d.tokens_out != null ? d.tokens_out.toLocaleString() : '\u2014') + '</div></div>' +
+    '<div class="llm-modal-stat"><div class="stat-label">Cost</div><div class="stat-value">' + (d.cost != null ? '$' + d.cost.toFixed(4) : '\u2014') + '</div></div>' +
+    '<div class="llm-modal-stat"><div class="stat-label">Duration</div><div class="stat-value">' + (d.duration_ms != null ? fmtDuration(d.duration_ms) : '\u2014') + '</div></div>' +
+    '</div>';
+
+  // Token ratio bar
+  var ratioHtml = '';
+  if (d.tokens_in != null && d.tokens_out != null) {
+    var maxTok = Math.max(d.tokens_in, d.tokens_out, 1);
+    var wIn = Math.round((d.tokens_in / maxTok) * 100);
+    var wOut = Math.round((d.tokens_out / maxTok) * 100);
+    ratioHtml = '<div class="llm-modal-ratio">' +
+      '<div class="llm-ratio-bar in" style="width:' + wIn + '%"></div>' +
+      '<div class="llm-ratio-bar out" style="width:' + wOut + '%"></div>' +
+      '</div>';
+  }
+
+  // Prompt section
+  var promptHtml = '';
+  if (d.prompt_preview) {
+    promptHtml = '<div class="llm-modal-section">' +
+      '<div class="llm-modal-section-header">' +
+      '<div class="llm-modal-section-label">PROMPT</div>' +
+      '<button class="llm-modal-copy" onclick="copyToClipboard(llmModalData.prompt_preview)">Copy</button>' +
+      '</div>' +
+      '<pre class="llm-modal-preview">' + escHtml(d.prompt_preview) + '</pre>' +
+      '</div>';
+  } else {
+    promptHtml = '<div class="llm-modal-section">' +
+      '<div class="llm-modal-section-header"><div class="llm-modal-section-label">PROMPT</div></div>' +
+      '<div class="llm-modal-empty">No prompt captured \u2014 enable prompt previews in your SDK instrumentation</div>' +
+      '</div>';
+  }
+
+  // Response section (with JSON detection)
+  var responseHtml = '';
+  var responseText = d.response_preview || null;
+  if (responseText) {
+    var displayText = responseText;
+    var trimmed = responseText.trim();
+    if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+      try { displayText = JSON.stringify(JSON.parse(responseText), null, 2); } catch (ex) { }
+    }
+    responseHtml = '<div class="llm-modal-section">' +
+      '<div class="llm-modal-section-header">' +
+      '<div class="llm-modal-section-label">RESPONSE</div>' +
+      '<button class="llm-modal-copy" onclick="copyToClipboard(llmModalData.response_preview)">Copy</button>' +
+      '</div>' +
+      '<pre class="llm-modal-preview">' + escHtml(displayText) + '</pre>' +
+      '</div>';
+  } else {
+    responseHtml = '<div class="llm-modal-section">' +
+      '<div class="llm-modal-section-header"><div class="llm-modal-section-label">RESPONSE</div></div>' +
+      '<div class="llm-modal-empty">No response captured</div>' +
+      '</div>';
+  }
+
+  // Metadata (collapsed by default)
+  var metaHtml = '';
+  if (d.metadata && typeof d.metadata === 'object' && Object.keys(d.metadata).length > 0) {
+    var metaRows = '';
+    var metaKeys = Object.keys(d.metadata);
+    metaKeys.forEach(function(k) {
+      metaRows += '<div class="llm-meta-row"><span class="llm-meta-key">' + escHtml(k) + '</span><span class="llm-meta-val">' + escHtml(String(d.metadata[k])) + '</span></div>';
+    });
+    var fieldCount = metaKeys.length;
+    metaHtml = '<div class="llm-modal-section collapsible" onclick="this.classList.toggle(\'expanded\')">' +
+      '<div class="llm-modal-section-header">' +
+      '<div class="llm-modal-section-label">\u25B8 Metadata (' + fieldCount + ' field' + (fieldCount > 1 ? 's' : '') + ')</div>' +
+      '</div>' +
+      '<div class="llm-meta-content">' + metaRows + '</div>' +
+      '</div>';
+  }
+
+  // Context row
+  var ctxParts = [];
+  if (d.agent_id) ctxParts.push('<span class="clickable-entity" onclick="closeLlmModal(); selectAgent(\'' + escHtml(d.agent_id) + '\')">' + escHtml(d.agent_id) + '</span>');
+  if (d.task_id) ctxParts.push('<span class="clickable-entity" onclick="closeLlmModal(); selectTask(\'' + escHtml(d.task_id) + '\')">' + escHtml(d.task_id) + '</span>');
+  var contextHtml = '<div class="llm-modal-context">' +
+    ctxParts.join(' \u00B7 ') +
+    (d.timestamp ? ' \u00B7 <span style="color:var(--text-muted)">' + escHtml(d.timestamp) + '</span>' : '') +
+    '</div>';
+
+  modal.innerHTML = '<div class="llm-modal-header">' +
+    '<div><div class="llm-modal-name">\u25C6 ' + escHtml(d.name || 'LLM Call') + '</div>' +
+    '<div class="llm-modal-model">' + escHtml(d.model || '\u2014') + '</div></div>' +
+    '<button class="llm-modal-close" onclick="closeLlmModal()">\u2715</button>' +
+    '</div>' +
+    statsHtml + ratioHtml + promptHtml + responseHtml + metaHtml + contextHtml;
+
+  overlay.classList.add('visible');
+}
+
+function copyToClipboard(text) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).catch(function() {});
+  showToast('Copied to clipboard');
+}
+
+// ★ Tree view → LLM modal
+function openLlmDetailFromTree(el) {
+  var nodeId = el.getAttribute('data-node-id');
+  if (!nodeId) return;
+  var tl = TIMELINES[selectedTask];
+  if (!tl || !tl.actionTree) return;
+
+  // Search the action tree for the node with matching action_id
+  var found = null;
+  (function search(nodes) {
+    if (found) return;
+    (nodes || []).forEach(function(n) {
+      if (found) return;
+      if (n.action_id === nodeId) { found = n; return; }
+      search(n.children);
+    });
+  })(Array.isArray(tl.actionTree) ? tl.actionTree : [tl.actionTree]);
+
+  if (!found) return;
+  openLlmModal({
+    name: found.name || found.action_name || 'LLM Call',
+    model: found.model || null,
+    tokens_in: found.tokens_in || null,
+    tokens_out: found.tokens_out || null,
+    cost: found.cost || null,
+    duration_ms: found.duration_ms || null,
+    prompt_preview: found.prompt_preview || null,
+    response_preview: found.response_preview || null,
+    metadata: found.metadata || null,
+    agent_id: found.agent_id || null,
+    task_id: found.task_id || selectedTask,
+    event_id: found.event_id || nodeId,
+    timestamp: found.timestamp || null,
+  });
+}
+
+// ★ Tree view → action detail (non-LLM nodes)
+function openActionDetailFromTree(el) {
+  var nodeId = el.getAttribute('data-node-id');
+  if (!nodeId) return;
+  var tl = TIMELINES[selectedTask];
+  if (!tl || !tl.actionTree) return;
+
+  var found = null;
+  (function search(nodes) {
+    if (found) return;
+    (nodes || []).forEach(function(n) {
+      if (found) return;
+      if (n.action_id === nodeId) { found = n; return; }
+      search(n.children);
+    });
+  })(Array.isArray(tl.actionTree) ? tl.actionTree : [tl.actionTree]);
+
+  if (!found) return;
+
+  // Show in pinned detail panel
+  var color = found.status === 'failed' || found.status === 'error' ? 'var(--error)' : 'var(--active)';
+  var name = found.name || found.action_name || 'Action';
+  var dur = found.duration_ms != null ? fmtDuration(found.duration_ms) : '';
+  document.getElementById('pinnedTitle').innerHTML = '<span style="color: ' + color + '">\u25CF</span> ' + escHtml(name) + (dur ? ' <span style="color: var(--text-muted); font-weight: 400; font-size: 10px; margin-left: 8px">' + dur + '</span>' : '');
+
+  var bodyHtml = '<div class="detail-col">';
+  bodyHtml += '<div class="detail-row"><span class="detail-key">action_id</span><span class="detail-val">' + escHtml(found.action_id || '\u2014') + '</span></div>';
+  bodyHtml += '<div class="detail-row"><span class="detail-key">status</span><span class="detail-val">' + escHtml(found.status || '\u2014') + '</span></div>';
+  if (found.duration_ms != null) bodyHtml += '<div class="detail-row"><span class="detail-key">duration</span><span class="detail-val">' + fmtDuration(found.duration_ms) + '</span></div>';
+  if (found.error_message || found.exception_message) bodyHtml += '<div class="detail-row"><span class="detail-key">error</span><span class="detail-val" style="color:var(--error)">' + escHtml(found.error_message || found.exception_message) + '</span></div>';
+  if (found.summary) bodyHtml += '<div class="detail-row"><span class="detail-key">summary</span><span class="detail-val">' + escHtml(found.summary) + '</span></div>';
+  if (found.tool_args) bodyHtml += '<div class="detail-row"><span class="detail-key">args</span><span class="detail-val">' + escHtml(typeof found.tool_args === 'string' ? found.tool_args : JSON.stringify(found.tool_args)) + '</span></div>';
+  bodyHtml += '</div>';
+
+  document.getElementById('pinnedBody').innerHTML = bodyHtml;
+  document.getElementById('pinnedDetail').classList.add('visible');
+}
+
+// ★ Activity stream → LLM modal
+function openLlmDetailFromStream(eventId) {
+  var cached = STREAM_EVENTS.find(function(e) { return e.eventId === eventId; });
+  if (!cached) return;
+  openLlmModal({
+    name: cached.llmName || cached.summary || 'LLM Call',
+    model: cached.model || null,
+    tokens_in: cached.tokensIn || null,
+    tokens_out: cached.tokensOut || null,
+    cost: cached.cost || null,
+    duration_ms: cached.durationMs || null,
+    prompt_preview: cached.promptPreview || null,
+    response_preview: cached.responsePreview || null,
+    metadata: cached.llmMetadata || null,
+    agent_id: cached.agent || null,
+    task_id: cached.task || null,
+    event_id: eventId,
+    timestamp: cached.timestamp || null,
+  });
+}
+
+// ★ Escape key closes LLM modal
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && llmModalOpen) {
+    closeLlmModal();
+    e.stopPropagation();
+  }
+});
+
+// ═══════════════════════════════════════════════════
 //  TOAST NOTIFICATIONS
 // ═══════════════════════════════════════════════════
 
@@ -1392,6 +1870,11 @@ function handleWsMessage(msg) {
       approver: pd.approver || pd.requested_from || null,
       queueDepth: pd.depth || pd.queue_depth || null,
       oldestAge: pd.oldest_age || pd.oldest || null,
+      // ★ LLM Modal: prompt/response previews
+      promptPreview: pd.prompt_preview || null,
+      responsePreview: pd.response_preview || null,
+      llmMetadata: pd.metadata || null,
+      llmName: pd.name || null,
     };
     if (!STREAM_EVENTS.find(function(ev) { return ev.eventId === newEvent.eventId; })) {
       STREAM_EVENTS.unshift(newEvent);
