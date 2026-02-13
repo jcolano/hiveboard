@@ -50,6 +50,8 @@ This creates a singleton client that buffers events in memory and flushes them t
 
 **Where to put this:** In your application's entry point -- the `main()` function, the FastAPI `lifespan`, the CLI command handler, or wherever your framework boots up.
 
+**Testing:** `hiveloop.init()` is a singleton -- subsequent calls log a warning and return the existing instance. In test suites where you need a fresh SDK state between tests, call `hiveloop.reset()` in your teardown to flush pending events, stop background threads, and clear the singleton.
+
 `hiveloop.init()` parameters:
 
 | Parameter | Type | Default | Notes |
@@ -185,6 +187,30 @@ def generate_unique_task_id(agent_id, event_id=None):
 | `task_id` | str | required | Unique per execution |
 | `project` | str | `None` | Groups tasks in the dashboard |
 | `type` | str | `None` | Classification: `"heartbeat"`, `"webhook"`, `"human"`, `"api"`, etc. |
+
+### Alternative: Manual task lifecycle with `agent.start_task()`
+
+If your framework doesn't support context managers (e.g., callback-driven or event-sourced architectures where start and end happen in different functions), use `start_task()` with explicit `complete()`/`fail()` calls:
+
+```python
+task = hiveloop_agent.start_task(
+    task_id,
+    project="my-project",
+    type="webhook",
+)
+set_current_task(task)
+
+# ... later, when the work finishes:
+try:
+    result = do_work()
+    task.complete()              # emits task_completed
+except Exception as exc:
+    task.fail(exception=exc)     # emits task_failed
+finally:
+    clear_current_task()
+```
+
+`agent.start_task()` accepts the same parameters as `agent.task()`. The caller is responsible for calling `task.complete()` or `task.fail()` -- if neither is called, the task will appear stuck on the dashboard.
 
 ### Step 4: Plumb the task handle through the call stack
 
@@ -338,6 +364,7 @@ The SDK doesn't calculate costs -- you provide them. Build a lookup table for th
 # Prices as of early 2026 -- update when pricing changes
 COST_PER_MILLION = {
     # Anthropic
+    "claude-opus-4-6":              {"input": 15.00, "output": 75.00},
     "claude-sonnet-4-5-20250929":   {"input": 3.00,  "output": 15.00},
     "claude-haiku-4-5-20251001":    {"input": 0.80,  "output": 4.00},
     "claude-3-haiku-20240307":      {"input": 0.25,  "output": 1.25},
@@ -594,15 +621,13 @@ When the agent needs human approval before proceeding.
 
 This is architecturally tricky: the request and the response often happen in different execution contexts (different threads, different HTTP requests). You may not have an active task context when the approval is granted.
 
-**When the agent requests approval** (often in a queue/runtime module):
+**Inside a task context** (the standard case):
 
 ```python
-# May not have a task context -- use the agent handle directly
-agent_obj = get_agent(agent_id)
-_hl_agent = getattr(agent_obj, "_hiveloop", None)
-if _hl_agent:
+_task = get_current_task()
+if _task:
     try:
-        _hl_agent.request_approval(
+        _task.request_approval(
             f"Approval needed: {event_title}",
             approver="human",
         )
@@ -610,13 +635,13 @@ if _hl_agent:
         pass
 ```
 
-**When a human approves:**
+**When a human approves** (inside a task context):
 
 ```python
-_hl_agent = getattr(get_agent(agent_id), "_hiveloop", None)
-if _hl_agent:
+_task = get_current_task()
+if _task:
     try:
-        _hl_agent.approval_received(
+        _task.approval_received(
             f"Event '{event_id}' approved by operator",
             approved_by="human",
             decision="approved",
@@ -625,15 +650,40 @@ if _hl_agent:
         pass
 ```
 
-**When a human rejects:**
+**When a human rejects** (inside a task context):
 
 ```python
-if _hl_agent:
+_task = get_current_task()
+if _task:
     try:
-        _hl_agent.approval_received(
+        _task.approval_received(
             f"Event '{event_id}' dropped by operator",
             approved_by="human",
             decision="rejected",
+        )
+    except Exception:
+        pass
+```
+
+**Outside a task context** (e.g., approval granted from a separate HTTP handler or queue consumer where no task is active). Use `agent.event()` to emit the raw event types:
+
+```python
+_hl_agent = getattr(get_agent(agent_id), "_hiveloop", None)
+if _hl_agent:
+    try:
+        _hl_agent.event(
+            "approval_requested",
+            payload={"summary": f"Approval needed: {event_title}", "approver": "human"},
+        )
+    except Exception:
+        pass
+
+# Later, when the human responds:
+if _hl_agent:
+    try:
+        _hl_agent.event(
+            "approval_received",
+            payload={"summary": f"Event '{event_id}' approved", "approved_by": "human", "decision": "approved"},
         )
     except Exception:
         pass
@@ -798,6 +848,26 @@ hiveloop_agent = hb.agent(
 ```
 
 **Note:** The `queue_provider` is called lazily by the SDK on each heartbeat. It can safely reference runtime state that doesn't exist at registration time (like a runtime that starts later). Just return `{"depth": 0}` if the state isn't available yet.
+
+**Alternative: Manual snapshots with `agent.queue_snapshot()`**
+
+If the callback pattern doesn't fit your architecture, call `agent.queue_snapshot()` directly at any point:
+
+```python
+_agent = get_hiveloop_agent()
+if _agent:
+    try:
+        _agent.queue_snapshot(
+            depth=len(queue),
+            oldest_age_seconds=queue.oldest_age_seconds(),
+            items=[{"id": i.id, "summary": i.title[:80]} for i in queue[:10]],
+            processing={"id": current.id, "summary": current.title[:80]} if current else None,
+        )
+    except Exception:
+        pass
+```
+
+This is useful when queue state changes at irregular intervals (e.g., after each enqueue/dequeue) rather than on a fixed heartbeat schedule.
 
 **Dashboard effect:** Queue depth badge (Q:8) on agent cards. The Pipeline tab shows queue contents. Operators can see if work is piling up.
 
@@ -1083,6 +1153,7 @@ def on_shutdown():
 | Method | Purpose |
 |--------|---------|
 | `agent.task(task_id, **kw)` | Context manager for task tracking |
+| `agent.start_task(task_id, **kw)` | Manual task lifecycle (caller must complete/fail) |
 | `agent.track(name)` | Decorator for action tracking |
 | `agent.track_context(name)` | Context manager for dynamic action tracking |
 | `agent.report_issue(summary, **kw)` | Report persistent operational issue |
@@ -1106,8 +1177,8 @@ def on_shutdown():
 | `task.retry(reason, **kw)` | Record retry attempt |
 | `task.event(event_type, payload)` | Custom task-level event |
 | `task.set_payload(dict)` | Add payload to completion event |
-| `task.complete(**kw)` | Manual completion (non-context-manager) |
-| `task.fail(**kw)` | Manual failure (non-context-manager) |
+| `task.complete(status="success", payload=None)` | Manual completion (for `start_task()` flow) |
+| `task.fail(exception=None, payload=None)` | Manual failure (for `start_task()` flow) |
 
 ### Context manager (`agent.track_context()` yields this)
 
