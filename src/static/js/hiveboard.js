@@ -50,6 +50,9 @@ let timelineAutoScroll = true;
 let llmModalOpen = false;
 let llmModalData = null;
 
+// Cost range state
+let currentCostRange = '24h';
+
 // Cost drilldown state
 let costExpandedAgent = null;
 let costExpandedModel = null;
@@ -410,7 +413,7 @@ async function fetchMetrics() {
 }
 
 async function fetchCostData() {
-  var data = await apiFetch('/v1/cost', { range: '1h' });
+  var data = await apiFetch('/v1/cost', { range: currentCostRange });
   if (data) COST_DATA = data;
 }
 
@@ -1160,7 +1163,17 @@ function renderCostExplorer() {
   const estimatedCost = d.estimated_cost || 0;
   const hasEstimates = estimatedCost > 0;
 
+  const rangeLabels = { '1h': 'Last 1 Hour', '6h': 'Last 6 Hours', '24h': 'Last 24 Hours', '7d': 'Last 7 Days', '30d': 'Last 30 Days' };
+  const ranges = ['1h', '6h', '24h', '7d', '30d'];
+  const rangeBtns = ranges.map(r =>
+    `<button class="view-toggle-btn${r === currentCostRange ? ' active' : ''}" onclick="setCostRange('${r}')">${r}</button>`
+  ).join('');
+
   document.getElementById('costRibbon').innerHTML = `
+    <div class="cost-range-bar">
+      <span class="cost-range-label">${rangeLabels[currentCostRange] || currentCostRange}</span>
+      <div class="view-toggle">${rangeBtns}</div>
+    </div>
     <div class="cost-stat"><div class="stat-label">Total Cost</div><div class="stat-value purple">${hasEstimates ? '~' : ''}$${totalCost.toFixed(2)}</div></div>
     <div class="cost-stat"><div class="stat-label">LLM Calls</div><div class="stat-value">${totalCalls}</div></div>
     <div class="cost-stat"><div class="stat-label">Tokens In</div><div class="stat-value">${fmtTokens(totalIn)}</div></div>
@@ -1211,6 +1224,16 @@ function renderCostExplorer() {
   document.getElementById('costTables').innerHTML = html || '<div class="empty-state">No cost data available</div>';
 }
 
+function setCostRange(range) {
+  currentCostRange = range;
+  costExpandedAgent = null;
+  costExpandedModel = null;
+  costDrilldownData = [];
+  costDrilldownCursor = null;
+  costDrilldownLoading = false;
+  fetchCostData().then(renderCostExplorer);
+}
+
 // ── Cost Drilldown Functions ──
 
 async function toggleCostAgentDrilldown(agentId) {
@@ -1227,7 +1250,8 @@ async function toggleCostAgentDrilldown(agentId) {
   costDrilldownCursor = null;
   costDrilldownLoading = true;
   renderCostExplorer();
-  var since = new Date(Date.now() - 3600000).toISOString();
+  var rangeMs = { '1h': 3600000, '6h': 21600000, '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
+  var since = new Date(Date.now() - (rangeMs[currentCostRange] || 86400000)).toISOString();
   var resp = await apiFetch('/v1/llm-calls', { agent_id: agentId, since: since, limit: 10 });
   costDrilldownLoading = false;
   if (resp && resp.data) {
@@ -1251,7 +1275,8 @@ async function toggleCostModelDrilldown(modelName) {
   costDrilldownCursor = null;
   costDrilldownLoading = true;
   renderCostExplorer();
-  var since = new Date(Date.now() - 3600000).toISOString();
+  var rangeMs = { '1h': 3600000, '6h': 21600000, '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
+  var since = new Date(Date.now() - (rangeMs[currentCostRange] || 86400000)).toISOString();
   var resp = await apiFetch('/v1/llm-calls', { model: modelName, since: since, limit: 10 });
   costDrilldownLoading = false;
   if (resp && resp.data) {
@@ -1265,7 +1290,8 @@ async function loadMoreCostDrilldown() {
   if (!costDrilldownCursor || costDrilldownLoading) return;
   costDrilldownLoading = true;
   renderCostExplorer();
-  var since = new Date(Date.now() - 3600000).toISOString();
+  var rangeMs = { '1h': 3600000, '6h': 21600000, '24h': 86400000, '7d': 604800000, '30d': 2592000000 };
+  var since = new Date(Date.now() - (rangeMs[currentCostRange] || 86400000)).toISOString();
   var params = { since: since, limit: 10, cursor: costDrilldownCursor };
   if (costExpandedAgent) params.agent_id = costExpandedAgent;
   if (costExpandedModel) params.model = costExpandedModel;
@@ -1283,7 +1309,8 @@ function renderCostDrilldownPanel(filterType, filterValue) {
     return '<div class="cost-drilldown"><div class="cost-drilldown-loading">Loading calls…</div></div>';
   }
   if (costDrilldownData.length === 0) {
-    return '<div class="cost-drilldown"><div class="cost-drilldown-empty">No individual calls found in the last hour</div></div>';
+    var rangeLabels = { '1h': 'last hour', '6h': 'last 6 hours', '24h': 'last 24 hours', '7d': 'last 7 days', '30d': 'last 30 days' };
+    return '<div class="cost-drilldown"><div class="cost-drilldown-empty">No individual calls found in the ' + (rangeLabels[currentCostRange] || currentCostRange) + '</div></div>';
   }
   var label = filterType === 'agent' ? 'Agent: ' + escHtml(filterValue) : 'Model: ' + escHtml(filterValue);
   var totalCost = costDrilldownData.reduce(function(s, c) { return s + (c.cost || 0); }, 0);

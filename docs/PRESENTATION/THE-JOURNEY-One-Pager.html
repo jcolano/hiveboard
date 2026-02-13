@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE JOURNEY — HiveBoard One-Page Summary</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber: #F59E0B;
+    --amber-light: #FCD34D;
+    --amber-dim: #92400E;
+    --amber-bg: #FFFBEB;
+    --ink: #1C1917;
+    --stone: #44403C;
+    --stone-light: #78716C;
+    --warm-white: #FAFAF9;
+    --warm-gray: #F5F5F4;
+    --cell-border: #E7E5E4;
+    --red: #DC2626;
+    --red-bg: #FEF2F2;
+    --green: #16A34A;
+    --green-bg: #F0FDF4;
+    --blue: #2563EB;
+    --blue-bg: #EFF6FF;
+    --purple: #7C3AED;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--warm-white);
+    color: var(--ink);
+    padding: 28px 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .header-left h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .header-left h1 .sub {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--stone);
+    letter-spacing: 0;
+    display: block;
+    margin-top: 4px;
+  }
+  .tagline {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--amber-dim);
+    background: var(--amber-bg);
+    padding: 4px 10px;
+    display: inline-block;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+  }
+  .header-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .header-stat {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .header-stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--stone-light);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+  }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 3px solid var(--ink); margin: 14px 0 18px 0; }
+
+  /* TIMELINE STRIP */
+  .timeline-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .tl-step {
+    padding: 10px 8px;
+    position: relative;
+    min-height: 80px;
+  }
+  .tl-step .tl-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--stone-light);
+    margin-bottom: 4px;
+  }
+  .tl-step .tl-title {
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 4px;
+  }
+  .tl-step .tl-desc {
+    font-size: 10px;
+    color: var(--stone);
+    line-height: 1.4;
+  }
+  .tl-step .tl-icon {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .tl-pain { background: var(--red-bg); border-left: 3px solid var(--red); }
+  .tl-pain .tl-title { color: var(--red); }
+  .tl-kill { background: #FEF3C7; border-left: 3px solid var(--amber); }
+  .tl-kill .tl-title { color: var(--amber-dim); }
+  .tl-spark { background: var(--amber-bg); border-left: 3px solid var(--amber); }
+  .tl-spark .tl-title { color: var(--amber-dim); }
+  .tl-build { background: var(--blue-bg); border-left: 3px solid var(--blue); }
+  .tl-build .tl-title { color: var(--blue); }
+  .tl-audit { background: #F5F3FF; border-left: 3px solid var(--purple); }
+  .tl-audit .tl-title { color: var(--purple); }
+  .tl-reck { background: var(--red-bg); border-left: 3px solid var(--red); }
+  .tl-reck .tl-title { color: var(--red); }
+  .tl-ship { background: var(--green-bg); border-left: 3px solid var(--green); }
+  .tl-ship .tl-title { color: var(--green); }
+
+  /* CONNECTOR ARROWS */
+  .tl-step::after {
+    content: '→';
+    position: absolute;
+    right: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    color: var(--cell-border);
+    z-index: 1;
+    font-weight: 700;
+  }
+  .tl-step:last-child::after { content: none; }
+
+  /* MAIN CONTENT GRID */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* CARDS */
+  .card {
+    background: white;
+    border: 1px solid var(--cell-border);
+    padding: 14px;
+  }
+  .card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--stone-light);
+    margin-bottom: 8px;
+  }
+  .card h3 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+  .card p {
+    font-size: 11.5px;
+    color: var(--stone);
+    line-height: 1.5;
+  }
+
+  /* INSIGHT ITEMS */
+  .insight-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .insight-bullet {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-right: 8px;
+    margin-top: 1px;
+  }
+  .insight-text {
+    font-size: 11.5px;
+    color: var(--stone);
+    line-height: 1.45;
+  }
+  .insight-text strong { color: var(--ink); }
+
+  .bullet-amber { background: var(--amber-bg); color: var(--amber-dim); border: 1px solid var(--amber); }
+  .bullet-blue { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue); }
+  .bullet-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green); }
+  .bullet-purple { background: #F5F3FF; color: var(--purple); border: 1px solid var(--purple); }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--ink);
+    color: #D6D3D1;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 10px 12px;
+    line-height: 1.55;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .code-block .kw { color: var(--amber-light); }
+  .code-block .str { color: #86EFAC; }
+  .code-block .cmt { color: var(--stone-light); }
+
+  /* STAT PILL */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--warm-gray);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label {
+    font-size: 11px;
+    color: var(--stone);
+  }
+  .stat-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .stat-val.amber { color: var(--amber-dim); }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
+  .stat-val.blue { color: var(--blue); }
+
+  /* COMPETITIVE GAP TABLE */
+  .gap-table { width: 100%; border-collapse: collapse; }
+  .gap-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--stone-light);
+    text-align: left;
+    padding: 0 0 5px 0;
+    border-bottom: 1px solid var(--cell-border);
+  }
+  .gap-table td {
+    font-size: 10.5px;
+    padding: 4px 6px 4px 0;
+    color: var(--stone);
+    border-bottom: 1px solid var(--warm-gray);
+    vertical-align: top;
+  }
+  .gap-table td:first-child {
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .gap-check { color: var(--green); font-weight: 700; }
+  .gap-miss { color: var(--stone-light); font-size: 9px; }
+
+  /* DARK CARD */
+  .card-dark {
+    background: var(--ink);
+    color: var(--warm-white);
+    border: 1px solid var(--ink);
+    padding: 14px;
+  }
+  .card-dark .card-label { color: var(--amber); }
+  .card-dark h3 { color: var(--amber-light); }
+  .card-dark p { color: #A8A29E; }
+
+  /* BOTTOM BAR */
+  .bottom-bar {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--cell-border);
+    border: 1px solid var(--cell-border);
+    margin-bottom: 16px;
+  }
+  .bottom-cell {
+    background: white;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .bottom-cell .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .bottom-cell .label {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--stone-light);
+    margin-top: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* QUOTES BAR */
+  .quotes-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .quote-chip {
+    background: var(--ink);
+    color: var(--amber-light);
+    font-size: 11px;
+    font-style: italic;
+    padding: 8px 12px;
+    text-align: center;
+    line-height: 1.4;
+    border-left: 3px solid var(--amber);
+  }
+
+  /* FOOTER */
+  .footer {
+    border-top: 1px solid var(--cell-border);
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--stone-light);
+  }
+  .footer-right {
+    font-size: 11px;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  @media print {
+    body { padding: 16px; }
+    .card, .tl-step, .bottom-cell { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <h1>
+        THE JOURNEY
+        <span class="sub">How We Built HiveBoard — Agent-Level Observability for Production AI Systems</span>
+      </h1>
+      <div class="tagline">1 human · 3 Claude instances · 48 hours · from pain to production</div>
+    </div>
+    <div class="header-right">
+      <div class="header-stat">$40<span style="font-size:16px;color:var(--stone-light);">→</span>$8<span style="font-size:14px; color:var(--stone-light);">/hr</span></div>
+      <div class="header-stat-label">Cost reduction from prompt optimization enabled by visibility</div>
+      <div style="font-size:10px; color:var(--stone-light); font-family:'Space Mono',monospace; margin-top:4px;">~18k → ~5k tokens/task (70% reduction)</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- TIMELINE STRIP -->
+  <div class="timeline-strip">
+    <div class="tl-step tl-pain">
+      <div class="tl-num">Prologue</div>
+      <div class="tl-title">The Pain</div>
+      <div class="tl-desc">2 weeks deploying agents blind. Silent failures. $40/hr burn. Duct-tape observability.</div>
+    </div>
+    <div class="tl-step tl-kill">
+      <div class="tl-num">Ch 1–2</div>
+      <div class="tl-title">5 Ideas → Kill</div>
+      <div class="tl-desc">5 candidates generated. Picked FormsFlow. Built prototype. "Lame." Killed it.</div>
+    </div>
+    <div class="tl-step tl-spark">
+      <div class="tl-num">Ch 3–4</div>
+      <div class="tl-title">The Revelation</div>
+      <div class="tl-desc">"WOW. That's it." Observability was the pain all along. Vision crystallizes.</div>
+    </div>
+    <div class="tl-step tl-build">
+      <div class="tl-num">Ch 5–6</div>
+      <div class="tl-title">Specs + Build</div>
+      <div class="tl-desc">Full-day specs sprint. 2 teams, parallel build. ~2hrs coding total.</div>
+    </div>
+    <div class="tl-step tl-audit">
+      <div class="tl-num">Ch 7–8</div>
+      <div class="tl-title">Audit Machine</div>
+      <div class="tl-desc">450+ checkpoints. 12 critical bugs caught. Cross-team review every phase.</div>
+    </div>
+    <div class="tl-step tl-reck">
+      <div class="tl-num">Ch 9–11</div>
+      <div class="tl-title">Real Data → Redesign</div>
+      <div class="tl-desc">"I see data but I don't get it." Full UI/UX redesign. Only 3 new endpoints needed.</div>
+    </div>
+    <div class="tl-step tl-ship">
+      <div class="tl-num">Ch 12</div>
+      <div class="tl-title">Ship It</div>
+      <div class="tl-desc">Feb 12, midnight. Running platform. Real agents monitored.</div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT GRID -->
+  <div class="content-grid">
+
+    <!-- WHAT IS HIVEBOARD -->
+    <div class="card">
+      <div class="card-label">What HiveBoard Does</div>
+      <h3>Agent-level observability for production AI systems</h3>
+      <div class="insight-item">
+        <span class="insight-bullet bullet-amber">1</span>
+        <span class="insight-text"><strong>Agents as workers</strong> — not LLM calls, not traces. Tasks, heartbeats, stuck states, recovery paths.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-bullet bullet-blue">2</span>
+        <span class="insight-text"><strong>Invisible failures</strong> — sees what agents <em>didn't</em> do. Queue rot, dropped tasks, silent misses.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-bullet bullet-green">3</span>
+        <span class="insight-text"><strong>One event stream</strong> — single data primitive. Status computed, not stored. No stale state.</span>
+      </div>
+      <div class="insight-item">
+        <span class="insight-bullet bullet-purple">4</span>
+        <span class="insight-text"><strong>Framework-agnostic</strong> — LangChain, CrewAI, AutoGen, custom. HiveBoard doesn't care.</span>
+      </div>
+    </div>
+
+    <!-- 3 LINES OF CODE + LAYERS -->
+    <div class="card">
+      <div class="card-label">Developer Experience</div>
+      <h3>3 lines → heartbeat. Decorators → timelines. Events → full story.</h3>
+      <div class="code-block"><span class="kw">import</span> hiveloop
+hb = hiveloop.init(<span class="str">api_key</span>=<span class="str">"hb_xxx"</span>)
+agent = hb.agent(<span class="str">"lead-qualifier"</span>)
+<span class="cmt"># Agent appears on dashboard. Done.</span></div>
+      <div style="margin-top:10px;">
+        <div class="stat-row">
+          <span class="stat-label">Layer 0 — Presence</span>
+          <span class="stat-val" style="font-size:10px; color:var(--green);">3 lines, heartbeat + stuck detection</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Layer 1 — Timelines</span>
+          <span class="stat-val" style="font-size:10px; color:var(--blue);">@decorators on existing functions</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Layer 2 — Full story</span>
+          <span class="stat-val" style="font-size:10px; color:var(--purple);">LLM costs, plans, issues, queues</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPETITIVE GAP -->
+    <div class="card">
+      <div class="card-label">The Gap HiveBoard Fills</div>
+      <table class="gap-table">
+        <tr>
+          <th>Capability</th>
+          <th>LangSmith</th>
+          <th>Langfuse</th>
+          <th>Datadog</th>
+          <th style="color:var(--amber);">HiveBoard</th>
+        </tr>
+        <tr>
+          <td>Agent heartbeat</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+        </tr>
+        <tr>
+          <td>Stuck detection</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+        </tr>
+        <tr>
+          <td>Task timelines</td>
+          <td class="gap-check">✓</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+        </tr>
+        <tr>
+          <td>Intent pipeline</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+        </tr>
+        <tr>
+          <td>LLM cost tracking</td>
+          <td class="gap-check">✓</td>
+          <td class="gap-check">✓</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+        </tr>
+        <tr>
+          <td>Framework-agnostic</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+          <td class="gap-check">✓</td>
+          <td class="gap-check">✓</td>
+        </tr>
+        <tr>
+          <td>Agent-as-worker model</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-miss">—</td>
+          <td class="gap-check">✓</td>
+        </tr>
+      </table>
+      <div style="font-size:8.5px; color:var(--stone-light); margin-top:8px; font-style:italic;">Feature comparison based on publicly documented capabilities as of Feb 2025.</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM METRICS BAR -->
+  <div class="bottom-bar">
+    <div class="bottom-cell">
+      <div class="val" style="color:var(--amber-dim);">48<span style="font-size:11px;color:var(--stone-light);">hrs</span></div>
+      <div class="label">Total Build Time</div>
+    </div>
+    <div class="bottom-cell">
+      <div class="val" style="color:var(--blue);">~2<span style="font-size:11px;color:var(--stone-light);">hrs</span></div>
+      <div class="label">Coding Time</div>
+    </div>
+    <div class="bottom-cell">
+      <div class="val" style="color:var(--purple);">450<span style="font-size:11px;color:var(--stone-light);">+</span></div>
+      <div class="label">Audit Checkpoints</div>
+    </div>
+    <div class="bottom-cell">
+      <div class="val" style="color:var(--red);">12</div>
+      <div class="label">Contract Mismatches Caught</div>
+    </div>
+    <div class="bottom-cell">
+      <div class="val" style="color:var(--green);">13</div>
+      <div class="label">Event Types</div>
+    </div>
+    <div class="bottom-cell">
+      <div class="val">&lt;1<span style="font-size:11px;color:var(--stone-light);">s</span></div>
+      <div class="label">Event Ingestion Latency</div>
+    </div>
+  </div>
+
+  <!-- QUOTES BAR -->
+  <div class="quotes-bar">
+    <div class="quote-chip">"3 lines of code. 30 seconds. Your agent has a heartbeat."</div>
+    <div class="quote-chip">"The most dangerous agent failure is the one that doesn't look like a failure."</div>
+    <div class="quote-chip">"Your agents are working. Are they healthy?"</div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">HIVEBOARD · Agent-Level Observability for Production AI · Built with The Hive Method</div>
+    <div class="footer-right">HiveLoop (open-source SDK) + HiveBoard (hosted dashboard) — the Sentry model for agent observability</div>
+  </div>
+
+</body>
+</html>
