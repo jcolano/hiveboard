@@ -259,7 +259,7 @@ async function fetchTimeline(taskId) {
       label: label, rawLabel: rawLabel, time: time, type: nodeType, dur: dur,
       detail: detail, tags: tags, llmModel: llmModel,
       isBranch: isRetry, isBranchStart: isBranchStart,
-      durationMs: e.duration_ms || 0,
+      durationMs: e.duration_ms || (kind === 'llm_call' && payload.data ? payload.data.duration_ms : null) || 0,
       eventType: e.event_type,
       kind: kind,
       tokensIn: tokensIn,
@@ -557,7 +557,7 @@ function computeDurationBreakdown(nodes) {
     if (ms === 0) return;
     if (n.kind === 'llm_call' || n.type === 'llm') {
       llmMs += ms;
-    } else if (n.type === 'action' || n.eventType === 'action_completed' || n.eventType === 'action_failed') {
+    } else if (n.eventType === 'action_completed' || n.eventType === 'action_failed') {
       toolMs += ms;
     } else {
       otherMs += ms;
@@ -689,6 +689,7 @@ function renderActionTreeNode(node, errorChains, depth) {
   var clickHandler = isLlmNode
     ? ` onclick="openLlmDetailFromTree(this)"`
     : ` onclick="openActionDetailFromTree(this)"`;
+  var treePromptDot = isLlmNode && (node.prompt_preview || node.promptPreview) ? '<span class="has-prompt-dot" title="Prompt/response available"></span>' : '';
   var expandHint = isLlmNode ? '<span class="tree-expand-hint">details</span>' : '';
 
   var html = `<div class="tree-node">
@@ -696,7 +697,7 @@ function renderActionTreeNode(node, errorChains, depth) {
       <div class="tree-indent">${guideHtml}</div>
       <div class="tree-icon ${nodeType}">${icon}</div>
       <div class="tree-content">
-        <div class="tree-label"><span class="tree-label-name"${nameColor}>${name}</span>${dur ? `<span class="tree-dur">${dur}</span>` : ''}</div>
+        <div class="tree-label"><span class="tree-label-name"${nameColor}>${name}</span>${treePromptDot}${dur ? `<span class="tree-dur">${dur}</span>` : ''}</div>
         ${errorLine}
         ${detailLine}
       </div>
@@ -802,9 +803,10 @@ function renderFlatTimeline() {
     const isLlm = node.type === 'llm';
     const nodeIdx = nodes.indexOf(node);
 
-    html += `<div class="tl-node ${isLlm ? 'llm-node' : ''}" data-idx="${nodeIdx}" onclick="pinNode(${nodeIdx})">`;
+    var tlPromptDot = isLlm && node.promptPreview ? ' has-prompt' : '';
+    html += `<div class="tl-node ${isLlm ? 'llm-node' : ''}${tlPromptDot}" data-idx="${nodeIdx}" onclick="pinNode(${nodeIdx})">`;
     if (isLlm && node.llmModel) html += `<div class="tl-llm-badge">${escHtml(node.llmModel)}</div>`;
-    html += `<div class="tl-node-label" style="color: ${color}" title="${escHtml(node.rawLabel || node.label)}">${escHtml(node.label)}</div>`;
+    html += `<div class="tl-node-label" style="color: ${color}" title="${escHtml(node.rawLabel || node.label)}">${escHtml(node.label)}${isLlm && node.promptPreview ? '<span class="has-prompt-dot" title="Prompt/response available"></span>' : ''}</div>`;
     html += `<div class="tl-node-dot" style="border-color: ${color}; ${filled ? 'background: ' + color : ''}"></div>`;
     html += `<div class="tl-node-time">${node.time}</div></div>`;
 
@@ -985,7 +987,8 @@ function buildStreamDetailTags(e) {
     if (e.tokensIn != null || e.tokensOut != null) tags.push(`<span class="stream-detail-tag tokens">${fmtTokens(e.tokensIn)} in → ${fmtTokens(e.tokensOut)} out</span>`);
     if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(3)}</span>`);
     if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
-    tags.push(`<span class="stream-detail-btn" onclick="event.stopPropagation(); openLlmDetailFromStream('${escHtml(e.eventId)}')">&#x2922; Details</span>`);
+    var streamPromptDot = (e.promptPreview || e.responsePreview) ? '<span class="has-prompt-dot" title="Prompt/response available"></span>' : '';
+    tags.push(`<span class="stream-detail-btn" onclick="event.stopPropagation(); openLlmDetailFromStream('${escHtml(e.eventId)}')">${streamPromptDot}&#x2922; Details</span>`);
   }
   // Task events
   else if (e.type.startsWith('task_')) {
@@ -1294,8 +1297,10 @@ function renderCostDrilldownPanel(filterType, filterValue) {
     var secondCol = filterType === 'model' ? escHtml(call.agent_id || '—') : '<span class="model-badge">' + escHtml(call.model || '—') + '</span>';
     var tokens = (call.tokens_in != null ? call.tokens_in.toLocaleString() : '?') + ' / ' + (call.tokens_out != null ? call.tokens_out.toLocaleString() : '?');
     var costStr = call.cost != null ? '$' + call.cost.toFixed(4) : '—';
+    var hasPrompt = call.prompt_preview || call.response_preview;
+    var promptDot = hasPrompt ? '<span class="has-prompt-dot" title="Prompt/response available"></span>' : '';
     tableHtml += '<tr onclick="openLlmModalFromCostDrilldown(' + idx + ')" style="cursor:pointer;" title="View full LLM call detail">' +
-      '<td>' + ts + '</td><td>' + name + '</td><td>' + secondCol + '</td><td>' + tokens + '</td>' +
+      '<td>' + ts + '</td><td>' + name + promptDot + '</td><td>' + secondCol + '</td><td>' + tokens + '</td>' +
       '<td style="color:var(--llm);font-weight:600;">' + costStr + '</td>' +
       '<td style="text-align:center;font-size:14px;color:var(--text-muted);">⤢</td></tr>';
   });
