@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HiveBoard — Section 7: CTA & Footer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --idle: #94a3b8; --active: #2563eb; --success: #16a34a; --warning: #d97706;
+    --error: #dc2626; --stuck: #b91c1c; --llm: #7c3aed;
+    --accent: #c2410c; --accent-hover: #9a3412;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px; --radius-md: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font-sans);
+    background: #0e0c0b;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════ */
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-cta {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(194,65,12,0.25); }
+    50% { box-shadow: 0 0 0 10px rgba(194,65,12,0); }
+}
+@keyframes glow-border {
+    0%, 100% { border-color: rgba(194,65,12,0.2); }
+    50% { border-color: rgba(194,65,12,0.4); }
+}
+@keyframes hex-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-green {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22,163,74,0.3); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+}
+
+/* ════════════════════════════════════════
+   SECTION 7 — CTA & FOOTER
+   ════════════════════════════════════════ */
+
+/* ─── CTA Section ─── */
+.cta-section {
+    padding: 100px 0 80px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Ambient glows */
+.cta-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 50% 40% at 50% 30%, rgba(194,65,12,0.06), transparent),
+        radial-gradient(ellipse 40% 30% at 30% 60%, rgba(124,58,237,0.03), transparent),
+        radial-gradient(ellipse 40% 30% at 70% 60%, rgba(22,163,74,0.02), transparent);
+    pointer-events: none;
+}
+
+/* Decorative background hex grid */
+.hex-bg {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0.015;
+}
+.hex-bg-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 600px;
+    height: 600px;
+    transform: translate(-50%, -50%);
+    animation: hex-rotate 120s linear infinite;
+}
+.hex-ring {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+}
+.hex-ring:nth-child(1) { width: 200px; height: 200px; margin: -100px 0 0 -100px; }
+.hex-ring:nth-child(2) { width: 350px; height: 350px; margin: -175px 0 0 -175px; }
+.hex-ring:nth-child(3) { width: 500px; height: 500px; margin: -250px 0 0 -250px; }
+
+/* CTA content */
+.cta-content {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 40px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.cta-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 24px;
+    opacity: 0.7;
+}
+
+.cta-headline {
+    font-family: var(--font-sans);
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.15;
+    color: #fff;
+    margin-bottom: 16px;
+}
+.cta-headline .ch-accent { color: var(--accent); }
+
+.cta-subhead {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+    margin-bottom: 40px;
+}
+
+/* Email capture form */
+.cta-form {
+    display: flex;
+    gap: 10px;
+    max-width: 480px;
+    margin: 0 auto 20px;
+}
+.cta-input {
+    flex: 1;
+    padding: 14px 20px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    background: rgba(255,255,255,0.06);
+    border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-md);
+    outline: none;
+    transition: all 0.2s;
+}
+.cta-input::placeholder {
+    color: rgba(255,255,255,0.25);
+}
+.cta-input:focus {
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.08);
+    box-shadow: 0 0 0 3px rgba(194,65,12,0.1);
+}
+
+.cta-button {
+    padding: 14px 28px;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    animation: pulse-cta 3s ease infinite;
+}
+.cta-button:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(194,65,12,0.3);
+}
+
+.cta-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.2);
+}
+.cta-note a {
+    color: var(--accent);
+    text-decoration: none;
+    opacity: 0.6;
+}
+.cta-note a:hover { opacity: 1; }
+
+/* ─── Three pillars ─── */
+.pillars {
+    max-width: 900px;
+    margin: 64px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    position: relative;
+    z-index: 1;
+}
+
+.pillar {
+    padding: 28px 24px;
+    text-align: center;
+    background: rgba(255,255,255,0.02);
+    border-radius: var(--radius-sm);
+}
+.pillar:nth-child(1) { border-top: 2px solid rgba(22,163,74,0.3); }
+.pillar:nth-child(2) { border-top: 2px solid rgba(124,58,237,0.3); }
+.pillar:nth-child(3) { border-top: 2px solid rgba(194,65,12,0.3); }
+
+.pillar-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin: 0 auto 14px;
+}
+.pillar:nth-child(1) .pillar-icon { background: rgba(22,163,74,0.1); color: var(--success); }
+.pillar:nth-child(2) .pillar-icon { background: rgba(124,58,237,0.1); color: var(--llm); }
+.pillar:nth-child(3) .pillar-icon { background: rgba(194,65,12,0.1); color: var(--accent); }
+
+.pillar-title {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+}
+.pillar-text {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.6;
+}
+
+/* ─── One-liner quotes strip ─── */
+.quotes-strip {
+    max-width: 1100px;
+    margin: 56px auto 0;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+}
+.quote-chip {
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.5;
+    text-align: center;
+}
+.quote-chip strong {
+    color: rgba(255,255,255,0.6);
+    font-style: normal;
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════ */
+.footer {
+    margin-top: 80px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 48px 0 40px;
+    position: relative;
+    z-index: 1;
+}
+.footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+/* Footer top: logo + columns */
+.footer-top {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 40px;
+}
+
+/* Footer brand */
+.footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.footer-hex {
+    width: 28px;
+    height: 28px;
+    position: relative;
+}
+.footer-hex svg {
+    width: 100%;
+    height: 100%;
+}
+.footer-logo-text {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+}
+.footer-logo-text .flt-accent { color: var(--accent); }
+.footer-tagline {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.6;
+    max-width: 260px;
+}
+.footer-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    margin-top: 4px;
+}
+.footer-status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    animation: pulse-green 2.5s ease infinite;
+}
+
+/* Footer columns */
+.footer-col-title {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.4);
+    margin-bottom: 16px;
+}
+.footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.footer-links a {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: rgba(255,255,255,0.3);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.footer-links a:hover {
+    color: rgba(255,255,255,0.7);
+}
+.footer-links .coming-soon {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.footer-links .cs-badge {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(194,65,12,0.12);
+    color: var(--accent);
+}
+
+/* Footer bottom */
+.footer-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+}
+.footer-copy {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.15);
+}
+.footer-bottom-links {
+    display: flex;
+    gap: 20px;
+}
+.footer-bottom-links a {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.15);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+.footer-bottom-links a:hover { color: rgba(255,255,255,0.4); }
+
+/* Build badge */
+.build-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(255,255,255,0.12);
+    margin-top: 20px;
+    text-align: center;
+    justify-content: center;
+    width: 100%;
+}
+.build-badge .bb-hex {
+    display: inline-block;
+    color: var(--accent);
+    opacity: 0.3;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SECTION 7a — CTA
+     ════════════════════════════════════════ -->
+<section class="cta-section">
+
+    <!-- Decorative background -->
+    <div class="hex-bg">
+        <div class="hex-bg-inner">
+            <div class="hex-ring"></div>
+            <div class="hex-ring"></div>
+            <div class="hex-ring"></div>
+        </div>
+    </div>
+
+    <!-- CTA content -->
+    <div class="cta-content">
+        <div class="cta-eyebrow">Early Access</div>
+        <h2 class="cta-headline">
+            Your agents are working.<br>
+            <span class="ch-accent">Are they healthy?</span>
+        </h2>
+        <p class="cta-subhead">
+            HiveBoard is in private beta. Open-source SDK. Hosted dashboard.<br>
+            Three lines of code. Full visibility in 30 seconds.
+        </p>
+
+        <!-- Email form -->
+        <div class="cta-form">
+            <input type="email" class="cta-input" placeholder="you@company.com" aria-label="Email address">
+            <button class="cta-button">Request Beta Access</button>
+        </div>
+        <div class="cta-note">
+            Free during beta · No credit card · <a href="#">pip install hiveloop</a>
+        </div>
+    </div>
+
+    <!-- Three pillars -->
+    <div class="pillars">
+        <div class="pillar">
+            <div class="pillar-icon">⬡</div>
+            <div class="pillar-title">Open-Source SDK</div>
+            <div class="pillar-text">HiveLoop is open source. Instrument your agents in minutes. LangChain, CrewAI, AutoGen, or custom — it works with all of them.</div>
+        </div>
+        <div class="pillar">
+            <div class="pillar-icon">◆</div>
+            <div class="pillar-title">Hosted Dashboard</div>
+            <div class="pillar-text">Real-time agent cards, task timelines, cost explorer, and 38 questions answered. The wall-monitor test: healthy or on fire in 2 seconds.</div>
+        </div>
+        <div class="pillar">
+            <div class="pillar-icon">⚡</div>
+            <div class="pillar-title">Built from Production Pain</div>
+            <div class="pillar-text">Not a demo tool. Born from deploying agents that silently failed, burned money, and dropped tasks. Every feature traces to a real problem.</div>
+        </div>
+    </div>
+
+    <!-- One-liner quotes -->
+    <div class="quotes-strip">
+        <div class="quote-chip">
+            <strong>$40/hr → $8/hr.</strong> The only thing that changed was visibility.
+        </div>
+        <div class="quote-chip">
+            <strong>3 lines of code. 30 seconds.</strong> Your agent has a heartbeat.
+        </div>
+        <div class="quote-chip">
+            The most dangerous agent failure is the one that <strong>doesn't look like a failure.</strong>
+        </div>
+    </div>
+
+</section>
+
+<!-- ════════════════════════════════════════
+     SECTION 7b — FOOTER
+     ════════════════════════════════════════ -->
+<footer class="footer">
+    <div class="footer-inner">
+        <div class="footer-top">
+            <!-- Brand column -->
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="footer-hex">
+                        <svg viewBox="0 0 28 28" fill="none">
+                            <path d="M14 1 L25.5 7.5 L25.5 20.5 L14 27 L2.5 20.5 L2.5 7.5 Z" 
+                                  stroke="rgba(194,65,12,0.5)" stroke-width="1.5" fill="rgba(194,65,12,0.08)"/>
+                            <circle cx="14" cy="14" r="3" fill="rgba(194,65,12,0.6)"/>
+                        </svg>
+                    </div>
+                    <div class="footer-logo-text">Hive<span class="flt-accent">Board</span></div>
+                </div>
+                <div class="footer-tagline">
+                    Agent-level observability for production AI. The Datadog for AI Agents.
+                </div>
+                <div class="footer-status">
+                    <div class="footer-status-dot"></div>
+                    Private Beta · Accepting applications
+                </div>
+            </div>
+
+            <!-- Product column -->
+            <div class="footer-col">
+                <div class="footer-col-title">Product</div>
+                <ul class="footer-links">
+                    <li><a href="#">Dashboard</a></li>
+                    <li><a href="#">Cost Explorer</a></li>
+                    <li><a href="#">Task Timelines</a></li>
+                    <li><a href="#" class="coming-soon">HiveMind <span class="cs-badge">Soon</span></a></li>
+                </ul>
+            </div>
+
+            <!-- Developers column -->
+            <div class="footer-col">
+                <div class="footer-col-title">Developers</div>
+                <ul class="footer-links">
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">Integration Guide</a></li>
+                    <li><a href="#">API Reference</a></li>
+                    <li><a href="#">HiveLoop SDK ↗</a></li>
+                </ul>
+            </div>
+
+            <!-- Company column -->
+            <div class="footer-col">
+                <div class="footer-col-title">Story</div>
+                <ul class="footer-links">
+                    <li><a href="#">THE JOURNEY</a></li>
+                    <li><a href="#">The Hive Method</a></li>
+                    <li><a href="#">What HiveBoard Sees</a></li>
+                    <li><a href="#">GitHub ↗</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer bottom -->
+        <div class="footer-bottom">
+            <div class="footer-copy">© 2026 HiveBoard. All rights reserved.</div>
+            <div class="footer-bottom-links">
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+                <a href="#">Status</a>
+            </div>
+        </div>
+
+        <!-- Build badge -->
+        <div class="build-badge">
+            <span class="bb-hex">⬡</span>
+            Built with The Hive Method · 48 hours · 1 human + 3 Claude instances
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HiveBoard — Section 4: The 3-Lines Promise</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --idle: #94a3b8; --active: #2563eb; --success: #16a34a; --warning: #d97706;
+    --error: #dc2626; --stuck: #b91c1c; --llm: #7c3aed;
+    --bg-deep: #f5f3ef; --bg-primary: #ffffff; --bg-card: #ffffff;
+    --bg-elevated: #fafaf8; --bg-hover: #f0eeea;
+    --border: #e2e0db; --border-subtle: #eceae5;
+    --text-primary: #1a1a1a; --text-secondary: #4a4a4a; --text-muted: #8a8a8a;
+    --accent: #c2410c; --accent-dim: rgba(194, 65, 12, 0.06);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px; --radius-md: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font-sans);
+    background: #0e0c0b;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════ */
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(28px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-green {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22,163,74,0.3); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(22,163,74,0); }
+}
+@keyframes float-arrow {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(6px); opacity: 1; }
+}
+@keyframes type-cursor {
+    0%, 100% { border-right-color: rgba(255,255,255,0.6); }
+    50% { border-right-color: transparent; }
+}
+@keyframes glow-accent {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(194,65,12,0.15); }
+    50% { box-shadow: 0 0 0 6px rgba(194,65,12,0); }
+}
+@keyframes light-up {
+    from { opacity: 0.15; filter: saturate(0); }
+    to { opacity: 1; filter: saturate(1); }
+}
+@keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ════════════════════════════════════════
+   SECTION 4 — THE 3-LINES PROMISE
+   ════════════════════════════════════════ */
+.sdk-section {
+    padding: 100px 0 80px;
+    position: relative;
+    overflow: hidden;
+}
+
+.sdk-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 50% 40% at 40% 40%, rgba(194,65,12,0.03), transparent),
+        radial-gradient(ellipse 40% 30% at 70% 70%, rgba(22,163,74,0.02), transparent);
+    pointer-events: none;
+}
+
+/* ─── Narrative bridge ─── */
+.narrative-bridge {
+    text-align: center;
+    max-width: 640px;
+    margin: 0 auto 72px;
+    padding: 0 40px;
+    position: relative;
+    z-index: 1;
+}
+.narrative-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--accent);
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+.narrative-headline {
+    font-family: var(--font-sans);
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1.2px;
+    line-height: 1.2;
+    color: #fff;
+    margin-bottom: 16px;
+}
+.narrative-headline .nh-dim { color: rgba(255,255,255,0.3); }
+.narrative-headline .nh-accent { color: var(--accent); }
+.narrative-body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.65;
+}
+
+/* ════════════════════════════════════════
+   LAYER CARDS
+   ════════════════════════════════════════ */
+.layers-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+}
+
+/* Each layer: code on left, dashboard preview on right */
+.layer-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 4px 40px rgba(0,0,0,0.3);
+}
+
+/* Layer header strip */
+.layer-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: #1a1816;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.layer-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.layer-number {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: #0e0c0b;
+    background: var(--accent);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+.layer-title {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+}
+.layer-subtitle {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    margin-left: 4px;
+}
+.layer-effort {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.06);
+    padding: 4px 12px;
+    border-radius: 16px;
+}
+
+/* ─── Code panel (left) ─── */
+.layer-code {
+    background: #1a1816;
+    padding: 20px 24px;
+    overflow-x: auto;
+}
+.code-block {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.75);
+    white-space: pre;
+    tab-size: 4;
+}
+/* Syntax highlighting */
+.ck { color: rgba(255,255,255,0.3); }         /* comment */
+.cs { color: #e9967a; }                        /* string */
+.cn { color: #87ceeb; }                        /* number */
+.kw { color: #c792ea; }                        /* keyword */
+.fn { color: #82aaff; }                        /* function */
+.op { color: rgba(255,255,255,0.5); }          /* operator */
+.pr { color: #f78c6c; }                        /* parameter name */
+.ty { color: #ffcb6b; }                        /* type/module */
+.at { color: #c3e88d; }                        /* decorator */
+.hl { background: rgba(194,65,12,0.12);        /* highlight line */
+      display: inline-block; width: 100%;
+      margin: 0 -24px; padding: 0 24px;
+      border-left: 2px solid var(--accent); }
+
+/* Code section divider */
+.code-divider {
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    margin: 16px 0;
+}
+
+.code-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* ─── Dashboard panel (right) ─── */
+.layer-dash {
+    background: var(--bg-deep);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.layer-dash-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+/* Mini agent card */
+.mini-agent {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+}
+.mini-agent.glow-success {
+    border-color: rgba(22,163,74,0.3);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.06);
+}
+.mini-agent-top {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 6px;
+}
+.mini-agent-name {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+}
+.mini-badge {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 9px; border-radius: 16px;
+}
+.mini-badge-idle { background: rgba(148,163,184,0.12); color: var(--idle); }
+.mini-badge-processing { background: rgba(37,99,235,0.1); color: var(--active); }
+.mini-meta {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px; color: var(--text-muted);
+}
+.mini-hb-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success); animation: pulse-green 2.5s ease infinite;
+}
+.mini-type {
+    font-family: var(--font-mono); font-size: 10px;
+    background: var(--bg-deep); padding: 1px 6px; border-radius: 3px;
+}
+.mini-sparkline {
+    display: flex; align-items: flex-end; gap: 2px;
+    height: 14px; margin-top: 6px;
+}
+.mini-spark {
+    flex: 1; min-width: 2px; border-radius: 1px 1px 0 0;
+    opacity: 0.35;
+}
+
+/* Mini timeline */
+.mini-timeline {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.mini-tl-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+}
+.mini-tl-title {
+    font-family: var(--font-sans); font-size: 11px;
+    font-weight: 700; color: var(--text-primary);
+}
+.mini-tl-id {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--accent); font-weight: 600;
+}
+.mini-tl-body {
+    padding: 10px 12px;
+    background: var(--bg-elevated);
+}
+.mini-tn {
+    display: flex; align-items: center;
+    gap: 8px; padding: 4px 0;
+}
+.mini-tn-icon {
+    width: 16px; height: 16px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; flex-shrink: 0;
+}
+.mini-tn-icon.action { background: rgba(37,99,235,0.1); color: var(--active); }
+.mini-tn-icon.llm { background: rgba(124,58,237,0.12); color: var(--llm); border-radius: 4px; }
+.mini-tn-icon.sys { background: rgba(148,163,184,0.1); color: var(--idle); }
+.mini-tn-icon.err { background: rgba(220,38,38,0.1); color: var(--error); }
+.mini-tn-label {
+    font-family: var(--font-sans); font-size: 11px;
+    font-weight: 600; color: var(--text-primary);
+    flex: 1;
+}
+.mini-tn-dur {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-muted);
+}
+.mini-tn-status {
+    font-family: var(--font-sans); font-size: 9px;
+    font-weight: 600;
+}
+.mini-tn-status.ok { color: var(--success); }
+.mini-tn-status.fail { color: var(--error); }
+.mini-tn-child { margin-left: 24px; }
+.mini-tn-detail {
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--text-muted); margin-left: 24px;
+    padding: 2px 0;
+}
+
+/* Mini cost card */
+.mini-cost {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+}
+.mini-cost-header {
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 8px;
+}
+.mini-cost-title {
+    font-family: var(--font-sans); font-size: 11px;
+    font-weight: 700; color: var(--text-primary);
+    display: flex; align-items: center; gap: 5px;
+}
+.mini-cost-total {
+    font-family: var(--font-mono); font-size: 13px;
+    font-weight: 700; color: var(--llm);
+}
+.mini-cost-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 3px 0;
+}
+.mini-cost-dot {
+    width: 6px; height: 6px; border-radius: 2px; flex-shrink: 0;
+}
+.mini-cost-model {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-secondary); flex: 1;
+}
+.mini-cost-val {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* Mini events card */
+.mini-events {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+}
+.mini-events-title {
+    font-family: var(--font-sans); font-size: 11px;
+    font-weight: 700; color: var(--text-primary);
+    margin-bottom: 8px;
+}
+.mini-evt {
+    display: flex; align-items: center;
+    gap: 6px; padding: 3px 0;
+    font-family: var(--font-mono); font-size: 10px;
+}
+.mini-evt-dot {
+    width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+}
+.mini-evt-type {
+    font-weight: 600; color: var(--text-primary);
+}
+.mini-evt-text {
+    color: var(--text-muted); flex: 1;
+}
+
+/* Unlocks badge */
+.layer-unlocks {
+    grid-column: 1 / -1;
+    background: #1a1816;
+    padding: 12px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.unlocks-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255,255,255,0.25);
+    margin-right: 8px;
+}
+.unlock-tag {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 16px;
+    background: rgba(22,163,74,0.1);
+    color: var(--success);
+    border: 1px solid rgba(22,163,74,0.15);
+}
+.unlock-tag.purple {
+    background: rgba(124,58,237,0.1);
+    color: var(--llm);
+    border-color: rgba(124,58,237,0.15);
+}
+.unlock-tag.blue {
+    background: rgba(37,99,235,0.1);
+    color: var(--active);
+    border-color: rgba(37,99,235,0.15);
+}
+.unlock-tag.orange {
+    background: rgba(194,65,12,0.1);
+    color: var(--accent);
+    border-color: rgba(194,65,12,0.15);
+}
+
+/* ─── Safety contract callout ─── */
+.safety-callout {
+    max-width: 680px;
+    margin: 56px auto 0;
+    padding: 0 40px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.safety-box {
+    background: rgba(22,163,74,0.05);
+    border: 1px solid rgba(22,163,74,0.12);
+    border-radius: var(--radius-md);
+    padding: 24px 32px;
+}
+.safety-title {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 8px;
+}
+.safety-text {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    line-height: 1.6;
+}
+.safety-code {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.3);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    margin-top: 12px;
+    text-align: left;
+    display: inline-block;
+}
+
+/* ─── Scroll cue ─── */
+.scroll-cue {
+    padding: 56px 0 0;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.scroll-cue-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(255,255,255,0.22);
+    letter-spacing: 0.3px;
+    margin-bottom: 12px;
+}
+.scroll-arrow {
+    display: inline-block;
+    color: rgba(255,255,255,0.18);
+    font-size: 24px;
+    animation: float-arrow 2s ease infinite;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SECTION 4 — THE 3-LINES PROMISE
+     ════════════════════════════════════════ -->
+<section class="sdk-section">
+
+    <div class="narrative-bridge">
+        <div class="narrative-eyebrow">The Integration</div>
+        <h2 class="narrative-headline">
+            Three layers.<br>
+            <span class="nh-dim">Ship after </span><span class="nh-accent">any one.</span>
+        </h2>
+        <p class="narrative-body">Each layer builds on the last. Each one unlocks new dashboard capabilities. Start with 3 lines, go deeper when you're ready.</p>
+    </div>
+
+    <div class="layers-container">
+
+        <!-- ═══════════════════════════════════
+             LAYER 0 — Presence & Heartbeat
+             ═══════════════════════════════════ -->
+        <div class="layer-card">
+            <div class="layer-header">
+                <div class="layer-header-left">
+                    <div class="layer-number">0</div>
+                    <div class="layer-title">Presence & Heartbeat</div>
+                    <div class="layer-subtitle">— your agent is alive</div>
+                </div>
+                <div class="layer-effort">~10 lines · 2 minutes</div>
+            </div>
+
+            <!-- Code -->
+            <div class="layer-code">
+                <span class="code-label">initialization — run once at startup</span>
+                <div class="code-block"><span class="kw">import</span> <span class="ty">hiveloop</span>
+
+<span class="hl"><span class="ck"># One line: connect to HiveBoard</span></span>
+<span class="hl">hb <span class="op">=</span> <span class="ty">hiveloop</span><span class="op">.</span><span class="fn">init</span><span class="op">(</span><span class="pr">api_key</span><span class="op">=</span><span class="cs">"hb_live_your_key"</span><span class="op">,</span> <span class="pr">environment</span><span class="op">=</span><span class="cs">"production"</span><span class="op">)</span></span>
+<span class="hl"><span class="ck"># Two lines: register your agent</span></span>
+<span class="hl">agent <span class="op">=</span> hb<span class="op">.</span><span class="fn">agent</span><span class="op">(</span></span>
+<span class="hl">    <span class="pr">agent_id</span><span class="op">=</span><span class="cs">"sales"</span><span class="op">,</span></span>
+<span class="hl">    <span class="pr">type</span><span class="op">=</span><span class="cs">"sales"</span><span class="op">,</span></span>
+<span class="hl">    <span class="pr">version</span><span class="op">=</span><span class="cs">"1.2.0"</span><span class="op">,</span></span>
+<span class="hl">    <span class="pr">heartbeat_interval</span><span class="op">=</span><span class="cn">30</span><span class="op">,</span></span>
+<span class="hl"><span class="op">)</span></span>
+
+<span class="ck"># That's it. Your agent now has:</span>
+<span class="ck"># ✓ Heartbeat every 30s</span>
+<span class="ck"># ✓ Online/offline detection</span>
+<span class="ck"># ✓ Stuck detection (5m default)</span>
+<span class="ck"># ✓ Dashboard card with sparkline</span></div>
+            </div>
+
+            <!-- Dashboard preview -->
+            <div class="layer-dash">
+                <div class="layer-dash-label">What lights up on the dashboard</div>
+
+                <div class="mini-agent glow-success">
+                    <div class="mini-agent-top">
+                        <div class="mini-agent-name">sales</div>
+                        <div class="mini-badge mini-badge-idle">IDLE</div>
+                    </div>
+                    <div class="mini-meta">
+                        <div class="mini-type">sales</div>
+                        <div style="display:flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:11px;">
+                            <div class="mini-hb-dot"></div>12s ago
+                        </div>
+                        <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">v1.2.0</div>
+                    </div>
+                    <div class="mini-sparkline">
+                        <div class="mini-spark" style="height:4px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:6px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:4px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:5px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:7px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:4px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:6px;background:var(--active)"></div>
+                        <div class="mini-spark" style="height:5px;background:var(--active)"></div>
+                    </div>
+                </div>
+
+                <div class="mini-events">
+                    <div class="mini-events-title">Activity Stream</div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--success)"></div>
+                        <div class="mini-evt-type">agent_registered</div>
+                        <div class="mini-evt-text">sales · v1.2.0</div>
+                    </div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--idle)"></div>
+                        <div class="mini-evt-type">heartbeat</div>
+                        <div class="mini-evt-text">sales · 12s ago</div>
+                    </div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--success)"></div>
+                        <div class="mini-evt-type">status_change</div>
+                        <div class="mini-evt-text">sales → IDLE</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layer-unlocks">
+                <div class="unlocks-label">Unlocks →</div>
+                <div class="unlock-tag">Agent Cards</div>
+                <div class="unlock-tag">Heartbeat Sparklines</div>
+                <div class="unlock-tag">Stuck Detection</div>
+                <div class="unlock-tag">Online/Offline Status</div>
+                <div class="unlock-tag">Connection Indicator</div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             LAYER 1 — Tasks & Actions
+             ═══════════════════════════════════ -->
+        <div class="layer-card">
+            <div class="layer-header">
+                <div class="layer-header-left">
+                    <div class="layer-number">1</div>
+                    <div class="layer-title">Tasks & Actions</div>
+                    <div class="layer-subtitle">— what your agent is doing</div>
+                </div>
+                <div class="layer-effort">~30 lines · 10 minutes</div>
+            </div>
+
+            <div class="layer-code">
+                <span class="code-label">wrap your task boundary</span>
+                <div class="code-block"><span class="kw">def</span> <span class="fn">process_lead</span><span class="op">(</span>agent<span class="op">,</span> lead<span class="op">):</span>
+<span class="hl">    <span class="kw">with</span> agent<span class="op">.</span><span class="fn">task</span><span class="op">(</span><span class="cs">f"task-lead-</span><span class="op">{</span>lead<span class="op">.</span>id<span class="op">}</span><span class="cs">"</span><span class="op">,</span> <span class="pr">project</span><span class="op">=</span><span class="cs">"sales"</span><span class="op">,</span> <span class="pr">type</span><span class="op">=</span><span class="cs">"lead"</span><span class="op">)</span> <span class="kw">as</span> task<span class="op">:</span></span>
+        result <span class="op">=</span> <span class="fn">run_pipeline</span><span class="op">(</span>lead<span class="op">)</span>
+        <span class="kw">return</span> result
+    <span class="ck"># ✓ task_started on entry</span>
+    <span class="ck"># ✓ task_completed on clean exit</span>
+    <span class="ck"># ✓ task_failed on exception (auto-caught)</span></div>
+
+                <hr class="code-divider">
+                <span class="code-label">decorate key functions (5-7 nodes, not 30)</span>
+                <div class="code-block"><span class="hl"><span class="at">@agent.track</span><span class="op">(</span><span class="cs">"evaluate_lead"</span><span class="op">)</span></span>
+<span class="kw">def</span> <span class="fn">evaluate_lead</span><span class="op">(</span>lead<span class="op">):</span>
+    score <span class="op">=</span> <span class="fn">run_scoring_model</span><span class="op">(</span>lead<span class="op">)</span>
+    <span class="kw">return</span> score
+
+<span class="hl"><span class="at">@agent.track</span><span class="op">(</span><span class="cs">"crm_search"</span><span class="op">)</span></span>
+<span class="kw">def</span> <span class="fn">search_crm</span><span class="op">(</span>query<span class="op">):</span>
+    <span class="kw">return</span> crm_client<span class="op">.</span><span class="fn">search</span><span class="op">(</span>query<span class="op">)</span>
+
+<span class="hl"><span class="at">@agent.track</span><span class="op">(</span><span class="cs">"send_email"</span><span class="op">)</span></span>
+<span class="kw">def</span> <span class="fn">send_outreach</span><span class="op">(</span>contact<span class="op">,</span> template<span class="op">):</span>
+    <span class="kw">return</span> email_client<span class="op">.</span><span class="fn">send</span><span class="op">(</span>contact<span class="op">,</span> template<span class="op">)</span></div>
+
+                <hr class="code-divider">
+                <span class="code-label">or use context managers for dynamic names</span>
+                <div class="code-block"><span class="ck"># When the LLM picks tools at runtime:</span>
+<span class="kw">for</span> tool_call <span class="kw">in</span> response<span class="op">.</span>tool_calls<span class="op">:</span>
+<span class="hl">    <span class="kw">with</span> agent<span class="op">.</span><span class="fn">track_context</span><span class="op">(</span>tool_call<span class="op">.</span>name<span class="op">)</span> <span class="kw">as</span> ctx<span class="op">:</span></span>
+        result <span class="op">=</span> <span class="fn">execute_tool</span><span class="op">(</span>tool_call<span class="op">.</span>name<span class="op">,</span> tool_call<span class="op">.</span>args<span class="op">)</span></div>
+            </div>
+
+            <!-- Dashboard preview -->
+            <div class="layer-dash">
+                <div class="layer-dash-label">What lights up on the dashboard</div>
+
+                <div class="mini-agent">
+                    <div class="mini-agent-top">
+                        <div class="mini-agent-name">sales</div>
+                        <div class="mini-badge mini-badge-processing">PROCESSING</div>
+                    </div>
+                    <div class="mini-meta">
+                        <div style="font-family:var(--font-mono);font-size:10px;color:var(--accent)">↳ task-lead-4801</div>
+                    </div>
+                </div>
+
+                <div class="mini-timeline">
+                    <div class="mini-tl-header">
+                        <div class="mini-tl-title">Timeline</div>
+                        <div class="mini-tl-id">task-lead-4801</div>
+                    </div>
+                    <div class="mini-tl-body">
+                        <div class="mini-tn">
+                            <div class="mini-tn-icon sys">▶</div>
+                            <div class="mini-tn-label">task-lead-4801</div>
+                            <div class="mini-tn-dur">14.2s</div>
+                            <div class="mini-tn-status ok">✓</div>
+                        </div>
+                        <div class="mini-tn mini-tn-child">
+                            <div class="mini-tn-icon action">⚡</div>
+                            <div class="mini-tn-label">evaluate_lead</div>
+                            <div class="mini-tn-dur">1.8s</div>
+                            <div class="mini-tn-status ok">✓</div>
+                        </div>
+                        <div class="mini-tn mini-tn-child">
+                            <div class="mini-tn-icon action">⚡</div>
+                            <div class="mini-tn-label">crm_search</div>
+                            <div class="mini-tn-dur">0.8s</div>
+                            <div class="mini-tn-status ok">✓</div>
+                        </div>
+                        <div class="mini-tn mini-tn-child">
+                            <div class="mini-tn-icon action">⚡</div>
+                            <div class="mini-tn-label">send_email</div>
+                            <div class="mini-tn-dur">3.1s</div>
+                            <div class="mini-tn-status fail">✗</div>
+                        </div>
+                        <div class="mini-tn-detail" style="color:var(--error)">↳ ConnectionError: smtp refused</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layer-unlocks">
+                <div class="unlocks-label">Unlocks →</div>
+                <div class="unlock-tag blue">Task Table</div>
+                <div class="unlock-tag blue">Action Timelines</div>
+                <div class="unlock-tag blue">Success / Failure Rates</div>
+                <div class="unlock-tag blue">Duration Tracking</div>
+                <div class="unlock-tag blue">Error Attribution</div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════
+             LAYER 2 — Full Narrative Telemetry
+             ═══════════════════════════════════ -->
+        <div class="layer-card">
+            <div class="layer-header">
+                <div class="layer-header-left">
+                    <div class="layer-number">2</div>
+                    <div class="layer-title">Full Narrative Telemetry</div>
+                    <div class="layer-subtitle">— the complete story</div>
+                </div>
+                <div class="layer-effort">~5–10 lines per call site</div>
+            </div>
+
+            <div class="layer-code">
+                <span class="code-label">2a · LLM call tracking → cost explorer</span>
+                <div class="code-block">response <span class="op">=</span> llm_client<span class="op">.</span><span class="fn">chat</span><span class="op">(</span>messages<span class="op">,</span> <span class="pr">tools</span><span class="op">=</span>tool_catalog<span class="op">)</span>
+
+<span class="hl">task<span class="op">.</span><span class="fn">llm_call</span><span class="op">(</span></span>
+<span class="hl">    <span class="cs">"agent_turn"</span><span class="op">,</span></span>
+<span class="hl">    <span class="pr">model</span><span class="op">=</span>response<span class="op">.</span>model<span class="op">,</span></span>
+<span class="hl">    <span class="pr">tokens_in</span><span class="op">=</span>response<span class="op">.</span>usage<span class="op">.</span>input_tokens<span class="op">,</span></span>
+<span class="hl">    <span class="pr">tokens_out</span><span class="op">=</span>response<span class="op">.</span>usage<span class="op">.</span>output_tokens<span class="op">,</span></span>
+<span class="hl">    <span class="pr">cost</span><span class="op">=</span><span class="fn">estimate_cost</span><span class="op">(</span>response<span class="op">.</span>model<span class="op">,</span> tokens_in<span class="op">,</span> tokens_out<span class="op">),</span></span>
+<span class="hl">    <span class="pr">duration_ms</span><span class="op">=</span>elapsed_ms<span class="op">,</span></span>
+<span class="hl"><span class="op">)</span></span></div>
+
+                <hr class="code-divider">
+                <span class="code-label">2b · Plans, issues, escalations</span>
+                <div class="code-block"><span class="ck"># Agent decides on a plan</span>
+<span class="hl">task<span class="op">.</span><span class="fn">plan</span><span class="op">([</span><span class="cs">"Search CRM"</span><span class="op">,</span> <span class="cs">"Score lead"</span><span class="op">,</span> <span class="cs">"Draft email"</span><span class="op">,</span> <span class="cs">"Send"</span><span class="op">,</span> <span class="cs">"Log result"</span><span class="op">])</span></span>
+
+<span class="ck"># Agent detects something wrong</span>
+<span class="hl">agent<span class="op">.</span><span class="fn">report_issue</span><span class="op">(</span><span class="cs">"CRM API returning 403"</span><span class="op">,</span> <span class="pr">severity</span><span class="op">=</span><span class="cs">"high"</span><span class="op">,</span> <span class="pr">category</span><span class="op">=</span><span class="cs">"permissions"</span><span class="op">)</span></span>
+
+<span class="ck"># Agent needs a human</span>
+<span class="hl">task<span class="op">.</span><span class="fn">escalate</span><span class="op">(</span><span class="cs">"Credit &gt;$200 needs approval"</span><span class="op">,</span> <span class="pr">to</span><span class="op">=</span><span class="cs">"support-lead"</span><span class="op">)</span></span>
+
+<span class="ck"># Queue health snapshot</span>
+<span class="hl">agent<span class="op">.</span><span class="fn">queue_snapshot</span><span class="op">(</span><span class="pr">depth</span><span class="op">=</span><span class="cn">8</span><span class="op">,</span> <span class="pr">oldest_age_s</span><span class="op">=</span><span class="cn">2820</span><span class="op">)</span></span></div>
+
+                <hr class="code-divider">
+                <span class="code-label">2c · Framework integrations (one line each)</span>
+                <div class="code-block"><span class="ck"># LangChain</span>
+<span class="kw">from</span> <span class="ty">hiveloop.integrations.langchain</span> <span class="kw">import</span> <span class="ty">HiveLoopCallback</span>
+<span class="hl">chain<span class="op">.</span><span class="fn">invoke</span><span class="op">(</span>input<span class="op">,</span> <span class="pr">config</span><span class="op">={</span><span class="cs">"callbacks"</span><span class="op">: [</span><span class="ty">HiveLoopCallback</span><span class="op">(</span>hb<span class="op">)]</span>})</span>
+
+<span class="ck"># CrewAI</span>
+<span class="kw">from</span> <span class="ty">hiveloop.integrations.crewai</span> <span class="kw">import</span> <span class="ty">CrewAICallback</span>
+<span class="hl">crew <span class="op">=</span> <span class="ty">Crew</span><span class="op">(</span>agents<span class="op">=</span>agents<span class="op">,</span> <span class="pr">callbacks</span><span class="op">=[</span><span class="ty">CrewAICallback</span><span class="op">(</span>hb<span class="op">)])</span></span>
+
+<span class="ck"># AutoGen</span>
+<span class="kw">from</span> <span class="ty">hiveloop.integrations.autogen</span> <span class="kw">import</span> <span class="ty">AutoGenCallback</span>
+<span class="hl">callback <span class="op">=</span> <span class="ty">AutoGenCallback</span><span class="op">(</span>hb<span class="op">,</span> <span class="pr">project</span><span class="op">=</span><span class="cs">"sales-pipeline"</span><span class="op">)</span></span></div>
+            </div>
+
+            <!-- Dashboard preview -->
+            <div class="layer-dash">
+                <div class="layer-dash-label">What lights up on the dashboard</div>
+
+                <!-- Full timeline with LLM nodes -->
+                <div class="mini-timeline">
+                    <div class="mini-tl-header">
+                        <div class="mini-tl-title">Timeline</div>
+                        <div class="mini-tl-id">task-lead-4801</div>
+                        <div style="margin-left:auto;font-family:var(--font-mono);font-size:9px;color:var(--llm)">◆ 5 LLM · $0.04</div>
+                    </div>
+                    <div class="mini-tl-body">
+                        <div class="mini-tn">
+                            <div class="mini-tn-icon llm">◆</div>
+                            <div class="mini-tn-label">LLM · reasoning</div>
+                            <div class="mini-tn-dur">1.2s</div>
+                            <div class="mini-tn-status ok">✓</div>
+                        </div>
+                        <div class="mini-tn-detail"><span style="color:var(--llm)">claude-sonnet-4-5</span> · 842→156 · $0.008</div>
+                        <div class="mini-tn">
+                            <div class="mini-tn-icon action">⚡</div>
+                            <div class="mini-tn-label">crm_search</div>
+                            <div class="mini-tn-dur">0.8s</div>
+                            <div class="mini-tn-status ok">✓</div>
+                        </div>
+                        <div class="mini-tn">
+                            <div class="mini-tn-icon llm">◆</div>
+                            <div class="mini-tn-label">LLM · tool use</div>
+                            <div class="mini-tn-dur">1.4s</div>
+                            <div class="mini-tn-status ok">✓</div>
+                        </div>
+                        <div class="mini-tn">
+                            <div class="mini-tn-icon err">⚑</div>
+                            <div class="mini-tn-label" style="color:var(--error)">report_issue</div>
+                            <div class="mini-tn-dur"></div>
+                            <div class="mini-tn-status" style="color:var(--warning)">⚑ high</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mini cost card -->
+                <div class="mini-cost">
+                    <div class="mini-cost-header">
+                        <div class="mini-cost-title"><span style="color:var(--llm)">◆</span> Cost Explorer</div>
+                        <div class="mini-cost-total">$0.04 this task</div>
+                    </div>
+                    <div class="mini-cost-row">
+                        <div class="mini-cost-dot" style="background:var(--llm)"></div>
+                        <div class="mini-cost-model">claude-sonnet-4-5</div>
+                        <div class="mini-cost-val">5 calls · $0.04</div>
+                    </div>
+                    <div class="mini-cost-row">
+                        <div class="mini-cost-dot" style="background:var(--success)"></div>
+                        <div class="mini-cost-model">Tokens: 5,200 in / 890 out</div>
+                        <div class="mini-cost-val"></div>
+                    </div>
+                </div>
+
+                <!-- Plan + Issues -->
+                <div class="mini-events">
+                    <div class="mini-events-title">Rich Events</div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--active)"></div>
+                        <div class="mini-evt-type">plan</div>
+                        <div class="mini-evt-text">5 steps · 1/5 completed</div>
+                    </div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--error)"></div>
+                        <div class="mini-evt-type">issue</div>
+                        <div class="mini-evt-text">CRM 403 · high · ×8</div>
+                    </div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--warning)"></div>
+                        <div class="mini-evt-type">escalation</div>
+                        <div class="mini-evt-text">Credit approval → support-lead</div>
+                    </div>
+                    <div class="mini-evt">
+                        <div class="mini-evt-dot" style="background:var(--idle)"></div>
+                        <div class="mini-evt-type">queue</div>
+                        <div class="mini-evt-text">depth:8 · oldest: 47m</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layer-unlocks">
+                <div class="unlocks-label">Unlocks →</div>
+                <div class="unlock-tag purple">Cost Explorer</div>
+                <div class="unlock-tag purple">Token Usage</div>
+                <div class="unlock-tag purple">LLM Nodes in Timeline</div>
+                <div class="unlock-tag orange">Plan Progress Bars</div>
+                <div class="unlock-tag orange">Issue Tracking</div>
+                <div class="unlock-tag orange">Escalation Visibility</div>
+                <div class="unlock-tag orange">Queue Health</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Safety contract callout -->
+    <div class="safety-callout">
+        <div class="safety-box">
+            <div class="safety-title">🛡 The Safety Contract</div>
+            <div class="safety-text">
+                Observability is a side channel. If HiveBoard goes down, your agents continue running identically. Every SDK call follows the guard pattern:
+            </div>
+            <div class="safety-code">
+<span style="color:#c792ea">if</span> <span style="color:rgba(255,255,255,0.7)">hiveloop_agent</span><span style="color:rgba(255,255,255,0.4)">:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c792ea">try</span><span style="color:rgba(255,255,255,0.4)">:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:rgba(255,255,255,0.7)">hiveloop_agent</span><span style="color:rgba(255,255,255,0.4)">.</span><span style="color:#82aaff">some_method</span><span style="color:rgba(255,255,255,0.4)">(</span><span style="color:rgba(255,255,255,0.4)">...</span><span style="color:rgba(255,255,255,0.4)">)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c792ea">except</span> <span style="color:#ffcb6b">Exception</span><span style="color:rgba(255,255,255,0.4)">:</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c792ea">pass</span>&nbsp;&nbsp;<span style="color:rgba(255,255,255,0.25)"># observability must never break the agent</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scroll cue -->
+    <div class="scroll-cue">
+        <div class="scroll-cue-text">38 questions, one dashboard</div>
+        <div class="scroll-arrow">↓</div>
+    </div>
+
+</section>
+
+</body>
+</html>
