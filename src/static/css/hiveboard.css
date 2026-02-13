@@ -1673,6 +1673,24 @@ body {
     border-color: rgba(124, 58, 237, 0.4);
 }
 
+/* ── Has-Prompt Indicator ── */
+
+.has-prompt-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--llm);
+    margin-left: 5px;
+    vertical-align: middle;
+    opacity: 0.7;
+}
+
+.stream-detail-btn .has-prompt-dot {
+    margin-left: 0;
+    margin-right: 4px;
+}
+
 /* ═══════════════════════════════════════════
    SHARED UTILITIES
    ═══════════════════════════════════════════ */
