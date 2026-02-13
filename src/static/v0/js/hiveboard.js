@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-//  HIVEBOARD v2 — CONFIGURATION
+//  CONFIGURATION
 // ═══════════════════════════════════════════════════
 
 const CONFIG = {
@@ -13,17 +13,16 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════
-//  MUTABLE STATE
+//  MUTABLE STATE (replaces hardcoded data arrays)
 // ═══════════════════════════════════════════════════
 
 let AGENTS = [];
 let TASKS = [];
-let TIMELINES = {};       // taskId → { plan, nodes, actionTree, errorChains }
+let TIMELINES = {};       // taskId → { plan, nodes }
 let PIPELINE = {};        // agentId → pipeline data
-let FLEET_PIPELINE = null; // { totals, agents }
-let COST_DATA = null;
+let COST_DATA = null;     // { total_cost, call_count, tokens_in, tokens_out, by_agent, by_model }
 let STREAM_EVENTS = [];
-let metricsData = null;
+let metricsData = null;   // { summary, timeseries }
 
 // UI state
 let selectedAgent = null;
@@ -34,7 +33,6 @@ let statusFilter = null;
 let currentView = 'mission';
 let agentDetailAgent = null;
 let activeDetailTab = 'tasks';
-let timelineViewMode = 'tree'; // 'tree' or 'flat'
 
 // Connection state
 let ws = null;
@@ -58,9 +56,6 @@ const typeColor = { system: 'var(--idle)', action: 'var(--active)', warning: 'va
 const SEVERITY_COLOR = { debug: 'var(--idle)', info: 'var(--active)', warn: 'var(--warning)', error: 'var(--error)' };
 const STREAM_FILTERS = ['all', 'task', 'action', 'error', 'llm', 'pipeline', 'human'];
 const KIND_ICON = { llm_call: '◆', queue_snapshot: '⊞', todo: '☐', issue: '⚑', scheduled: '⏲' };
-
-// ★ Tree node type icons
-const TREE_ICON = { llm: '◆', action: '⚡', error: '✗', success: '✓', system: '▶', warning: '💭', human: '👤', retry: '↻' };
 
 // ═══════════════════════════════════════════════════
 //  HELPERS
@@ -104,22 +99,8 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
-// ★ Token ratio bar helper
-function tokenBarHtml(tokIn, tokOut) {
-  if (tokIn == null && tokOut == null) return '';
-  const tIn = tokIn || 0;
-  const tOut = tokOut || 0;
-  const max = Math.max(tIn, tOut, 1);
-  const wIn = Math.round((tIn / max) * 40);
-  const wOut = Math.round((tOut / max) * 40);
-  return `<span class="token-bar-container">` +
-    `<span class="token-bar in" style="width:${wIn}px" title="${tIn} tokens in"></span>` +
-    `<span class="token-bar out" style="width:${wOut}px" title="${tOut} tokens out"></span>` +
-    `<span class="token-label">${fmtTokens(tIn)}→${fmtTokens(tOut)}</span></span>`;
-}
-
 // ═══════════════════════════════════════════════════
-//  API CLIENT
+//  C2.5.1 — API CLIENT
 // ═══════════════════════════════════════════════════
 
 async function apiFetch(path, params) {
@@ -142,10 +123,6 @@ async function apiFetch(path, params) {
   }
 }
 
-// ═══════════════════════════════════════════════════
-//  DATA FETCHERS
-// ═══════════════════════════════════════════════════
-
 async function fetchAgents() {
   const env = document.getElementById('envSelector').value;
   const params = { sort: 'attention', limit: 100 };
@@ -164,12 +141,6 @@ async function fetchAgents() {
       queueDepth: stats.queue_depth || 0,
       activeIssues: stats.active_issues || 0,
       processingSummary: a.processing_summary || null,
-      // ★ Feature 3: Agent metadata
-      framework: a.framework || null,
-      runtime: a.runtime || null,
-      sdkVersion: a.sdk_version || null,
-      environment: a.environment || null,
-      group: a.group || null,
     };
   });
 }
@@ -177,6 +148,7 @@ async function fetchAgents() {
 async function fetchTasks(agentId) {
   const env = document.getElementById('envSelector').value;
   const params = { limit: 30, sort: 'newest' };
+  // Only filter by environment when a specific one is selected (not "all"/empty)
   if (env && env !== 'all' && env !== '') params.environment = env;
   if (agentId) params.agent_id = agentId;
   const data = await apiFetch('/v1/tasks', params);
@@ -201,8 +173,7 @@ async function fetchTimeline(taskId) {
   if (!taskId) return;
   const data = await apiFetch('/v1/tasks/' + encodeURIComponent(taskId) + '/timeline');
   if (!data) return;
-
-  // ── Flat nodes (original behavior, preserved for flat view) ──
+  // Convert API timeline to rendering format
   var nodes = (data.events || []).map(function(e) {
     var payload = e.payload || {};
     var kind = payload.kind;
@@ -219,10 +190,14 @@ async function fetchTimeline(taskId) {
     else if (e.event_type === 'custom' && kind === 'llm_call') nodeType = 'llm';
 
     var rawLabel = payload.action_name || (payload.data && payload.data.action_name) || payload.summary || e.event_type;
+    // Simplify labels: use just the event_type suffix for common types, truncate long labels
     var label = rawLabel;
     if (rawLabel && rawLabel.length > 24) {
+      // For long labels with colons/underscores, take the last meaningful segment
       var parts = rawLabel.split(/[_:]/);
-      if (parts.length > 1) label = parts.slice(-2).join(' ');
+      if (parts.length > 1) {
+        label = parts.slice(-2).join(' ');
+      }
       if (label.length > 24) label = label.substring(0, 21) + '…';
     }
     var time = e.timestamp ? e.timestamp.split('T')[1].substring(0, 12) : '—';
@@ -233,24 +208,12 @@ async function fetchTimeline(taskId) {
     var isRetry = e.event_type === 'retry_started';
     var isBranchStart = e.render_hint === 'branch_start' || (e.event_type === 'action_failed' && e.payload && e.payload.data && e.payload.data.will_retry);
 
-    // ★ Feature 2: Extract token data for flat nodes too
-    var tokensIn = (kind === 'llm_call' && payload.data) ? payload.data.tokens_in : null;
-    var tokensOut = (kind === 'llm_call' && payload.data) ? payload.data.tokens_out : null;
-    var llmCost = (kind === 'llm_call' && payload.data) ? payload.data.cost : null;
-
     return {
       label: label, rawLabel: rawLabel, time: time, type: nodeType, dur: dur,
       detail: detail, tags: tags, llmModel: llmModel,
       isBranch: isRetry, isBranchStart: isBranchStart,
-      durationMs: e.duration_ms || 0,
-      eventType: e.event_type,
-      kind: kind,
-      tokensIn: tokensIn,
-      tokensOut: tokensOut,
-      llmCost: llmCost,
     };
   });
-
   // Build plan
   var plan = null;
   if (data.plan && data.plan.steps && data.plan.steps.length > 0) {
@@ -264,17 +227,9 @@ async function fetchTimeline(taskId) {
       }),
     };
   }
-
-  // ★ Feature 4: Store action tree from response
-  var actionTree = data.action_tree || null;
-
-  // ★ Feature 5: Store error chains from response
-  var errorChains = data.error_chains || [];
-
-  TIMELINES[taskId] = { plan: plan, nodes: nodes, actionTree: actionTree, errorChains: errorChains };
+  TIMELINES[taskId] = { plan: plan, nodes: nodes };
 }
 
-// ★ Feature 7: Richer event data extraction
 async function fetchEvents(since) {
   var params = { limit: CONFIG.maxStreamEvents, exclude_heartbeats: true };
   if (since) params.since = since;
@@ -284,35 +239,20 @@ async function fetchEvents(since) {
   if (!data || !data.data) return;
   var newEvents = data.data.map(function(e) {
     var payload = e.payload || {};
-    var pd = payload.data || {};
     return {
       eventId: e.event_id,
       type: e.event_type,
       kind: payload.kind || null,
       agent: e.agent_id,
       task: e.task_id,
-      summary: payload.action_name || pd.action_name || payload.summary || e.event_type,
+      summary: payload.action_name || (payload.data && payload.data.action_name) || payload.summary || e.event_type,
       time: timeAgo(e.timestamp),
       timestamp: e.timestamp,
       severity: e.severity || 'info',
-      // ★ Enriched fields (Feature 7)
-      model: pd.model || null,
-      tokensIn: pd.tokens_in || null,
-      tokensOut: pd.tokens_out || null,
-      cost: pd.cost || null,
-      durationMs: e.duration_ms || pd.duration_ms || null,
-      errorMessage: pd.error_message || pd.exception_message || pd.error || null,
-      errorType: pd.error_type || pd.exception_type || null,
-      category: pd.category || null,
-      occurrences: pd.occurrence_count || pd.occurrences || null,
-      approver: pd.approver || pd.requested_from || null,
-      toolName: pd.tool_name || pd.action_name || null,
-      toolResult: pd.result || pd.output || null,
-      queueDepth: pd.depth || pd.queue_depth || null,
-      oldestAge: pd.oldest_age || pd.oldest || null,
     };
   });
   if (since) {
+    // Merge: prepend new, deduplicate
     var existingIds = {};
     STREAM_EVENTS.forEach(function(e) { existingIds[e.eventId] = true; });
     var truly = newEvents.filter(function(e) { return !existingIds[e.eventId]; });
@@ -339,14 +279,8 @@ async function fetchPipelineData(agentId) {
   if (data) PIPELINE[agentId] = data;
 }
 
-// ★ Feature 6: Fleet pipeline
-async function fetchFleetPipeline() {
-  var data = await apiFetch('/v1/pipeline');
-  if (data) FLEET_PIPELINE = data;
-}
-
 // ═══════════════════════════════════════════════════
-//  RENDERING — HIVE (agents list)
+//  RENDERING — HIVE (C2.2)
 // ═══════════════════════════════════════════════════
 
 function renderHive() {
@@ -374,22 +308,9 @@ function renderHive() {
     if (a.processingSummary) badges.push(`<span class="processing-line">↳ ${escHtml(a.processingSummary)}</span>`);
     if (badges.length > 0) pipelineHtml = `<div class="agent-card-pipeline">${badges.join('')}</div>`;
 
-    // ★ Judge 1 fix: Current task line stays on card
-    const taskLine = a.task ? `<div class="agent-task-info"><span style="opacity:0.5">↳</span> <span class="clickable-entity" onclick="event.stopPropagation(); selectTask('${a.task}')">${escHtml(a.task)}</span></div>` : '';
-
-    // ★ Feature 3: Metadata tooltip (shows on hover)
-    let metaTooltipParts = [];
-    if (a.framework) metaTooltipParts.push(escHtml(a.framework));
-    if (a.runtime) metaTooltipParts.push(escHtml(a.runtime));
-    if (a.sdkVersion) metaTooltipParts.push('sdk ' + escHtml(a.sdkVersion));
-    const metaTooltip = metaTooltipParts.length > 0
-      ? `<div class="agent-meta-tooltip"><div class="agent-meta-tooltip-inner">${metaTooltipParts.map(t => `<span class="meta-tag">${t}</span>`).join('')}</div></div>`
-      : '';
-
     return `
-    <div class="agent-card fade-in ${isSelected ? 'selected' : ''} ${isUrgent ? 'urgency-glow' : ''} ${metaTooltipParts.length > 0 ? 'has-meta' : ''}"
+    <div class="agent-card fade-in ${isSelected ? 'selected' : ''} ${isUrgent ? 'urgency-glow' : ''}"
          onclick="selectAgent('${a.id}')" ondblclick="openAgentDetail('${a.id}')" data-agent="${a.id}">
-      ${metaTooltip}
       <div class="agent-card-top">
         <div class="agent-name">${escHtml(a.id)}</div>
         <div class="agent-status-badge ${statusBadge[a.status] || 'badge-idle'}">${statusLabel[a.status] || a.status}</div>
@@ -399,14 +320,14 @@ function renderHive() {
         <div class="heartbeat-indicator"><div class="hb-dot ${hbClass(a.hb)}"></div>${hbText(a.hb)}</div>
       </div>
       ${pipelineHtml}
-      ${taskLine}
+      ${a.task ? `<div class="agent-task-info"><span style="opacity:0.5">↳</span> <span class="clickable-entity" onclick="event.stopPropagation(); selectTask('${a.task}')">${escHtml(a.task)}</span></div>` : ''}
       <div class="sparkline-row">${a.sparkline.map(v => `<div class="spark-bar" style="height: ${(v / maxSpark) * 18 + 2}px; background: ${isUrgent ? 'var(--error)' : 'var(--active)'}"></div>`).join('')}</div>
     </div>`;
   }).join('');
 }
 
 // ═══════════════════════════════════════════════════
-//  RENDERING — SUMMARY + METRICS
+//  RENDERING — SUMMARY + METRICS (C2.3.1a-b)
 // ═══════════════════════════════════════════════════
 
 function renderSummary() {
@@ -459,176 +380,7 @@ function renderMetrics() {
 }
 
 // ═══════════════════════════════════════════════════
-//  ★ FEATURE 1: DURATION BREAKDOWN
-// ═══════════════════════════════════════════════════
-
-function computeDurationBreakdown(nodes) {
-  var llmMs = 0, toolMs = 0, otherMs = 0, totalMs = 0;
-  nodes.forEach(function(n) {
-    var ms = n.durationMs || 0;
-    if (n.kind === 'llm_call' || n.type === 'llm') {
-      llmMs += ms;
-    } else if (n.type === 'action' || n.eventType === 'action_completed' || n.eventType === 'action_failed') {
-      toolMs += ms;
-    } else {
-      otherMs += ms;
-    }
-    totalMs += ms;
-  });
-  // If nodes include task-level events with overlapping durations, use max as total
-  var task = nodes.find(function(n) { return n.eventType === 'task_completed' || n.eventType === 'task_failed'; });
-  if (task && task.durationMs > totalMs) totalMs = task.durationMs;
-  if (totalMs === 0) totalMs = 1; // prevent division by zero
-  return { llmMs: llmMs, toolMs: toolMs, otherMs: otherMs, totalMs: totalMs };
-}
-
-function renderDurationBreakdown() {
-  var container = document.getElementById('durationBreakdown');
-  if (!container) return;
-  var tl = TIMELINES[selectedTask];
-  if (!tl || !tl.nodes || tl.nodes.length === 0) {
-    container.style.display = 'none';
-    return;
-  }
-  var bd = computeDurationBreakdown(tl.nodes);
-  var llmPct = Math.round(bd.llmMs / bd.totalMs * 100);
-  var toolPct = Math.round(bd.toolMs / bd.totalMs * 100);
-  var otherPct = 100 - llmPct - toolPct;
-  if (otherPct < 0) otherPct = 0;
-
-  container.style.display = '';
-  container.innerHTML = `
-    <div class="duration-breakdown-header">
-      <div class="duration-breakdown-label">Time Breakdown</div>
-      <div class="duration-breakdown-total">Total: ${fmtDuration(bd.totalMs)}</div>
-    </div>
-    <div class="duration-bars">
-      <div class="dur-bar-row">
-        <div class="dur-bar-label">LLM</div>
-        <div class="dur-bar-track"><div class="dur-bar-fill" style="width:${llmPct}%; background:var(--llm);"></div></div>
-        <div class="dur-bar-value">${fmtDuration(bd.llmMs)} (${llmPct}%)</div>
-      </div>
-      <div class="dur-bar-row">
-        <div class="dur-bar-label">Tools</div>
-        <div class="dur-bar-track"><div class="dur-bar-fill" style="width:${toolPct}%; background:var(--active);"></div></div>
-        <div class="dur-bar-value">${fmtDuration(bd.toolMs)} (${toolPct}%)</div>
-      </div>
-      <div class="dur-bar-row">
-        <div class="dur-bar-label">Other</div>
-        <div class="dur-bar-track"><div class="dur-bar-fill" style="width:${otherPct}%; background:var(--idle);"></div></div>
-        <div class="dur-bar-value">${fmtDuration(bd.otherMs)} (${otherPct}%)</div>
-      </div>
-    </div>
-  `;
-}
-
-// ═══════════════════════════════════════════════════
-//  ★ FEATURE 4+5: ACTION TREE RENDERING
-// ═══════════════════════════════════════════════════
-
-function renderActionTreeNode(node, errorChains, depth) {
-  if (!node) return '';
-  var status = node.status || 'completed';
-  var isFailed = status === 'failed' || status === 'error';
-  var name = escHtml(node.name || node.action_name || 'unknown');
-  var dur = node.duration_ms != null ? fmtDuration(node.duration_ms) : '';
-  var children = node.children || [];
-
-  // Determine node visual type
-  var nodeType = 'action';
-  if (node.type === 'llm_call' || node.kind === 'llm_call') nodeType = 'llm';
-  else if (isFailed) nodeType = 'error';
-  else if (status === 'completed') nodeType = 'action';
-  else if (node.type === 'retry') nodeType = 'retry';
-  if (depth === 0) nodeType = 'system';
-
-  var icon = TREE_ICON[nodeType] || '•';
-  var statusHtml = '';
-  if (isFailed) statusHtml = '<div class="tree-status failed">✗ failed</div>';
-  else if (status === 'completed') statusHtml = '<div class="tree-status completed">✓</div>';
-  else if (status === 'processing' || status === 'active') statusHtml = '<div class="tree-status processing">◉</div>';
-
-  // Build detail line
-  var detailParts = [];
-
-  // ★ Feature 2: Token ratio for LLM nodes
-  if (nodeType === 'llm' && node.tokens_in != null) {
-    if (node.model) detailParts.push(`<span class="model-tag">${escHtml(node.model)}</span>`);
-    detailParts.push(tokenBarHtml(node.tokens_in, node.tokens_out));
-    if (node.cost != null) detailParts.push(`<span class="cost-tag">$${node.cost.toFixed(3)}</span>`);
-  } else if (node.summary) {
-    detailParts.push(escHtml(node.summary));
-  } else if (node.tool_args) {
-    detailParts.push(escHtml(typeof node.tool_args === 'string' ? node.tool_args : JSON.stringify(node.tool_args).substring(0, 80)));
-  }
-  var detailLine = detailParts.length > 0 ? `<div class="tree-detail-line">${detailParts.join(' ')}</div>` : '';
-
-  // ★ Feature 5: Error chain — find matching error for this node
-  var errorLine = '';
-  if (isFailed) {
-    var errorMsg = node.error_message || node.exception_message || null;
-    var errorType = node.error_type || node.exception_type || '';
-    // Also check errorChains for this action
-    if (!errorMsg && errorChains) {
-      var chain = errorChains.find(function(c) { return c.action_id === node.action_id || c.action_name === node.name; });
-      if (chain) {
-        errorMsg = chain.message || chain.error_message;
-        errorType = chain.type || chain.exception_type || errorType;
-      }
-    }
-    if (errorMsg) {
-      errorLine = `<div class="tree-error-line">${errorType ? escHtml(errorType) + ': ' : ''}${escHtml(errorMsg)}</div>`;
-    }
-  }
-
-  // Guide lines
-  var guideHtml = '';
-  for (var i = 0; i < depth; i++) guideHtml += '<div class="tree-guide"></div>';
-
-  var rowBg = isFailed ? ' style="background: rgba(220,38,38,0.03);"' : '';
-  var nameColor = isFailed ? ' style="color:var(--error)"' : '';
-
-  var html = `<div class="tree-node">
-    <div class="tree-node-row"${rowBg}>
-      <div class="tree-indent">${guideHtml}</div>
-      <div class="tree-icon ${nodeType}">${icon}</div>
-      <div class="tree-content">
-        <div class="tree-label"><span class="tree-label-name"${nameColor}>${name}</span>${dur ? `<span class="tree-dur">${dur}</span>` : ''}</div>
-        ${errorLine}
-        ${detailLine}
-      </div>
-      ${statusHtml}
-    </div>`;
-
-  if (children.length > 0) {
-    html += '<div class="tree-children">';
-    children.forEach(function(child) {
-      html += renderActionTreeNode(child, errorChains, depth + 1);
-    });
-    html += '</div>';
-  }
-  html += '</div>';
-  return html;
-}
-
-function renderActionTree() {
-  var tl = TIMELINES[selectedTask];
-  if (!tl || !tl.actionTree) return '<div class="empty-state"><span class="empty-state-icon">🌳</span>No action tree data — showing flat view</div>';
-
-  var tree = tl.actionTree;
-  var errorChains = tl.errorChains || [];
-
-  // actionTree could be a single root or an array of roots
-  var roots = Array.isArray(tree) ? tree : [tree];
-  var html = '';
-  roots.forEach(function(root) {
-    html += renderActionTreeNode(root, errorChains, 0);
-  });
-  return html;
-}
-
-// ═══════════════════════════════════════════════════
-//  RENDERING — TIMELINE (combined tree/flat)
+//  RENDERING — TIMELINE (C2.3.1d-h)
 // ═══════════════════════════════════════════════════
 
 function renderPlanBar() {
@@ -649,41 +401,12 @@ function renderPlanBar() {
 }
 
 function renderTimeline() {
-  const treeCanvas = document.getElementById('actionTreeCanvas');
-  const flatCanvas = document.getElementById('timelineCanvas');
-  const tl = TIMELINES[selectedTask];
-  pinnedNode = null;
-  document.getElementById('pinnedDetail').classList.remove('visible');
-  renderPlanBar();
-  renderDurationBreakdown();
-
-  // Update toggle state
-  document.querySelectorAll('.view-toggle-btn').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.mode === timelineViewMode);
-  });
-
-  if (timelineViewMode === 'tree') {
-    // ★ Tree view
-    flatCanvas.style.display = 'none';
-    treeCanvas.style.display = '';
-    if (!tl || !tl.actionTree) {
-      // Fallback: no tree data, show flat
-      treeCanvas.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🌳</span>No tree data available</div>';
-      return;
-    }
-    treeCanvas.innerHTML = renderActionTree();
-  } else {
-    // Flat view (original behavior)
-    treeCanvas.style.display = 'none';
-    flatCanvas.style.display = '';
-    renderFlatTimeline();
-  }
-}
-
-function renderFlatTimeline() {
   const canvas = document.getElementById('timelineCanvas');
   const tl = TIMELINES[selectedTask];
   const nodes = tl ? tl.nodes : [];
+  pinnedNode = null;
+  document.getElementById('pinnedDetail').classList.remove('visible');
+  renderPlanBar();
 
   if (nodes.length === 0) { canvas.innerHTML = '<div class="empty-state"><span class="empty-state-icon">⏳</span>No timeline data</div>'; return; }
 
@@ -762,9 +485,6 @@ function pinNode(idx) {
   Object.entries(node.detail).forEach(([k, v]) => { bodyHtml += `<div class="detail-row"><span class="detail-key">${escHtml(k)}</span><span class="detail-val">${escHtml(String(v))}</span></div>`; });
   bodyHtml += '</div>';
   if (node.dur && node.dur !== '—') bodyHtml += `<div class="detail-col"><div class="detail-row"><span class="detail-key">duration</span><span class="detail-val">${node.dur}</span></div></div>`;
-  // ★ Show tokens in pinned detail
-  if (node.tokensIn != null) bodyHtml += `<div class="detail-col"><div class="detail-row"><span class="detail-key">tokens</span><span class="detail-val">${fmtTokens(node.tokensIn)} in / ${fmtTokens(node.tokensOut)} out</span></div></div>`;
-  if (node.llmCost != null) bodyHtml += `<div class="detail-col"><div class="detail-row"><span class="detail-key">cost</span><span class="detail-val">$${node.llmCost.toFixed(4)}</span></div></div>`;
   if (node.tags && node.tags.length) bodyHtml += '<div class="detail-col" style="flex-basis: 100%;"><div style="margin-top: 2px;">' + node.tags.map(t => `<span class="detail-payload-tag">${escHtml(t)}</span>`).join('') + '</div></div>';
 
   document.getElementById('pinnedBody').innerHTML = bodyHtml;
@@ -775,12 +495,6 @@ function unpinDetail() {
   pinnedNode = null;
   document.querySelectorAll('.tl-node').forEach(el => el.classList.remove('pinned'));
   document.getElementById('pinnedDetail').classList.remove('visible');
-}
-
-// ★ Toggle tree/flat
-function toggleTimelineView(mode) {
-  timelineViewMode = mode;
-  renderTimeline();
 }
 
 // Timeline auto-scroll helpers
@@ -801,7 +515,7 @@ function initTimelineScrollListener() {
 }
 
 // ═══════════════════════════════════════════════════
-//  RENDERING — TASKS TABLE
+//  RENDERING — TASKS TABLE (C2.3.1c)
 // ═══════════════════════════════════════════════════
 
 function renderTasks() {
@@ -826,7 +540,7 @@ function renderTasks() {
 }
 
 // ═══════════════════════════════════════════════════
-//  ★ FEATURE 7: RENDERING — STREAM (rich cards)
+//  RENDERING — STREAM (C2.4)
 // ═══════════════════════════════════════════════════
 
 function renderStreamFilters() {
@@ -852,47 +566,6 @@ function getFilteredStream() {
   return events;
 }
 
-function buildStreamDetailTags(e) {
-  var tags = [];
-  // LLM events
-  if (e.kind === 'llm_call' || e.type === 'llm_call') {
-    if (e.model) tags.push(`<span class="stream-detail-tag llm">${escHtml(e.model)}</span>`);
-    if (e.tokensIn != null || e.tokensOut != null) tags.push(`<span class="stream-detail-tag tokens">${fmtTokens(e.tokensIn)} in → ${fmtTokens(e.tokensOut)} out</span>`);
-    if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(3)}</span>`);
-    if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
-  }
-  // Task events
-  else if (e.type.startsWith('task_')) {
-    if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
-    if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(2)} total</span>`);
-  }
-  // Action failures
-  else if (e.type === 'action_failed' || (e.severity === 'error' && e.errorMessage)) {
-    if (e.errorMessage) tags.push(`<span class="stream-detail-tag error">${escHtml(e.errorType ? e.errorType + ': ' : '')}${escHtml(e.errorMessage)}</span>`);
-    if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
-  }
-  // Issues
-  else if (e.kind === 'issue') {
-    if (e.severity) tags.push(`<span class="stream-detail-tag severity ${e.severity === 'error' || e.severity === 'high' ? 'high' : ''}">${escHtml(e.severity)}</span>`);
-    if (e.category) tags.push(`<span class="stream-detail-tag">category: ${escHtml(e.category)}</span>`);
-    if (e.occurrences) tags.push(`<span class="stream-detail-tag">×${e.occurrences} occurrences</span>`);
-  }
-  // Approvals
-  else if (e.type.startsWith('approval')) {
-    if (e.approver) tags.push(`<span class="stream-detail-tag">approver: ${escHtml(e.approver)}</span>`);
-  }
-  // Queue snapshots
-  else if (e.kind === 'queue_snapshot') {
-    if (e.queueDepth != null) tags.push(`<span class="stream-detail-tag">depth: ${e.queueDepth}</span>`);
-    if (e.oldestAge) tags.push(`<span class="stream-detail-tag" style="color:var(--warning)">oldest: ${escHtml(e.oldestAge)}</span>`);
-  }
-  // Action completed
-  else if (e.type === 'action_completed') {
-    if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
-  }
-  return tags.join('');
-}
-
 function renderStream() {
   const list = document.getElementById('streamList');
   const filtered = getFilteredStream();
@@ -904,7 +577,6 @@ function renderStream() {
     const kindIcon = e.kind ? (KIND_ICON[e.kind] || '') : '';
     const sevColor = SEVERITY_COLOR[e.severity] || 'var(--idle)';
     const kindColor = e.kind === 'llm_call' ? 'var(--llm)' : e.kind === 'issue' ? 'var(--error)' : sevColor;
-    const detailTags = buildStreamDetailTags(e);
 
     return `<div class="stream-event">
       <div class="stream-event-top">
@@ -920,13 +592,12 @@ function renderStream() {
         </div>
         ${escHtml(e.summary)}
       </div>
-      ${detailTags ? `<div class="stream-event-detail">${detailTags}</div>` : ''}
     </div>`;
   }).join('');
 }
 
 // ═══════════════════════════════════════════════════
-//  RENDERING — AGENT DETAIL
+//  RENDERING — AGENT DETAIL (C2.3.3)
 // ═══════════════════════════════════════════════════
 
 function renderAgentDetail() {
@@ -936,20 +607,6 @@ function renderAgentDetail() {
 
   document.getElementById('detailAgentName').textContent = agent.id;
   document.getElementById('detailAgentBadge').innerHTML = `<div class="agent-status-badge ${statusBadge[agent.status] || 'badge-idle'}">${statusLabel[agent.status] || agent.status}</div>`;
-
-  // ★ Feature 3: Show metadata in agent detail header
-  var metaHtml = '';
-  var metaParts = [];
-  if (agent.framework) metaParts.push(agent.framework);
-  if (agent.runtime) metaParts.push(agent.runtime);
-  if (agent.sdkVersion) metaParts.push('sdk ' + agent.sdkVersion);
-  if (agent.environment) metaParts.push('env: ' + agent.environment);
-  if (agent.group) metaParts.push('group: ' + agent.group);
-  if (metaParts.length > 0) {
-    metaHtml = '<div class="agent-detail-meta">' + metaParts.map(function(p) { return '<span class="meta-tag">' + escHtml(p) + '</span>'; }).join('') + '</div>';
-  }
-  var metaContainer = document.getElementById('detailAgentMeta');
-  if (metaContainer) metaContainer.innerHTML = metaHtml;
 
   // Tasks tab
   const agentTasks = TASKS.filter(t => t.agent === agent.id);
@@ -968,6 +625,7 @@ function renderAgentDetail() {
   const pl = PIPELINE[agent.id] || {};
   let pHtml = '';
 
+  // Issues
   const issues = pl.issues || [];
   if (issues.length > 0) {
     pHtml += `<div class="pipeline-section"><div class="pipeline-section-header"><div class="pipeline-section-title">Active Issues</div><div class="pipeline-badge" style="color: var(--error);">${issues.length}</div></div>`;
@@ -976,6 +634,7 @@ function renderAgentDetail() {
     pHtml += `</tbody></table></div>`;
   }
 
+  // Queue
   const queue = pl.queue || {};
   const queueItems = queue.items || [];
   const queueDepth = queue.depth || queueItems.length;
@@ -987,6 +646,7 @@ function renderAgentDetail() {
   } else { pHtml += `<div class="pipeline-empty">Queue is empty — agent is caught up</div>`; }
   pHtml += `</div>`;
 
+  // TODOs
   const todos = pl.todos || [];
   if (todos.length > 0) {
     pHtml += `<div class="pipeline-section"><div class="pipeline-section-header"><div class="pipeline-section-title">Active TODOs</div><div class="pipeline-badge">${todos.length}</div></div>`;
@@ -995,6 +655,7 @@ function renderAgentDetail() {
     pHtml += `</tbody></table></div>`;
   }
 
+  // Scheduled
   const scheduled = pl.scheduled || [];
   if (scheduled.length > 0) {
     pHtml += `<div class="pipeline-section"><div class="pipeline-section-header"><div class="pipeline-section-title">Scheduled</div><div class="pipeline-badge">${scheduled.length}</div></div>`;
@@ -1012,7 +673,7 @@ function renderAgentDetail() {
 }
 
 // ═══════════════════════════════════════════════════
-//  RENDERING — COST EXPLORER
+//  RENDERING — COST EXPLORER (C2.3.2)
 // ═══════════════════════════════════════════════════
 
 function renderCostExplorer() {
@@ -1027,6 +688,7 @@ function renderCostExplorer() {
   const totalIn = d.total_tokens_in || 0;
   const totalOut = d.total_tokens_out || 0;
   const avgCost = totalCalls > 0 ? totalCost / totalCalls : 0;
+
   const reportedCost = d.reported_cost || 0;
   const estimatedCost = d.estimated_cost || 0;
   const hasEstimates = estimatedCost > 0;
@@ -1042,6 +704,8 @@ function renderCostExplorer() {
   `;
 
   let html = '';
+
+  // By Model
   const byModel = d.by_model || [];
   if (byModel.length > 0) {
     const maxModelCost = Math.max(...byModel.map(m => m.cost || 0), 0.01);
@@ -1054,6 +718,8 @@ function renderCostExplorer() {
     });
     html += `</tbody></table></div>`;
   }
+
+  // By Agent
   const byAgent = d.by_agent || [];
   if (byAgent.length > 0) {
     const sortedAgents = [...byAgent].sort((a, b) => (b.cost || 0) - (a.cost || 0));
@@ -1068,55 +734,8 @@ function renderCostExplorer() {
     });
     html += `</tbody></table></div>`;
   }
+
   document.getElementById('costTables').innerHTML = html || '<div class="empty-state">No cost data available</div>';
-}
-
-// ═══════════════════════════════════════════════════
-//  ★ FEATURE 6: FLEET PIPELINE VIEW
-// ═══════════════════════════════════════════════════
-
-function renderFleetPipeline() {
-  var container = document.getElementById('fleetPipelineContent');
-  if (!container) return;
-  if (!FLEET_PIPELINE) {
-    container.innerHTML = '<div class="empty-state">Loading fleet pipeline…</div>';
-    return;
-  }
-  var fp = FLEET_PIPELINE;
-  var totals = fp.totals || {};
-
-  var html = `<div class="fleet-pipeline-totals">
-    <div class="summary-stat"><div class="stat-label">Total Queue</div><div class="stat-value blue">${totals.total_queue_depth || 0}</div></div>
-    <div class="summary-stat"><div class="stat-label">Active Issues</div><div class="stat-value red">${totals.total_active_issues || 0}</div></div>
-    <div class="summary-stat"><div class="stat-label">Pending TODOs</div><div class="stat-value amber">${totals.total_todos || 0}</div></div>
-    <div class="summary-stat"><div class="stat-label">Scheduled</div><div class="stat-value">${totals.total_scheduled || 0}</div></div>
-  </div>`;
-
-  var agents = fp.agents || [];
-  if (agents.length > 0) {
-    html += `<table class="pipeline-table fleet-pipeline-table"><thead><tr><th>Agent</th><th>Queue</th><th>Issues</th><th>TODOs</th><th>Oldest Item</th><th>Status</th></tr></thead><tbody>`;
-    agents.forEach(function(a) {
-      var agentId = a.agent_id || '—';
-      var qd = a.queue_depth || 0;
-      var iss = a.active_issues || 0;
-      var td = a.todos || 0;
-      var oldest = a.oldest_item_age || '—';
-      var isHigh = qd > 5 || iss > 0;
-      html += `<tr class="${isHigh ? 'fleet-row-attention' : ''}" onclick="openAgentDetail('${agentId}')" style="cursor:pointer;">
-        <td><span class="clickable-entity" style="color:var(--accent)">${escHtml(agentId)}</span></td>
-        <td><span class="queue-badge ${qd > 5 ? 'high' : ''}">${qd}</span></td>
-        <td>${iss > 0 ? `<span class="issue-indicator"><span class="issue-dot"></span>${iss}</span>` : '<span style="color:var(--text-muted)">0</span>'}</td>
-        <td>${td > 0 ? td : '<span style="color:var(--text-muted)">0</span>'}</td>
-        <td style="color:${oldest !== '—' ? 'var(--warning)' : 'var(--text-muted)'}">${escHtml(oldest)}</td>
-        <td>${isHigh ? '<span style="color:var(--warning);font-weight:600;">Needs attention</span>' : '<span style="color:var(--success)">OK</span>'}</td>
-      </tr>`;
-    });
-    html += '</tbody></table>';
-  } else {
-    html += '<div class="pipeline-empty">No agents reporting pipeline data</div>';
-  }
-
-  container.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════════
@@ -1129,17 +748,12 @@ function switchView(view) {
   document.querySelectorAll('.center-view').forEach(v => v.classList.remove('active'));
 
   if (view === 'mission') {
-    document.querySelector('.view-tab[data-view="mission"]').classList.add('active');
+    document.querySelector('.view-tab:nth-child(1)').classList.add('active');
     document.getElementById('viewMission').classList.add('active');
   } else if (view === 'cost') {
-    document.querySelector('.view-tab[data-view="cost"]').classList.add('active');
+    document.querySelector('.view-tab:nth-child(2)').classList.add('active');
     document.getElementById('viewCost').classList.add('active');
     fetchCostData().then(renderCostExplorer);
-  } else if (view === 'pipeline') {
-    // ★ Feature 6
-    document.querySelector('.view-tab[data-view="pipeline"]').classList.add('active');
-    document.getElementById('viewPipeline').classList.add('active');
-    fetchFleetPipeline().then(renderFleetPipeline);
   } else if (view === 'agentDetail') {
     document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
     document.getElementById('viewAgentDetail').classList.add('active');
@@ -1288,16 +902,6 @@ function updateFilterBar() {
 
 function onEnvChange() { initialLoad(); }
 
-// ★ Update fleet pipeline badge count
-function updatePipelineBadge() {
-  var badge = document.getElementById('pipelineBadge');
-  if (!badge) return;
-  var count = 0;
-  AGENTS.forEach(function(a) { count += a.activeIssues + (a.queueDepth > 5 ? 1 : 0); });
-  if (count > 0) { badge.textContent = count; badge.style.display = ''; }
-  else { badge.style.display = 'none'; }
-}
-
 // ═══════════════════════════════════════════════════
 //  TOAST NOTIFICATIONS
 // ═══════════════════════════════════════════════════
@@ -1313,7 +917,7 @@ function showToast(msg, isError) {
 }
 
 // ═══════════════════════════════════════════════════
-//  WEBSOCKET CONNECTION
+//  C2.5.3 — WEBSOCKET CONNECTION
 // ═══════════════════════════════════════════════════
 
 function connectWebSocket() {
@@ -1329,6 +933,7 @@ function connectWebSocket() {
       wsRetryCount = 0;
       setConnectionStatus(true);
       stopPolling();
+      // Subscribe
       ws.send(JSON.stringify({
         action: 'subscribe',
         channels: ['events', 'agents'],
@@ -1363,35 +968,21 @@ function connectWebSocket() {
   }
 }
 
-// ★ Feature 7: WS messages now extract enriched payload
+// C2.5.4 — Live event handling
 function handleWsMessage(msg) {
   if (msg.type === 'event.new') {
     var e = msg.data || msg.event || msg;
     var payload = e.payload || {};
-    var pd = payload.data || {};
     var newEvent = {
       eventId: e.event_id,
       type: e.event_type,
       kind: payload.kind || null,
       agent: e.agent_id,
       task: e.task_id,
-      summary: payload.action_name || pd.action_name || payload.summary || e.event_type,
+      summary: payload.action_name || (payload.data && payload.data.action_name) || payload.summary || e.event_type,
       time: 'just now',
       timestamp: e.timestamp,
       severity: e.severity || 'info',
-      // Enriched
-      model: pd.model || null,
-      tokensIn: pd.tokens_in || null,
-      tokensOut: pd.tokens_out || null,
-      cost: pd.cost || null,
-      durationMs: e.duration_ms || pd.duration_ms || null,
-      errorMessage: pd.error_message || pd.exception_message || pd.error || null,
-      errorType: pd.error_type || pd.exception_type || null,
-      category: pd.category || null,
-      occurrences: pd.occurrence_count || pd.occurrences || null,
-      approver: pd.approver || pd.requested_from || null,
-      queueDepth: pd.depth || pd.queue_depth || null,
-      oldestAge: pd.oldest_age || pd.oldest || null,
     };
     if (!STREAM_EVENTS.find(function(ev) { return ev.eventId === newEvent.eventId; })) {
       STREAM_EVENTS.unshift(newEvent);
@@ -1403,11 +994,11 @@ function handleWsMessage(msg) {
       fetchTimeline(selectedTask).then(renderTimeline);
     }
   } else if (msg.type === 'agent.status_changed' || msg.type === 'agent.stuck' || msg.type === 'agent.heartbeat') {
-    fetchAgents().then(function() { renderHive(); renderSummary(); updatePipelineBadge(); });
+    fetchAgents().then(function() { renderHive(); renderSummary(); });
   }
 }
 
-// Polling fallback
+// C2.5.5 — Polling fallback
 function startPolling() {
   if (pollTimer) return;
   setConnectionStatus(false, 'Polling');
@@ -1418,7 +1009,6 @@ function startPolling() {
     renderHive();
     renderSummary();
     renderStream();
-    updatePipelineBadge();
   }, CONFIG.pollInterval);
 }
 
@@ -1441,7 +1031,7 @@ function setConnectionStatus(connected, label) {
 }
 
 // ═══════════════════════════════════════════════════
-//  INITIAL DATA LOAD
+//  C2.5.2 — INITIAL DATA LOAD
 // ═══════════════════════════════════════════════════
 
 async function initialLoad() {
@@ -1455,7 +1045,6 @@ async function initialLoad() {
   renderStreamFilters();
   renderStream();
   updateFilterBar();
-  updatePipelineBadge();
 
   // Auto-select first task
   if (!selectedTask && TASKS.length > 0) {
@@ -1478,19 +1067,20 @@ async function initialLoad() {
 //  PERIODIC REFRESH
 // ═══════════════════════════════════════════════════
 
+// Update time labels every 10s
 setInterval(function() {
   STREAM_EVENTS.forEach(function(e) { e.time = timeAgo(e.timestamp); });
   TASKS.forEach(function(t) { t.time = timeAgo(t.startedAt); });
   renderStream();
 }, 10000);
 
+// Full data refresh every 30s
 setInterval(async function() {
   await Promise.all([fetchAgents(), fetchTasks(), fetchMetrics()]);
   renderHive();
   renderSummary();
   renderMetrics();
   renderTasks();
-  updatePipelineBadge();
 }, CONFIG.refreshInterval);
 
 // ═══════════════════════════════════════════════════
@@ -1498,11 +1088,13 @@ setInterval(async function() {
 // ═══════════════════════════════════════════════════
 
 (async function init() {
+  // Check for task in URL
   var urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('task')) selectedTask = urlParams.get('task');
 
   await initialLoad();
 
+  // Try WebSocket, fall back to polling
   connectWebSocket();
   setTimeout(function() {
     if (!isConnected && !pollTimer) startPolling();

@@ -7,14 +7,17 @@
     "framework": "loopcore",
     "runtime": "python-3.13.7",
     "first_seen": "2026-02-12T17:32:08.038000Z",
-    "last_seen": "2026-02-12T22:26:01.332000+00:00",
-    "last_heartbeat": "2026-02-12T22:25:44.141000+00:00",
-    "last_event_type": "task_completed",
-    "last_task_id": "ag_6ce5uncd-evt_1f66e4663e21",
+    "last_seen": "2026-02-13T00:55:29.940000+00:00",
+    "last_heartbeat": "2026-02-13T00:55:07.044000+00:00",
+    "last_event_type": "custom",
+    "last_task_id": "ag_6ce5uncd-evt_180e8df57960",
     "last_project_id": "c4dcdfb6-c2f9-4f2e-a138-e20ec977662b",
     "stuck_threshold_seconds": 300,
     "is_registered": true,
-    "previous_status": "idle"
+    "previous_status": "processing",
+    "sdk_version": "hiveloop-0.1.0",
+    "environment": "production",
+    "group": "default"
   },
   {
     "agent_id": "main",
@@ -24,13 +27,16 @@
     "framework": "loopcore",
     "runtime": "python-3.13.7",
     "first_seen": "2026-02-12T17:33:16.343000Z",
-    "last_seen": "2026-02-12T22:26:02.843000+00:00",
-    "last_heartbeat": "2026-02-12T22:26:01.588000+00:00",
-    "last_event_type": "task_completed",
-    "last_task_id": "main-evt_98150bf10aae",
+    "last_seen": "2026-02-13T00:55:31.238000+00:00",
+    "last_heartbeat": "2026-02-13T00:55:21.975000+00:00",
+    "last_event_type": "action_completed",
+    "last_task_id": "main-evt_2ecdecb84822",
     "last_project_id": "c4dcdfb6-c2f9-4f2e-a138-e20ec977662b",
     "stuck_threshold_seconds": 300,
     "is_registered": true,
-    "previous_status": "idle"
+    "previous_status": "idle",
+    "sdk_version": "hiveloop-0.1.0",
+    "environment": "production",
+    "group": "default"
   }
 ]

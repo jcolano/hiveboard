@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HiveBoard — Mission Control</title>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="/static/css/hiveboard.css" rel="stylesheet" />
 </head>
 <body>
@@ -13,20 +13,8 @@
             <div class="logo"><div class="logo-hex"><div class="logo-hex-inner"></div></div>Hive<span>Board</span></div>
             <div class="workspace-badge" id="workspaceBadge">—</div>
             <div class="view-tabs">
-                <button class="view-tab active" data-view="mission" onclick="switchView('mission')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                    Dashboard
-                </button>
-                <button class="view-tab" data-view="cost" onclick="switchView('cost')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-                    Costs
-                </button>
-                <!-- ★ Feature 6: Fleet Pipeline tab -->
-                <button class="view-tab" data-view="pipeline" onclick="switchView('pipeline')">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    Pipeline
-                    <span class="pipeline-tab-badge" id="pipelineBadge" style="display:none;"></span>
-                </button>
+                <button class="view-tab active" onclick="switchView('mission')">Mission Control</button>
+                <button class="view-tab" onclick="switchView('cost')">Cost Explorer</button>
             </div>
         </div>
         <div class="topbar-right">
@@ -50,11 +38,11 @@
         <!-- LEFT: THE HIVE -->
         <div class="hive-panel">
             <div class="panel-header">
-                <div class="panel-header-group">
-                    <div class="panel-title">Agents</div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="panel-title">The Hive</div>
                     <div class="attention-badge" id="attentionBadge" style="display:none;"></div>
+                    <div class="panel-count" id="agentCount">0 agents</div>
                 </div>
-                <div class="panel-count" id="agentCount">0 agents</div>
             </div>
             <div class="hive-list" id="hiveList"></div>
         </div>
@@ -73,19 +61,10 @@
                             <div class="timeline-task-id" id="tlTaskId">—</div>
                             <div class="timeline-task-meta" id="tlMeta"></div>
                         </div>
-                        <div class="timeline-header-right">
-                            <!-- ★ Tree/Flat toggle -->
-                            <div class="view-toggle">
-                                <button class="view-toggle-btn active" data-mode="tree" onclick="toggleTimelineView('tree')">Tree</button>
-                                <button class="view-toggle-btn" data-mode="flat" onclick="toggleTimelineView('flat')">Flat</button>
-                            </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
                             <div class="permalink-btn" onclick="copyPermalink()">⧉ Permalink</div>
                         </div>
                     </div>
-
-                    <!-- ★ Feature 1: Duration Breakdown -->
-                    <div class="duration-breakdown" id="durationBreakdown" style="display:none;"></div>
-
                     <div class="plan-bar" id="planBar">
                         <div class="plan-bar-header">
                             <div class="plan-bar-label" id="planLabel">Plan</div>
@@ -93,13 +72,7 @@
                         </div>
                         <div class="plan-steps" id="planSteps"></div>
                     </div>
-
-                    <!-- ★ Feature 4: Action Tree canvas (for tree view) -->
-                    <div class="action-tree-canvas" id="actionTreeCanvas"></div>
-
-                    <!-- Flat timeline canvas (for flat view, hidden by default) -->
-                    <div class="timeline-canvas" id="timelineCanvas" style="display:none;"></div>
-
+                    <div class="timeline-canvas" id="timelineCanvas"></div>
                     <div class="pinned-detail" id="pinnedDetail">
                         <div class="pinned-detail-header">
                             <div class="pinned-detail-title" id="pinnedTitle">—</div>
@@ -128,15 +101,13 @@
                 </div>
             </div>
 
-            <!-- Agent Detail View -->
+            <!-- Agent Detail View (v3) -->
             <div class="center-view" id="viewAgentDetail">
                 <div class="agent-detail-header">
                     <div class="agent-detail-identity">
                         <div class="agent-detail-name" id="detailAgentName">—</div>
                         <div id="detailAgentBadge"></div>
                     </div>
-                    <!-- ★ Feature 3: Agent metadata in detail view -->
-                    <div id="detailAgentMeta"></div>
                     <button class="agent-detail-close" onclick="closeAgentDetail()">✕ Close Detail</button>
                 </div>
                 <div class="detail-tabs" id="detailTabs">
@@ -147,26 +118,17 @@
                 <div class="detail-tab-content" id="detailTabPipeline"></div>
             </div>
 
-            <!-- Cost Explorer View -->
+            <!-- Cost Explorer View (v3) -->
             <div class="center-view" id="viewCost">
                 <div class="cost-ribbon" id="costRibbon"></div>
                 <div class="cost-tables" id="costTables"></div>
-            </div>
-
-            <!-- ★ Feature 6: Fleet Pipeline View -->
-            <div class="center-view" id="viewPipeline">
-                <div class="fleet-pipeline-header">
-                    <div class="panel-title">Fleet Pipeline</div>
-                    <div class="panel-count" style="font-size:12px;color:var(--text-muted);">All agents · queues, issues, TODOs</div>
-                </div>
-                <div class="fleet-pipeline-content" id="fleetPipelineContent"></div>
             </div>
         </div>
 
         <!-- RIGHT: ACTIVITY STREAM -->
         <div class="stream-panel">
             <div class="panel-header">
-                <div class="panel-header-group">
+                <div style="display: flex; align-items: center; gap: 10px;">
                     <div class="panel-title">Activity</div>
                     <div class="live-badge"><div class="live-dot"></div> Live</div>
                 </div>
