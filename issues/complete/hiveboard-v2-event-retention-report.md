@@ -146,9 +146,24 @@ Would remain: 2,111 (31% reduction)
 
 ---
 
+## Bug Found During Testing
+
+The `_parse_dt()` helper raises `ValueError` on unparseable timestamp strings instead of returning `None`. The spec requires that events with bad timestamps are kept (not silently dropped, not crashed on). Added `try/except (ValueError, TypeError)` wrappers around `_parse_dt()` calls in both `_is_event_within_retention()` and `_is_cold_event_within_retention()`.
+
+---
+
 ## Testing Notes
 
-- All imports verified: `enums.py` constants, `storage_json.py` methods, `app.py` loads cleanly
-- 61/61 storage tests pass (1 pre-existing Windows file-lock error, unrelated)
-- Dry-run against real data confirms correct prune counts (957 cold events, 0 TTL)
-- Integration testing requires running the server and observing prune logs over multiple cycles
+**31 dedicated retention tests** in `tests/test_retention.py` — all passing. Covers every item from the spec's Section 12 checklist:
+
+| Test Class | Tests | Covers |
+|---|---|---|
+| `TestTTLPruning` | 9 | Free/pro retention, within-window kept, unparseable timestamps, unknown tenants, persist behavior, lock acquisition, return values |
+| `TestColdEventPruning` | 8 | Heartbeat old/new, action_started old/new, action_completed/task_completed/task_failed/custom pipeline events NOT affected |
+| `TestUnifiedPrune` | 4 | Single pass applies both, no double-counting, single lock, correct return dict |
+| `TestBackgroundTask` | 5 | Large backlog, log/no-log conditions, clean cancellation, exception survival |
+| `TestIntegration` | 4 | get_events, list_tasks, get_metrics, pipeline queries after pruning |
+| `TestMultiTenant` | 1 | Different plans get different retention windows |
+
+- 62/62 existing storage tests pass (no regressions)
+- Dry-run against real data: 3,068 events → 957 cold-pruned → 2,111 remaining (31% reduction)

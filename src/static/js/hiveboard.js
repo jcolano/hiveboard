@@ -1386,6 +1386,7 @@ function switchView(view) {
     costExpandedModel = null;
     costDrilldownData = [];
     costDrilldownCursor = null;
+    costDrilldownLoading = false;
     document.querySelector('.view-tab[data-view="cost"]').classList.add('active');
     document.getElementById('viewCost').classList.add('active');
     fetchCostData().then(renderCostExplorer);
