@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -34,6 +35,7 @@ from shared.enums import (
     MAX_GROUP_CHARS,
     MAX_PAYLOAD_BYTES,
     MAX_TASK_ID_CHARS,
+    PRUNE_INTERVAL_SECONDS,
     SEVERITY_DEFAULTS,
     SEVERITY_BY_PAYLOAD_KIND,
     VALID_SEVERITIES,
@@ -64,8 +66,21 @@ from shared.models import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger = logging.getLogger("hiveboard.retention")
     storage = JsonStorageBackend()
     await storage.initialize()
+
+    # Prune stale events before serving requests
+    result = await storage.prune_events()
+    if result["total_pruned"] > 0:
+        logger.info(
+            "Startup pruning: %d events removed (ttl=%d, cold=%d), %d remaining",
+            result["total_pruned"],
+            result["ttl_pruned"],
+            result["cold_pruned"],
+            len(storage._tables["events"]),
+        )
+
     app.state.storage = storage
     # Initialize LLM pricing engine
     pricing = LlmPricingEngine()
@@ -73,10 +88,12 @@ async def lifespan(app: FastAPI):
     app.state.pricing = pricing
     # Bootstrap: create default tenant + key if none exist
     await _bootstrap_dev_tenant(storage)
-    # Start WebSocket ping task
+    # Start background tasks
     from backend.websocket import ws_manager
     ping_task = asyncio.create_task(_ws_ping_loop())
+    prune_task = asyncio.create_task(_prune_loop(storage))
     yield
+    prune_task.cancel()
     ping_task.cancel()
     await storage.close()
 
@@ -87,6 +104,26 @@ async def _ws_ping_loop():
     while True:
         await asyncio.sleep(30)
         await ws_manager.ping_all()
+
+
+async def _prune_loop(storage: JsonStorageBackend):
+    """Periodically prune expired and cold events."""
+    logger = logging.getLogger("hiveboard.retention")
+    while True:
+        await asyncio.sleep(PRUNE_INTERVAL_SECONDS)
+        try:
+            result = await storage.prune_events()
+            total = result["total_pruned"]
+            if total > 0:
+                logger.info(
+                    "Event pruning: %d removed (ttl=%d, cold=%d), %d remaining",
+                    total,
+                    result["ttl_pruned"],
+                    result["cold_pruned"],
+                    len(storage._tables["events"]),
+                )
+        except Exception:
+            logger.exception("Event pruning failed")
 
 
 async def _bootstrap_dev_tenant(storage: JsonStorageBackend):

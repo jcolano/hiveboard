@@ -18,7 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -26,8 +26,10 @@ from uuid import uuid4
 from shared.enums import (
     AgentStatus,
     AUTO_INTERVAL,
+    COLD_EVENT_RETENTION,
     EventType,
     INTERVAL_SECONDS,
+    PLAN_LIMITS,
     RANGE_SECONDS,
     Severity,
     SEVERITY_DEFAULTS,
@@ -1716,3 +1718,93 @@ class JsonStorageBackend:
             return None
         matches.sort(key=lambda r: r.get("fired_at", ""), reverse=True)
         return AlertHistoryRecord(**matches[0])
+
+    # ═══════════════════════════════════════════════════════════════════════
+    #  EVENT RETENTION & PRUNING
+    # ═══════════════════════════════════════════════════════════════════════
+
+    async def prune_events(self) -> dict[str, int]:
+        """Run all event retention policies in a single pass.
+
+        Combines TTL pruning (plan-based retention) and cold event pruning
+        (shorter retention for heartbeats and action_started).
+
+        Returns dict with counts: {"ttl_pruned": N, "cold_pruned": N, "total_pruned": N}
+        """
+        now = _now_utc()
+
+        # Build per-tenant TTL cutoffs
+        cutoffs: dict[str, datetime] = {}
+        for t in self._tables["tenants"]:
+            plan = t.get("plan", "free")
+            days = PLAN_LIMITS.get(plan, {}).get("retention_days", 7)
+            cutoffs[t["tenant_id"]] = now - timedelta(days=days)
+
+        ttl_pruned = 0
+        cold_pruned = 0
+
+        async with self._locks["events"]:
+            before = len(self._tables["events"])
+            kept: list[dict[str, Any]] = []
+
+            for row in self._tables["events"]:
+                # Phase 1: TTL check
+                if not self._is_event_within_retention(row, cutoffs, now):
+                    ttl_pruned += 1
+                    continue
+
+                # Phase 2: Cold event check
+                if not self._is_cold_event_within_retention(row, now):
+                    cold_pruned += 1
+                    continue
+
+                kept.append(row)
+
+            total_pruned = ttl_pruned + cold_pruned
+            if total_pruned > 0:
+                self._tables["events"] = kept
+                self._persist("events")
+
+        return {
+            "ttl_pruned": ttl_pruned,
+            "cold_pruned": cold_pruned,
+            "total_pruned": total_pruned,
+        }
+
+    def _is_event_within_retention(
+        self,
+        row: dict[str, Any],
+        cutoffs: dict[str, datetime],
+        now: datetime,
+    ) -> bool:
+        """Check if an event is within its tenant's retention window."""
+        tenant_id = row.get("tenant_id")
+        cutoff = cutoffs.get(tenant_id)
+        if cutoff is None:
+            # Unknown tenant — keep the event (don't silently drop data)
+            return True
+        ts = _parse_dt(row.get("timestamp"))
+        if ts is None:
+            # Unparseable timestamp — keep it (defensive)
+            return True
+        return ts >= cutoff
+
+    def _is_cold_event_within_retention(
+        self,
+        row: dict[str, Any],
+        now: datetime,
+    ) -> bool:
+        """Check if a cold event type is within its shorter retention window.
+
+        Non-cold event types always return True (kept by this filter).
+        """
+        event_type = row.get("event_type")
+        max_age_seconds = COLD_EVENT_RETENTION.get(event_type)
+        if max_age_seconds is None:
+            # Not a cold event type — keep it
+            return True
+        ts = _parse_dt(row.get("timestamp"))
+        if ts is None:
+            return True
+        age = (now - ts).total_seconds()
+        return age <= max_age_seconds

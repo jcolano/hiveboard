@@ -188,6 +188,18 @@ class TenantPlan(StrEnum):
     ENTERPRISE = "enterprise"
 
 
+# ---------------------------------------------------------------------------
+# Event Retention
+# ---------------------------------------------------------------------------
+
+PRUNE_INTERVAL_SECONDS = 300  # 5 minutes — background prune cycle
+
+COLD_EVENT_RETENTION: dict[str, int] = {
+    EventType.HEARTBEAT: 600,          # 10 minutes
+    EventType.ACTION_STARTED: 86400,   # 24 hours
+}
+
+
 PLAN_LIMITS: dict[str, dict] = {
     TenantPlan.FREE: {
         "events_per_month": 500_000,
