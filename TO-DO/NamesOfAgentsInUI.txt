@@ -1,0 +1,2 @@
+In many places we are using the agent_id instead of the agent name. I want to replace this to make agent name a priority datum, over agent_id.  Also, in the left panel, for each agent, add a description. We may need to include Description in the agent's object, and I would update my loopCore to start using it so we can see it.
+
