@@ -570,6 +570,8 @@ class LlmCallRecord(BaseModel):
     duration_ms: int | None = None
     cost_source: str | None = None          # "reported", "estimated", or null
     cost_model_matched: str | None = None   # pricing pattern matched (estimated only)
+    prompt_preview: str | None = None
+    response_preview: str | None = None
 
 
 class PipelineState(BaseModel):
