@@ -13,7 +13,7 @@ var CONFIG = {
     : 'https://mlbackend.net/loophive',
   wsUrl: _isLocal
     ? null
-    : '',  // Set after AWS API Gateway setup: 'wss://{api-gw-id}.execute-api.{region}.amazonaws.com/production'
+    : 'wss://85g4pm5cg9.execute-api.us-east-1.amazonaws.com/production/',
   apiKey: new URLSearchParams(window.location.search).get('apiKey')
     || localStorage.getItem('hiveboard_api_key')
     || (_isLocal ? 'hb_live_dev000000000000000000000000000000' : ''),
