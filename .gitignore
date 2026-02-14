@@ -7,5 +7,6 @@ build/
 *.db
 .env
 config.json
+loophive.cfg
 .venv/
 venv/

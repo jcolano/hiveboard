@@ -22,7 +22,7 @@ PUBLIC_PATHS = {
     "/v1/auth/check-slug",
     "/v1/auth/accept-invite",
 }
-PUBLIC_PREFIXES = ("/v1/stream", "/static")
+PUBLIC_PREFIXES = ("/v1/stream", "/static", "/ws/")
 
 
 class AuthMiddleware(BaseHTTPMiddleware):

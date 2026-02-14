@@ -2,15 +2,8 @@
 //  HIVEBOARD v2 — CONFIGURATION
 // ═══════════════════════════════════════════════════
 
-const CONFIG = {
-  endpoint: window.location.origin,
-  apiKey: new URLSearchParams(window.location.search).get('apiKey')
-    || localStorage.getItem('hiveboard_api_key')
-    || 'hb_live_dev000000000000000000000000000000',
-  pollInterval: 5000,
-  maxStreamEvents: 50,
-  refreshInterval: 30000,
-};
+// CONFIG is defined in common.js (loaded first via <script> order in index.html).
+// hiveboard.js reads from it — do not re-declare.
 
 // ═══════════════════════════════════════════════════
 //  MUTABLE STATE
@@ -1831,9 +1824,16 @@ function connectWebSocket() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
   try {
-    var url = new URL(CONFIG.endpoint);
-    var wsProto = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    var wsUrl = wsProto + '//' + url.host + '/v1/stream?token=' + encodeURIComponent(CONFIG.apiKey);
+    var wsUrl;
+    if (CONFIG.wsUrl) {
+      // Production: use AWS API Gateway WebSocket URL
+      wsUrl = CONFIG.wsUrl + '?token=' + encodeURIComponent(CONFIG.apiKey);
+    } else {
+      // Local: derive from HTTP endpoint (current behavior)
+      var url = new URL(CONFIG.endpoint);
+      var wsProto = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsUrl = wsProto + '//' + url.host + '/v1/stream?token=' + encodeURIComponent(CONFIG.apiKey);
+    }
     ws = new WebSocket(wsUrl);
 
     ws.onopen = function() {
@@ -1842,6 +1842,7 @@ function connectWebSocket() {
       stopPolling();
       ws.send(JSON.stringify({
         action: 'subscribe',
+        token: CONFIG.apiKey,
         channels: ['events', 'agents'],
         filters: {
           environment: document.getElementById('envSelector').value,

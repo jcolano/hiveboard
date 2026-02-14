@@ -3,18 +3,28 @@
 //  Used by hiveboard.js and insights.js
 // ═══════════════════════════════════════════════════
 
-// ── Configuration ──────────────────────────────────
-// Only define CONFIG if not already defined (hiveboard.js may have loaded first)
-if (typeof CONFIG === 'undefined') {
-  var CONFIG = {
-    endpoint: window.location.origin,
-    apiKey: new URLSearchParams(window.location.search).get('apiKey')
-      || localStorage.getItem('hiveboard_api_key')
-      || 'hb_live_dev000000000000000000000000000000',
-    pollInterval: 5000,
-    maxStreamEvents: 50,
-    refreshInterval: 30000,
-  };
+// ── Environment Detection ────────────────────────────
+var _isLocal = (window.location.hostname === 'localhost'
+  || window.location.hostname === '127.0.0.1');
+
+var CONFIG = {
+  endpoint: _isLocal
+    ? window.location.origin
+    : 'https://mlbackend.net/loophive',
+  wsUrl: _isLocal
+    ? null
+    : '',  // Set after AWS API Gateway setup: 'wss://{api-gw-id}.execute-api.{region}.amazonaws.com/production'
+  apiKey: new URLSearchParams(window.location.search).get('apiKey')
+    || localStorage.getItem('hiveboard_api_key')
+    || (_isLocal ? 'hb_live_dev000000000000000000000000000000' : ''),
+  pollInterval: 5000,
+  maxStreamEvents: 50,
+  refreshInterval: 30000,
+};
+
+// In production, if no API key, redirect to login
+if (!_isLocal && !CONFIG.apiKey) {
+  window.location.href = '/login.html';
 }
 
 // ── Formatting Helpers ─────────────────────────────
