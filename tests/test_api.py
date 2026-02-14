@@ -18,6 +18,7 @@ from shared.models import ProjectCreate
 
 
 DEV_KEY = "hb_live_dev000000000000000000000000000000"
+DEV_PASSWORD = "test-dev-password-not-a-secret"
 AUTH_HEADERS = {"Authorization": f"Bearer {DEV_KEY}"}
 
 
@@ -25,6 +26,7 @@ AUTH_HEADERS = {"Authorization": f"Bearer {DEV_KEY}"}
 async def client(tmp_path: Path, monkeypatch):
     """Test client with fresh storage per test."""
     monkeypatch.setenv("HIVEBOARD_DEV_KEY", DEV_KEY)
+    monkeypatch.setenv("HIVEBOARD_DEV_PASSWORD", DEV_PASSWORD)
     reset_rate_limits()
     storage = JsonStorageBackend(data_dir=tmp_path)
     await storage.initialize()
@@ -835,7 +837,7 @@ class TestUserAuth:
         """Bootstrap dev user can log in."""
         r = await client.post(
             "/v1/auth/login?tenant_id=dev",
-            json={"email": "admin@hiveboard.dev", "password": "admin"},
+            json={"email": "admin@hiveboard.dev", "password": DEV_PASSWORD},
         )
         assert r.status_code == 200
         body = r.json()
@@ -856,7 +858,7 @@ class TestUserAuth:
     async def test_login_nonexistent_email(self, client: AsyncClient):
         r = await client.post(
             "/v1/auth/login?tenant_id=dev",
-            json={"email": "nobody@hiveboard.dev", "password": "admin"},
+            json={"email": "nobody@hiveboard.dev", "password": DEV_PASSWORD},
         )
         assert r.status_code == 401
 
@@ -865,7 +867,7 @@ class TestUserAuth:
         # Login to get token
         r = await client.post(
             "/v1/auth/login?tenant_id=dev",
-            json={"email": "admin@hiveboard.dev", "password": "admin"},
+            json={"email": "admin@hiveboard.dev", "password": DEV_PASSWORD},
         )
         token = r.json()["token"]
         jwt_headers = {"Authorization": f"Bearer {token}"}
@@ -1013,7 +1015,7 @@ class TestUserAuth:
         """GET /v1/users/me returns current JWT user."""
         r = await client.post(
             "/v1/auth/login?tenant_id=dev",
-            json={"email": "admin@hiveboard.dev", "password": "admin"},
+            json={"email": "admin@hiveboard.dev", "password": DEV_PASSWORD},
         )
         token = r.json()["token"]
         r2 = await client.get(
@@ -1167,7 +1169,7 @@ class TestInviteFlow:
     async def _get_owner_jwt(self, client: AsyncClient) -> str:
         r = await client.post(
             "/v1/auth/login?tenant_id=dev",
-            json={"email": "admin@hiveboard.dev", "password": "admin"},
+            json={"email": "admin@hiveboard.dev", "password": DEV_PASSWORD},
         )
         return r.json()["token"]
 

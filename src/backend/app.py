@@ -160,7 +160,9 @@ async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
     )
     # Bootstrap dev owner user
     from backend.auth import hash_password
-    dev_password = os.environ.get("HIVEBOARD_DEV_PASSWORD", "admin")
+    dev_password = os.environ.get("HIVEBOARD_DEV_PASSWORD")
+    if not dev_password:
+        return
     try:
         await storage.create_user(
             user_id="dev-owner",
