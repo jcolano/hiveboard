@@ -160,6 +160,229 @@ ROI: {roi}%
 
 ---
 
+## Heartbeat Payloads (Per Agent)
+
+Each agent registers a `heartbeat_payload` callback that returns runtime telemetry every 30 seconds.
+These fields power the Insights tab's fleet health views.
+
+### Scout
+```python
+{
+    "uptime_seconds": 3600,
+    "tasks_completed": 42,
+    "tasks_failed": 3,
+    "total_tokens_in": 128000,
+    "total_tokens_out": 24000,
+    "total_cost_usd": 0.58,
+    "consecutive_failures": 0,
+    "current_model": "claude-sonnet-4-20250514",
+    "leads_scored": 42,
+    "avg_lead_score": 64,
+}
+```
+
+### Closer
+```python
+{
+    "uptime_seconds": 3600,
+    "tasks_completed": 18,
+    "tasks_failed": 1,
+    "total_tokens_in": 95000,
+    "total_tokens_out": 32000,
+    "total_cost_usd": 0.77,
+    "consecutive_failures": 0,
+    "current_model": "claude-sonnet-4-20250514",
+    "deals_closed": 11,
+    "deals_lost": 1,
+    "pipeline_value_usd": 156000,
+}
+```
+
+### Harper
+```python
+{
+    "uptime_seconds": 3600,
+    "tasks_completed": 35,
+    "tasks_failed": 2,
+    "total_tokens_in": 110000,
+    "total_tokens_out": 45000,
+    "total_cost_usd": 1.01,
+    "consecutive_failures": 0,
+    "current_model": "claude-sonnet-4-20250514",
+    "tickets_resolved": 28,
+    "tickets_escalated": 4,
+    "avg_resolution_seconds": 8,
+}
+```
+
+### Campaigner
+```python
+{
+    "uptime_seconds": 3600,
+    "tasks_completed": 8,
+    "tasks_failed": 0,
+    "total_tokens_in": 64000,
+    "total_tokens_out": 28000,
+    "total_cost_usd": 0.74,
+    "consecutive_failures": 0,
+    "current_model": "gpt-4o",
+    "campaigns_launched": 3,
+    "avg_open_rate": 28.5,
+}
+```
+
+### Archivist
+```python
+{
+    "uptime_seconds": 3600,
+    "tasks_completed": 22,
+    "tasks_failed": 2,
+    "total_tokens_in": 38000,
+    "total_tokens_out": 12000,
+    "total_cost_usd": 0.03,
+    "consecutive_failures": 0,
+    "current_model": "claude-haiku-4-5-20251001",
+    "records_synced": 340,
+    "duplicates_merged": 8,
+    "sync_errors": 2,
+}
+```
+
+### Dispatch
+```python
+{
+    "uptime_seconds": 3600,
+    "tasks_completed": 12,
+    "tasks_failed": 0,
+    "total_tokens_in": 22000,
+    "total_tokens_out": 8000,
+    "total_cost_usd": 0.01,
+    "consecutive_failures": 0,
+    "current_model": "claude-haiku-4-5-20251001",
+    "agents_online": 6,
+    "total_queue_depth": 7,
+    "open_escalations": 2,
+}
+```
+
+**Implementation:** Each agent maintains in-memory counters (tasks completed, tokens used, etc.)
+that are updated as the simulation runs. The `heartbeat_payload` callback reads these counters.
+
+---
+
+## Time-of-Day Activity Patterns
+
+Instead of uniform random intervals, agent activity rates shift based on simulated time of day.
+The simulator tracks a virtual clock that advances faster than real time (controlled by `--speed`).
+One simulated "business day" (8 hours) takes ~8 minutes at default speed.
+
+| Time Block | Scout | Closer | Harper | Campaigner | Archivist | Dispatch |
+|-----------|-------|--------|--------|------------|-----------|----------|
+| Morning (9am-12pm) | HIGH | Medium | Medium | HIGH | Medium | HIGH |
+| Afternoon (12pm-5pm) | Medium | HIGH | HIGH | Medium | Medium | Medium |
+| Evening (5pm-8pm) | Low | Low | Low | Low | HIGH | Medium |
+
+**Implementation:** Each agent's sleep interval is multiplied by a factor:
+- HIGH activity = 0.5x sleep (twice as fast)
+- Medium activity = 1.0x sleep (normal)
+- Low activity = 2.0x sleep (half as fast)
+
+This creates natural dashboard sparkline rhythms — lead scoring peaks in the morning,
+support tickets peak in the afternoon, batch jobs run in the evening.
+
+---
+
+## Story Arcs (Multi-Cycle Events)
+
+Every ~20 task cycles (across all agents), the simulator may trigger a **story arc** — a
+multi-cycle event that cascades across agents and creates correlated dashboard activity.
+
+| Arc | Probability | Duration | Agents Affected | What Happens |
+|-----|-------------|----------|-----------------|--------------|
+| `crm_outage` | 15% per check | 3-5 cycles | Archivist, Scout, Harper | Archivist `report_issue("CRM API unreachable", severity="high", issue_id="crm-outage")`. Scout's `update_crm_lead` fails with retries. Harper's `submit_to_crm` fails. After N cycles, Archivist `resolve_issue(issue_id="crm-outage")`. |
+| `lead_flood` | 10% per check | 4-6 cycles | Scout, Closer, Dispatch | Campaigner's last campaign drove a spike. Scout's `queue_provider` returns depth 12+. Scout processes faster (reduced sleep). Dispatch posts urgent standup. Closer gets extra TODOs. |
+| `angry_customer` | 20% per check | 2-3 cycles | Harper, Dispatch, Closer | Harper receives a high-severity ticket with `sentiment: "angry"`. Escalation fires immediately. Dispatch reviews and approves credit. Closer attempts win-back outreach. Cross-posted to #support-escalations and #deals. |
+| `data_migration` | 5% per check | 5-8 cycles | Archivist, Dispatch | Archivist enters heavy cleanup mode (faster cycle, more tasks). Other agents see `report_issue(severity="low", issue_id="stale-data")` warnings. Archivist resolves when migration completes. |
+| `campaign_launch` | 10% per check | Full simulated day | All agents | Campaigner launches a major campaign. Scout gets flood of leads. Closer is busy with proposals. Harper gets onboarding tickets. Archivist syncs new records. Dispatch coordinates everything. |
+
+**Implementation:** A shared `StoryArcEngine` runs in the main thread. It sets flags
+(`_active_arcs`) that agent threads check each cycle. Active arcs modify agent behavior:
+sleep intervals, failure rates, queue depths, and issue reporting.
+
+**Correlated cascades:** When `crm_outage` is active, ALL agents that touch CRM report the
+same `issue_id="crm-outage"`. This creates a dashboard view where multiple agents show the
+same red issue badge — exactly what a real outage looks like.
+
+---
+
+## Issue Lifecycle (Escalating Severity)
+
+Issues don't appear and disappear instantly. They follow a lifecycle with escalating severity:
+
+```
+Cycle 1: report_issue(summary="CRM API slow", severity="low", issue_id="crm-perf", occurrence_count=1)
+Cycle 3: report_issue(summary="CRM API slow", severity="medium", issue_id="crm-perf", occurrence_count=5)
+Cycle 5: report_issue(summary="CRM API slow", severity="high", issue_id="crm-perf", occurrence_count=12)
+Cycle 8: resolve_issue(summary="CRM API recovered", issue_id="crm-perf")
+```
+
+**Implementation:** Each persistent issue is tracked in a shared `_issue_tracker` dict:
+```python
+_issue_tracker = {
+    "crm-perf": {"severity": "low", "occurrences": 1, "first_seen_cycle": 10, "agent": "archivist"},
+}
+```
+
+Each cycle, active issues increment `occurrences`. Severity escalates at thresholds:
+- 1-3 occurrences: `low`
+- 4-8 occurrences: `medium`
+- 9+ occurrences: `high`
+
+The story arc engine can also inject issues directly at higher severity.
+
+---
+
+## Plan Revisions
+
+Some tasks don't go according to plan. When a plan step fails and recovery requires
+a different approach, the agent revises the plan mid-task.
+
+**Scout — enrichment failure triggers plan revision:**
+```python
+# Original plan
+task.plan("Process lead: TechNova", ["Score lead", "Enrich company data", "Draft outreach", "Route to closer", "Update CRM"])
+
+# Step 1 (Enrich) fails
+task.plan_step(1, "failed", "Clearbit API timeout after 3 retries")
+
+# Revised plan — skip enrichment, use basic data
+task.plan("Process lead: TechNova",
+          ["Score lead", "Draft outreach (basic)", "Route to closer", "Update CRM"],
+          revision=1)
+task.plan_step(0, "completed", "Score lead (already done)")  # mark already-completed steps
+task.plan_step(1, "started", "Draft outreach with basic data")
+```
+
+**Harper — escalation triggers plan revision:**
+```python
+# Original plan
+task.plan("Resolve ticket #1042", ["Classify ticket", "Search KB", "Draft response", "Resolve"])
+
+# KB search returns no results, customer is angry → escalation path
+task.plan_step(2, "failed", "No KB articles found, customer sentiment: frustrated")
+
+# Revised plan — escalation path
+task.plan("Resolve ticket #1042",
+          ["Classify ticket", "Search KB", "Escalate to senior", "Await approval", "Apply credit"],
+          revision=1)
+```
+
+**Implementation:** Each agent has a `_should_revise_plan()` check (10-15% probability,
+triggered by step failures). When triggered, the agent calls `task.plan()` with `revision=N`
+and adjusts remaining steps. The dashboard shows the progress bar resetting with the new plan.
+
+---
+
 ## Agent Workflows (Detailed)
 
 ### 1. Scout — Lead Hunter
@@ -354,16 +577,22 @@ agent.event("custom", payload={
 
 ```
 Main Thread
+├── hiveloop.init(environment="production")  # All agents report environment field
 ├── _ensure_projects()          # Create all 5 projects on startup
 ├── _emit_startup_events()      # Config snapshots, runtime events for each agent
-├── Thread: scout               # Infinite loop with random sleep
-├── Thread: closer              # Infinite loop with random sleep
-├── Thread: harper              # Infinite loop with random sleep
-├── Thread: campaigner          # Infinite loop with random sleep
-├── Thread: archivist           # Infinite loop with random sleep
-├── Thread: dispatch            # Infinite loop with random sleep (slower cadence)
+├── StoryArcEngine              # Checks every ~20 cycles, triggers arcs
+├── Thread: scout               # Infinite loop with time-of-day adjusted sleep
+├── Thread: closer              # Infinite loop with time-of-day adjusted sleep
+├── Thread: harper              # Infinite loop with time-of-day adjusted sleep
+├── Thread: campaigner          # Infinite loop with time-of-day adjusted sleep
+├── Thread: archivist           # Infinite loop with time-of-day adjusted sleep
+├── Thread: dispatch            # Infinite loop with time-of-day adjusted sleep (slower cadence)
 └── Main: sleep(1) loop         # Ctrl+C → hiveloop.shutdown()
 ```
+
+**Environment field:** All agents are initialized with `environment="production"` to simulate
+a production deployment. This populates the environment column in the dashboard and allows
+filtering by environment in Insights queries.
 
 Each agent thread runs an infinite loop:
 1. Pick random customer/data from the pools
@@ -434,13 +663,18 @@ examples/
 - [ ] LLM call simulation helper (reuse existing pattern, add metadata)
 - [ ] LoopColony event helper
 - [ ] Tool simulation helper (with track_context)
+- [ ] Heartbeat payload callbacks (per-agent counters, domain-specific fields)
+- [ ] Time-of-day activity engine (morning/afternoon/evening rate multipliers)
+- [ ] Story arc engine (5 arc types, shared flags, cascade effects)
+- [ ] Issue lifecycle tracker (escalating severity by occurrence count)
+- [ ] Plan revision logic (10-15% probability on step failure)
 - [ ] Agent 1: Scout — full workflow
 - [ ] Agent 2: Closer — full workflow
 - [ ] Agent 3: Harper — full workflow
 - [ ] Agent 4: Campaigner — full workflow
 - [ ] Agent 5: Archivist — full workflow
 - [ ] Agent 6: Dispatch — full workflow with inter-agent coordination
-- [ ] Startup: config_snapshot + runtime events for all agents
+- [ ] Startup: config_snapshot + runtime events for all agents (environment="production")
 - [ ] Project creation on startup
 - [ ] CLI argument parsing (endpoint, api-key, speed, agent filter)
 - [ ] Graceful shutdown
