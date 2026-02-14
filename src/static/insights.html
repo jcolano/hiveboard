@@ -1316,13 +1316,288 @@ function renderQ5() {
 
 
 // ══════════════════════════════════════════════════════
-//  SECTION 2: THE INVESTIGATION (Q6-Q16) — placeholder
+//  SECTION 2: THE INVESTIGATION (Q6-Q16)
 // ══════════════════════════════════════════════════════
 
 function renderInvestigation() {
     var el = document.getElementById('investigationContent');
     if (!el) return;
-    el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128270;</span><div>Investigation section coming in next release. Select an agent from the dropdown above.</div></div>';
+
+    // If no agent selected, pick the first by attention priority
+    if (!insightsAgent && insAgents.length > 0) {
+        var priorityOrder = { stuck: 0, error: 1, waiting_approval: 2, processing: 3, idle: 4 };
+        var sorted = insAgents.slice().sort(function(a, b) {
+            return (priorityOrder[a.derived_status] || 5) - (priorityOrder[b.derived_status] || 5);
+        });
+        insightsAgent = sorted[0].agent_id;
+        var sel = document.getElementById('agentSelector');
+        sel.value = insightsAgent;
+        // Trigger per-agent data fetch (non-blocking)
+        refreshAgentSection();
+        return; // will re-render after agent data loads
+    }
+
+    if (!insightsAgent || insAgents.length === 0) {
+        el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128270;</span>' +
+            '<div>No agents available. Connect an agent to begin investigation.</div></div>';
+        return;
+    }
+
+    var agent = insAgents.find(function(a) { return a.agent_id === insightsAgent; });
+    if (!agent) {
+        el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128270;</span>' +
+            '<div>Agent not found. Select a different agent.</div></div>';
+        return;
+    }
+
+    var html = '';
+
+    // Agent selector bar
+    html += '<div class="investigation-agent-bar">' +
+        '<label>Investigating</label>' +
+        '<select id="investigationAgent" onchange="investigationAgentChange(this.value)">';
+    insAgents.forEach(function(a) {
+        html += '<option value="' + escHtml(a.agent_id) + '"' +
+            (a.agent_id === insightsAgent ? ' selected' : '') + '>' +
+            escHtml(a.agent_id) + '</option>';
+    });
+    html += '</select>' +
+        '<span class="text-xs muted" style="margin-left:auto;">Click any agent name in The Glance to auto-select</span>' +
+        '</div>';
+
+    // Q6-Q9 cards
+    html += '<div class="insights-grid-4 mb-16">';
+    html += renderQ6(agent);
+    html += renderQ7(agent);
+    html += renderQ8();
+    html += renderQ9();
+    html += '</div>';
+
+    // Q10-Q16: Recent Tasks Table
+    html += renderQ10to16(agent);
+
+    el.innerHTML = html;
+}
+
+function investigationAgentChange(agentId) {
+    insightsAgent = agentId;
+    document.getElementById('agentSelector').value = agentId;
+    refreshAgentSection();
+}
+
+// Q6: What is this agent doing right now?
+function renderQ6(agent) {
+    var statusCls = statusBadgeClass(agent.derived_status);
+    var stats = agent.stats_1h || {};
+
+    var taskInfo = '';
+    if (agent.current_task_id) {
+        taskInfo += '<div class="text-xs mono">Task: <strong>' + escHtml(agent.current_task_id) + '</strong></div>';
+        // Find matching task for type/elapsed
+        var matchTask = insTasks.find(function(t) { return t.task_id === agent.current_task_id; });
+        if (matchTask) {
+            if (matchTask.task_type) taskInfo += '<div class="text-xs mono muted">Type: ' + escHtml(matchTask.task_type) + '</div>';
+            if (matchTask.started_at) {
+                var elapsed = Date.now() - new Date(matchTask.started_at).getTime();
+                taskInfo += '<div class="text-xs mono muted">Elapsed: ' + fmtDuration(elapsed) + '</div>';
+            }
+        }
+    }
+
+    var statsLine = 'Last 1h: ' + (stats.tasks_completed || 0) + ' completed, ' + (stats.tasks_failed || 0) + ' failed';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Current Status</span>' +
+        '<span class="insights-card-qid">Q6</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8"><span class="insights-badge ' + statusCls + '">' + escHtml(agent.derived_status) + '</span></div>' +
+        taskInfo +
+        '<div class="mt-8 text-xs muted">' + escHtml(statsLine) + '</div>' +
+        '</div></div>';
+}
+
+// Q7: Is this agent's heartbeat healthy?
+function renderQ7(agent) {
+    var ageSec = agent.heartbeat_age_seconds;
+    var threshold = agent.stuck_threshold_seconds || 120;
+    var cls = hbClass(ageSec);
+    var healthLabel, healthColor;
+    if (cls === 'hb-fresh') { healthLabel = 'Healthy'; healthColor = 'var(--success)'; }
+    else if (cls === 'hb-stale') { healthLabel = 'Stale'; healthColor = 'var(--warning)'; }
+    else { healthLabel = 'Dead'; healthColor = 'var(--error)'; }
+
+    var barPct = ageSec != null ? Math.min((ageSec / threshold) * 100, 100) : 100;
+    var thresholdPct = 100; // threshold is always 100% of the bar
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Heartbeat</span>' +
+        '<span class="insights-card-qid">Q7</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8">' +
+        '<div style="width:10px;height:10px;border-radius:50%;background:' + healthColor + ';"></div>' +
+        '<span class="text-sm" style="font-weight:600;color:' + healthColor + ';">' + healthLabel + '</span></div>' +
+        '<div class="text-xs mono muted">Last beat: ' + (ageSec != null ? hbText(ageSec) : '\u2014') + '</div>' +
+        '<div class="text-xs mono muted">Threshold: ' + threshold + 's</div>' +
+        '<div class="hb-bar-track">' +
+        '<div class="hb-bar-fill" style="width:' + barPct.toFixed(0) + '%;background:' + healthColor + ';"></div>' +
+        '<div class="hb-bar-threshold" style="left:' + thresholdPct + '%;"></div></div>' +
+        '<div class="text-xs muted">' + (ageSec != null ? Math.round(ageSec) : '?') + 's / ' + threshold + 's</div>' +
+        '</div></div>';
+}
+
+// Q8: Does this agent have pending work?
+function renderQ8() {
+    if (insErrors.agentPipeline) {
+        return errorCard('Queue', 'Q8', 'agentPipeline');
+    }
+    if (!insAgentPipeline || !insAgentPipeline.queue) {
+        return '<div class="insights-card">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Queue</span>' +
+            '<span class="insights-card-qid">Q8</span></div>' +
+            '<div class="insights-card-body">' +
+            '<div class="insights-metric-row">' +
+            '<span class="insights-big-number small" style="color:var(--success);">0</span>' +
+            '<span class="insights-badge insights-badge--green">empty</span></div>' +
+            '<div class="text-xs muted mt-8">Queue is empty</div>' +
+            '</div></div>';
+    }
+
+    var q = insAgentPipeline.queue;
+    var depth = q.depth || 0;
+    var badgeCls = depth === 0 ? 'insights-badge--green' : depth <= 5 ? 'insights-badge--amber' : 'insights-badge--red';
+    var badgeText = depth === 0 ? 'empty' : 'pending';
+
+    var tableHtml = '';
+    if (q.items && q.items.length > 0) {
+        tableHtml = '<div class="mt-8"><table class="insights-table">' +
+            '<thead><tr><th>Pri</th><th>Summary</th><th>Age</th></tr></thead><tbody>';
+        q.items.forEach(function(item) {
+            var age = item.queued_at ? timeAgo(item.queued_at) : '\u2014';
+            tableHtml += '<tr><td>' + escHtml(item.priority || 'normal') + '</td>' +
+                '<td>' + escHtml(item.summary || item.id || '\u2014') + '</td>' +
+                '<td>' + age + '</td></tr>';
+        });
+        tableHtml += '</tbody></table></div>';
+    }
+
+    var processingHtml = '';
+    if (q.processing) {
+        processingHtml = '<div class="mt-8 text-xs mono muted">Processing: ' +
+            escHtml(q.processing.summary || q.processing.id || '\u2014') +
+            ' (' + fmtDuration(q.processing.elapsed_ms) + ')</div>';
+    }
+
+    // Warn if idle with queued items
+    var warnHtml = '';
+    var agent = insAgents.find(function(a) { return a.agent_id === insightsAgent; });
+    if (depth > 0 && agent && agent.derived_status === 'idle') {
+        warnHtml = '<div class="mt-8 text-xs" style="color:var(--warning);font-weight:600;">Warning: Agent is idle but has ' + depth + ' queued items</div>';
+    }
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Queue</span>' +
+        '<span class="insights-card-qid">Q8</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small">' + depth + '</span>' +
+        '<span class="insights-badge ' + badgeCls + '">' + badgeText + '</span></div>' +
+        processingHtml + tableHtml + warnHtml +
+        '</div></div>';
+}
+
+// Q9: Has this agent reported its own problems?
+function renderQ9() {
+    if (insErrors.agentPipeline) {
+        return errorCard('Issues', 'Q9', 'agentPipeline');
+    }
+    var issues = (insAgentPipeline && insAgentPipeline.issues) || [];
+    // Filter to active (not resolved)
+    var active = issues.filter(function(iss) { return iss.action !== 'resolved'; });
+    // Sort by severity then occurrence_count
+    var sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    active.sort(function(a, b) {
+        var sa = sevOrder[a.severity] !== undefined ? sevOrder[a.severity] : 4;
+        var sb = sevOrder[b.severity] !== undefined ? sevOrder[b.severity] : 4;
+        if (sa !== sb) return sa - sb;
+        return (b.occurrence_count || 0) - (a.occurrence_count || 0);
+    });
+
+    if (active.length === 0) {
+        return '<div class="insights-card">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Issues</span>' +
+            '<span class="insights-card-qid">Q9</span></div>' +
+            '<div class="insights-card-body">' +
+            '<div class="insights-metric-row">' +
+            '<span class="insights-big-number small" style="color:var(--success);">0</span>' +
+            '<span class="text-xs muted">active issues</span></div>' +
+            '<div class="text-xs muted mt-8">No active issues</div>' +
+            '</div></div>';
+    }
+
+    var issuesList = active.map(function(iss) {
+        var sevCls = severityBadgeClass(iss.severity);
+        var recurring = (iss.occurrence_count || 0) > 5
+            ? ' <span class="insights-badge insights-badge--gray" style="font-size:9px;">Recurring</span>' : '';
+        return '<div class="gap-row mt-8">' +
+            '<span class="insights-badge ' + sevCls + '">' + escHtml(iss.severity || 'unknown') + '</span>' +
+            '<span class="text-xs mono">' + escHtml(iss.category || '') + ': ' +
+            escHtml(iss.context || '') +
+            ' (\u00D7' + (iss.occurrence_count || 1) + ')</span>' +
+            recurring + '</div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Issues</span>' +
+        '<span class="insights-card-qid">Q9</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small" style="color:var(--warning);">' + active.length + '</span>' +
+        '<span class="text-xs muted">active issue' + (active.length !== 1 ? 's' : '') + '</span></div>' +
+        issuesList +
+        '</div></div>';
+}
+
+// Q10-Q16: Recent Tasks Table
+function renderQ10to16(agent) {
+    if (insErrors.tasks) {
+        return '<div class="subsection-label">Recent Tasks (Q10\u2013Q16)</div>' +
+            '<div class="insights-card insights-card--full">' +
+            '<div class="insights-error-state"><span class="error-icon">!</span>' +
+            '<div>Failed to load tasks</div>' +
+            '<button class="retry-btn" onclick="manualRefresh()">Retry</button></div></div>';
+    }
+
+    // Filter tasks for this agent
+    var agentTasks = insTasks.filter(function(t) { return t.agent_id === insightsAgent; }).slice(0, 10);
+
+    if (agentTasks.length === 0) {
+        return '<div class="subsection-label">Recent Tasks (Q10\u2013Q16)</div>' +
+            '<div class="insights-card insights-card--full"><div class="insights-empty-state">' +
+            '<div>No recent tasks for this agent.</div></div></div>';
+    }
+
+    var rows = agentTasks.map(function(t) {
+        var statusCls = statusBadgeClass(t.derived_status);
+        var dur = t.duration_ms != null ? fmtDuration(t.duration_ms) : (t.started_at ? fmtDuration(Date.now() - new Date(t.started_at).getTime()) : '\u2014');
+        var cost = t.total_cost != null ? fmtCost(t.total_cost) : '\u2014';
+        var linkText = t.error_count > 0 ? 'View Errors \u2192' : 'View Timeline \u2192';
+
+        return '<tr>' +
+            '<td>' + escHtml(t.task_id) + '</td>' +
+            '<td>' + escHtml(t.task_type || '\u2014') + '</td>' +
+            '<td><span class="insights-badge ' + statusCls + '">' + escHtml(t.derived_status) + '</span></td>' +
+            '<td>' + dur + '</td>' +
+            '<td>' + cost + '</td>' +
+            '<td>' + (t.error_count || 0) + '</td>' +
+            '<td><a class="nav-link" href="/static/index.html?task=' + encodeURIComponent(t.task_id) + '&agent=' + encodeURIComponent(t.agent_id) + '">' + linkText + '</a></td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="subsection-label">Recent Tasks (Q10\u2013Q16)</div>' +
+        '<div class="insights-card insights-card--full">' +
+        '<table class="insights-table">' +
+        '<thead><tr><th>Task ID</th><th>Type</th><th>Status</th><th>Duration</th><th>Cost</th><th>Errors</th><th>Actions</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
 }
 
 
