@@ -22,6 +22,11 @@ var CONFIG = {
   refreshInterval: 30000,
 };
 
+// Persist API key to localStorage when resolved from URL param (P3-09-W1 fix)
+if (CONFIG.apiKey && new URLSearchParams(window.location.search).get('apiKey')) {
+  localStorage.setItem('hiveboard_api_key', CONFIG.apiKey);
+}
+
 // In production, if no API key, redirect to login
 if (!_isLocal && !CONFIG.apiKey) {
   window.location.href = '/login.html';
