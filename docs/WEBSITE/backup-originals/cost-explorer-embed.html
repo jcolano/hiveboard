@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HiveBoard — Cost Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   HiveBoard Cost Explorer — Standalone Embed
+   Uses same design tokens as hiveboard.css
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+    --idle: #94a3b8;
+    --active: #2563eb;
+    --success: #16a34a;
+    --warning: #d97706;
+    --error: #dc2626;
+    --stuck: #b91c1c;
+    --llm: #7c3aed;
+
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════
+   TOP BAR — matching main dashboard
+   ═══════════════════════════════════════════ */
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 56px;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; color: var(--text-primary);
+}
+.logo span { color: var(--accent); }
+
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.workspace-badge {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+    background: var(--bg-deep); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+}
+
+.view-tabs { display: flex; gap: 4px; background: var(--bg-deep); padding: 4px; border-radius: var(--radius-md); }
+
+.view-tab {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-muted); padding: 6px 16px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.2s; border: none; background: transparent;
+    white-space: nowrap; display: flex; align-items: center; gap: 6px;
+}
+.view-tab:hover { color: var(--text-secondary); background: var(--bg-hover); }
+.view-tab.active { background: var(--bg-primary); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+
+.status-pill {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+    background: var(--bg-deep); padding: 5px 14px; border-radius: 20px;
+}
+.status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+    animation: pulse-dot 2.5s ease infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.3); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(22, 163, 74, 0); }
+}
+
+.env-selector {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary);
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; outline: none;
+}
+
+/* ═══════════════════════════════════════════
+   COST EXPLORER LAYOUT
+   ═══════════════════════════════════════════ */
+
+.cost-container {
+    height: calc(100vh - 56px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* ── Range Bar ── */
+.cost-range-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+}
+.cost-range-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+}
+.view-toggle { display: flex; gap: 2px; background: var(--bg-deep); padding: 2px; border-radius: var(--radius-sm); }
+.view-toggle-btn {
+    font-family: var(--font-sans); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); padding: 4px 10px; border-radius: 4px;
+    cursor: pointer; border: none; background: transparent; transition: all 0.15s;
+}
+.view-toggle-btn:hover { color: var(--text-secondary); }
+.view-toggle-btn.active { background: var(--bg-primary); color: var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+/* ── Cost Ribbon ── */
+.cost-ribbon {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    flex-shrink: 0;
+}
+.cost-stat {
+    flex: 1;
+    background: var(--bg-primary);
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.stat-label {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+}
+.stat-value {
+    font-family: var(--font-sans);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+.stat-value.purple { color: var(--llm); }
+.stat-value.green { color: var(--success); }
+
+/* ── Tables Area ── */
+.cost-tables {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.cost-tables::-webkit-scrollbar { width: 5px; }
+.cost-tables::-webkit-scrollbar-track { background: transparent; }
+.cost-tables::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.cost-section-title {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.cost-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.cost-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+}
+
+.cost-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+}
+
+.cost-table tr:last-child td { border-bottom: none; }
+
+.cost-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--llm);
+    opacity: 0.5;
+    margin-top: 4px;
+}
+
+.model-badge {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(124, 58, 237, 0.08);
+    color: var(--llm);
+}
+
+/* ── Clickable rows ── */
+.cost-row.clickable { cursor: pointer; transition: background 0.15s; }
+.cost-row.clickable:hover { background: rgba(124, 58, 237, 0.04); }
+.cost-row-expanded { background: rgba(124, 58, 237, 0.06) !important; }
+
+.cost-row-chevron {
+    display: inline-block;
+    width: 16px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-right: 4px;
+    text-align: center;
+}
+
+/* ── Drilldown panel ── */
+.cost-drilldown-row td { padding: 0 !important; border-bottom: none !important; }
+
+.cost-drilldown {
+    padding: 12px 16px 16px;
+    background: rgba(124, 58, 237, 0.03);
+    border-top: 1px solid rgba(124, 58, 237, 0.1);
+}
+
+.cost-drilldown-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.cost-drilldown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.cost-drilldown-table thead th {
+    text-align: left;
+    padding: 4px 8px;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+}
+
+.cost-drilldown-table tbody tr { transition: background 0.12s; }
+.cost-drilldown-table tbody tr:hover { background: rgba(124, 58, 237, 0.06); }
+
+.cost-drilldown-table tbody td {
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.cost-drilldown-more {
+    display: block;
+    margin: 10px auto 0;
+    padding: 5px 16px;
+    font-size: 12px; font-family: var(--font-sans);
+    color: var(--llm);
+    background: rgba(124, 58, 237, 0.08);
+    border: 1px solid rgba(124, 58, 237, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.cost-drilldown-more:hover { background: rgba(124, 58, 237, 0.15); }
+
+/* ── Insight callout ── */
+.insight-callout {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: rgba(194, 65, 12, 0.04);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+.insight-callout strong { color: var(--accent); font-weight: 700; }
+.insight-callout .insight-icon { margin-right: 4px; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     TOP BAR
+     ═══════════════════════════════════════════ -->
+<div class="topbar">
+    <div class="topbar-left">
+        <div class="logo"><div class="logo-hex"><div class="logo-hex-inner"></div></div>Hive<span>Board</span></div>
+        <div class="workspace-badge">loopcore · production</div>
+        <div class="view-tabs">
+            <button class="view-tab" data-view="mission">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
+            </button>
+            <button class="view-tab active" data-view="cost">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Costs
+            </button>
+            <button class="view-tab" data-view="pipeline">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                Pipeline
+            </button>
+            <button class="view-tab" data-view="insights">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                Insights
+            </button>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <div class="status-pill">
+            <div class="status-dot"></div>
+            <span>Connected</span>
+        </div>
+        <select class="env-selector">
+            <option>production</option>
+            <option>staging</option>
+        </select>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     COST EXPLORER
+     ═══════════════════════════════════════════ -->
+<div class="cost-container">
+
+    <!-- Range Bar -->
+    <div class="cost-range-bar">
+        <span class="cost-range-label">Last 7 Days</span>
+        <div class="view-toggle">
+            <button class="view-toggle-btn">1h</button>
+            <button class="view-toggle-btn">6h</button>
+            <button class="view-toggle-btn">24h</button>
+            <button class="view-toggle-btn active">7d</button>
+            <button class="view-toggle-btn">30d</button>
+        </div>
+    </div>
+
+    <!-- Cost Ribbon -->
+    <div class="cost-ribbon">
+        <div class="cost-stat">
+            <div class="stat-label">Total Cost</div>
+            <div class="stat-value purple">$847.20</div>
+        </div>
+        <div class="cost-stat">
+            <div class="stat-label">LLM Calls</div>
+            <div class="stat-value">12,847</div>
+        </div>
+        <div class="cost-stat">
+            <div class="stat-label">Tokens In</div>
+            <div class="stat-value">8.4M</div>
+        </div>
+        <div class="cost-stat">
+            <div class="stat-label">Tokens Out</div>
+            <div class="stat-value">1.2M</div>
+        </div>
+        <div class="cost-stat">
+            <div class="stat-label">Avg Cost/Call</div>
+            <div class="stat-value">$0.066</div>
+        </div>
+    </div>
+
+    <!-- Tables -->
+    <div class="cost-tables">
+
+        <!-- Cost by Model -->
+        <div>
+            <div class="cost-section-title">Cost by Model</div>
+            <table class="cost-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Calls</th>
+                        <th>Tokens In</th>
+                        <th>Tokens Out</th>
+                        <th>Cost</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Opus row — EXPANDED (the optimization target) -->
+                    <tr class="cost-row clickable cost-row-expanded" onclick="toggleDrilldown('opus')">
+                        <td>
+                            <span class="cost-row-chevron">▾</span>
+                            <span class="model-badge">claude-opus-4-6</span>
+                        </td>
+                        <td>842</td>
+                        <td>4.2M</td>
+                        <td>420K</td>
+                        <td style="color: var(--llm); font-weight: 600;">$412.60</td>
+                        <td style="width: 100px;"><div class="cost-bar" style="width: 100%"></div></td>
+                    </tr>
+                    <!-- Drilldown panel for Opus -->
+                    <tr class="cost-drilldown-row" id="drilldownOpus">
+                        <td colspan="6">
+                            <div class="cost-drilldown">
+                                <div class="cost-drilldown-header">
+                                    <span>Model: claude-opus-4-6 — 10 most recent calls</span>
+                                    <span style="color:var(--llm);font-weight:600;">$412.60 total</span>
+                                </div>
+                                <table class="cost-drilldown-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>Name</th>
+                                            <th>Agent</th>
+                                            <th>Tokens</th>
+                                            <th>Cost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td>14:32:01</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,200 / 120</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:31:44</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,180 / 115</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:31:22</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,210 / 118</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:30:58</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,195 / 122</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:30:31</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,220 / 110</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:29:48</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,190 / 125</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:29:12</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,205 / 116</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                        <tr><td>14:28:45</td><td>classify_intent</td><td style="color:var(--accent)">sales</td><td>4,188 / 119</td><td style="color:var(--llm);font-weight:600;">$0.49</td></tr>
+                                    </tbody>
+                                </table>
+                                <button class="cost-drilldown-more">Load more</button>
+                                <div class="insight-callout">
+                                    <span class="insight-icon">💡</span>
+                                    <strong>Optimization found</strong> — All 842 Opus calls are <strong>classify_intent</strong> on the sales agent. This is a simple intent-routing task. Haiku handles this at <strong>1/10th the cost</strong> with identical accuracy. Estimated savings: <strong>$370/week</strong>.
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Sonnet row -->
+                    <tr class="cost-row clickable">
+                        <td>
+                            <span class="cost-row-chevron">▸</span>
+                            <span class="model-badge">claude-sonnet-4-5</span>
+                        </td>
+                        <td>6,204</td>
+                        <td>3.1M</td>
+                        <td>620K</td>
+                        <td style="color: var(--llm); font-weight: 600;">$318.40</td>
+                        <td style="width: 100px;"><div class="cost-bar" style="width: 77%"></div></td>
+                    </tr>
+
+                    <!-- Haiku row -->
+                    <tr class="cost-row clickable">
+                        <td>
+                            <span class="cost-row-chevron">▸</span>
+                            <span class="model-badge">claude-haiku-4-5</span>
+                        </td>
+                        <td>5,801</td>
+                        <td>1.1M</td>
+                        <td>180K</td>
+                        <td style="color: var(--llm); font-weight: 600;">$116.20</td>
+                        <td style="width: 100px;"><div class="cost-bar" style="width: 28%"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Cost by Agent -->
+        <div>
+            <div class="cost-section-title">Cost by Agent</div>
+            <table class="cost-table">
+                <thead>
+                    <tr>
+                        <th>Agent</th>
+                        <th>Calls</th>
+                        <th>Tokens In</th>
+                        <th>Tokens Out</th>
+                        <th>Cost</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="cost-row clickable">
+                        <td>
+                            <span class="cost-row-chevron">▸</span>
+                            <span style="color: var(--accent);">sales</span>
+                        </td>
+                        <td>4,280</td>
+                        <td>4.8M</td>
+                        <td>680K</td>
+                        <td style="color: var(--llm); font-weight: 600;">$412.80</td>
+                        <td style="width: 100px;"><div class="cost-bar" style="width: 100%"></div></td>
+                    </tr>
+                    <tr class="cost-row clickable">
+                        <td>
+                            <span class="cost-row-chevron">▸</span>
+                            <span style="color: var(--accent);">support</span>
+                        </td>
+                        <td>3,640</td>
+                        <td>2.4M</td>
+                        <td>360K</td>
+                        <td style="color: var(--llm); font-weight: 600;">$286.40</td>
+                        <td style="width: 100px;"><div class="cost-bar" style="width: 69%"></div></td>
+                    </tr>
+                    <tr class="cost-row clickable">
+                        <td>
+                            <span class="cost-row-chevron">▸</span>
+                            <span style="color: var(--accent);">main</span>
+                        </td>
+                        <td>2,927</td>
+                        <td>1.2M</td>
+                        <td>180K</td>
+                        <td style="color: var(--llm); font-weight: 600;">$148.00</td>
+                        <td style="width: 100px;"><div class="cost-bar" style="width: 36%"></div></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="insight-callout" style="margin-top: 12px;">
+                <span class="insight-icon">💡</span>
+                <strong>Anomaly detected</strong> — sales costs $0.10/task while support costs $0.08/task for the same task type. Check prompt sizes — sales may have redundant context injection.
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// Simple drilldown toggle for the demo
+function toggleDrilldown(id) {
+    var row = document.getElementById('drilldown' + id.charAt(0).toUpperCase() + id.slice(1));
+    if (row) {
+        row.style.display = row.style.display === 'none' ? '' : 'none';
+    }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiveBoard — The Datadog for AI Agents</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+    <link href="css/index.css" rel="stylesheet" />
+
+</head>
+<body>
+
+    <!-- ════════════════════════════════════════
+         SECTION 0 — NAVBAR
+         ════════════════════════════════════════ -->
+    <nav class="site-nav">
+        <a href="#" class="nav-logo">
+            <div class="nav-logo-hex"><div class="nav-logo-hex-inner"></div></div>
+            Hive<span class="brand-accent">Board</span>
+        </a>
+        <div class="nav-links">
+            <a href="#product" class="nav-link">Product</a>
+            <a href="#story" class="nav-link">Story</a>
+            <a href="#" class="nav-link">Docs</a>
+            <a href="#" class="nav-link">Pricing</a>
+            <button class="nav-cta">Request Beta Access</button>
+        </div>
+    </nav>
+
+    <!-- ════════════════════════════════════════
+         SECTION 1 — THE HOOK
+         ════════════════════════════════════════ -->
+    <section class="hero-section">
+
+        <div class="hero-narrative">
+            <div class="hero-scenario">Monday · 9:15 AM · Your agents ran all weekend</div>
+            <h1 class="hero-headline">
+                Your agents are working.<br>
+                <span class="hl-dim">Are they </span><span class="hl-accent">healthy?</span>
+            </h1>
+            <p class="hero-sub">Agent-level observability for production AI. See what's running, what's stuck, what's costing you — in 2 seconds.</p>
+        </div>
+
+        <div class="dashboard-frame">
+            <iframe src="dashboard-embed.html" title="HiveBoard Dashboard Demo"></iframe>
+            <div class="dashboard-fade"></div>
+        </div>
+
+        <div class="scroll-cue">
+            <div class="scroll-cue-text">See what happened to the sales agent</div>
+            <div class="scroll-arrow">↓</div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 2 — THE INVESTIGATION
+         ════════════════════════════════════════ -->
+    <section class="investigation-section">
+
+        <!-- Narrative bridge -->
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">The Investigation</div>
+            <h2 class="narrative-headline">
+                You see the red.<br>
+                <span class="nh-dim">You click. Here's what you find </span><span class="nh-red">in 15 seconds.</span>
+            </h2>
+            <p class="narrative-body">The sales agent has been silently failing for 2 hours. Eight leads are backed up. No one noticed — until now.</p>
+        </div>
+
+        <!-- Investigation: Agent Card + Issue (left) | Failed Timeline (right) -->
+        <div class="investigation-layout">
+
+            <!-- LEFT: The agent and the issue -->
+            <div class="invest-left">
+
+                <!-- Sales agent card — zoomed in -->
+                <div class="invest-agent-card">
+                    <div class="iac-top">
+                        <div class="iac-name">sales</div>
+                        <div class="iac-badge">ERROR</div>
+                    </div>
+                    <div class="iac-meta">
+                        <div class="iac-type">sales</div>
+                        <div class="iac-hb"><div class="iac-hb-dot"></div>2m ago</div>
+                    </div>
+                    <div class="iac-pipeline">
+                        <span class="iac-queue">Q:8</span>
+                        <span class="iac-issue"><span class="iac-issue-dot"></span>1 issue</span>
+                    </div>
+                    <div class="iac-sparkline">
+                        <div class="iac-spark" style="height:8px"></div>
+                        <div class="iac-spark" style="height:12px"></div>
+                        <div class="iac-spark" style="height:16px"></div>
+                        <div class="iac-spark" style="height:10px"></div>
+                        <div class="iac-spark" style="height:6px"></div>
+                        <div class="iac-spark" style="height:18px"></div>
+                        <div class="iac-spark" style="height:14px"></div>
+                        <div class="iac-spark" style="height:8px"></div>
+                        <div class="iac-spark" style="height:4px"></div>
+                        <div class="iac-spark" style="height:2px"></div>
+                        <div class="iac-spark" style="height:2px"></div>
+                        <div class="iac-spark" style="height:2px"></div>
+                    </div>
+                </div>
+
+                <!-- Issue detail card -->
+                <div class="invest-issue-card">
+                    <div class="iic-header">
+                        <div class="iic-icon">⚑</div>
+                        <div class="iic-title">Agent-Reported Issue</div>
+                        <div class="iic-sev">HIGH</div>
+                    </div>
+                    <div class="iic-body">CRM API returning 403 Forbidden<br>for all workspace query endpoints</div>
+                    <div class="iic-meta-grid">
+                        <div class="iic-meta-item">
+                            <div class="iic-meta-label">Category</div>
+                            <div class="iic-meta-value">permissions</div>
+                        </div>
+                        <div class="iic-meta-item">
+                            <div class="iic-meta-label">Occurrences</div>
+                            <div class="iic-meta-value red">×8</div>
+                        </div>
+                        <div class="iic-meta-item">
+                            <div class="iic-meta-label">First Seen</div>
+                            <div class="iic-meta-value">2h 14m ago</div>
+                        </div>
+                        <div class="iic-meta-item">
+                            <div class="iic-meta-label">Root Cause</div>
+                            <div class="iic-meta-value red">Expired credentials</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT: Timeline for the failed task -->
+            <div class="invest-timeline">
+
+                <!-- Timeline header -->
+                <div class="it-header">
+                    <div class="it-header-left">
+                        <div class="it-title">Timeline</div>
+                        <div class="it-task-id">task-lead-acme</div>
+                        <div class="it-meta">
+                            <span>⏱ 47.1s</span>
+                            <span style="color:var(--error)">✗ failed</span>
+                            <span style="color:var(--llm)">◆ 12 LLM</span>
+                        </div>
+                    </div>
+                    <div class="it-header-right">
+                        <div class="it-toggle">
+                            <button class="it-toggle-btn active">Tree</button>
+                            <button class="it-toggle-btn">Flat</button>
+                        </div>
+                        <div class="it-permalink">⧉ Permalink</div>
+                    </div>
+                </div>
+
+                <!-- Duration breakdown — this task is mostly retries -->
+                <div class="it-dur">
+                    <div class="it-dur-header">
+                        <div class="it-dur-label">Time Breakdown</div>
+                        <div class="it-dur-total">Total: 47.1s</div>
+                    </div>
+                    <div class="it-dur-row">
+                        <div class="it-dur-cat">LLM</div>
+                        <div class="it-dur-track"><div class="it-dur-fill" style="width:26%;background:var(--llm)"></div></div>
+                        <div class="it-dur-val">12.2s (26%)</div>
+                    </div>
+                    <div class="it-dur-row">
+                        <div class="it-dur-cat">Tools</div>
+                        <div class="it-dur-track"><div class="it-dur-fill" style="width:14%;background:var(--active)"></div></div>
+                        <div class="it-dur-val">6.6s (14%)</div>
+                    </div>
+                    <div class="it-dur-row">
+                        <div class="it-dur-cat">Retries</div>
+                        <div class="it-dur-track"><div class="it-dur-fill" style="width:58%;background:var(--error)"></div></div>
+                        <div class="it-dur-val">27.3s (58%)</div>
+                    </div>
+                    <div class="it-dur-row">
+                        <div class="it-dur-cat">Other</div>
+                        <div class="it-dur-track"><div class="it-dur-fill" style="width:2%;background:var(--idle)"></div></div>
+                        <div class="it-dur-val">1.0s (2%)</div>
+                    </div>
+                </div>
+
+                <!-- Plan bar — failed at step 2 -->
+                <div class="it-plan">
+                    <div class="it-plan-header">
+                        <div class="it-plan-label">Plan · 5 steps</div>
+                        <div class="it-plan-progress">1/5 completed · failed at step 2</div>
+                    </div>
+                    <div class="it-plan-steps">
+                        <div class="it-plan-step completed"></div>
+                        <div class="it-plan-step failed"></div>
+                        <div class="it-plan-step pending"></div>
+                        <div class="it-plan-step pending"></div>
+                        <div class="it-plan-step pending"></div>
+                    </div>
+                </div>
+
+                <!-- Action tree: the failed investigation -->
+                <div class="it-tree">
+
+                    <!-- Root: task -->
+                    <div class="tn">
+                        <div class="tn-row">
+                            <div class="tn-icon sys">▶</div>
+                            <div class="tn-content">
+                                <div class="tn-label">task-lead-acme <span class="tn-dur">47.1s</span></div>
+                                <div class="tn-detail">Process Acme Corp inbound lead</div>
+                            </div>
+                            <div class="tn-status fail">✗ failed</div>
+                        </div>
+                        <div class="tn-children">
+
+                            <!-- LLM: initial reasoning -->
+                            <div class="tn">
+                                <div class="tn-row">
+                                    <div class="tn-guide"></div>
+                                    <div class="tn-icon llm">◆</div>
+                                    <div class="tn-content">
+                                        <div class="tn-label">LLM · reasoning <span class="tn-dur">1.1s</span></div>
+                                        <div class="tn-detail">
+                                            <span class="tn-model">claude-sonnet-4-5</span>
+                                            <span>920→142</span>
+                                            <span class="tn-cost">$0.008</span>
+                                        </div>
+                                    </div>
+                                    <div class="tn-status ok">✓</div>
+                                </div>
+                            </div>
+
+                            <!-- CRM search — THE FAILURE POINT -->
+                            <div class="tn">
+                                <div class="tn-row" style="background:rgba(220,38,38,0.04)">
+                                    <div class="tn-guide"></div>
+                                    <div class="tn-icon err">✗</div>
+                                    <div class="tn-content">
+                                        <div class="tn-label"><span style="color:var(--error)">crm_search</span> <span class="tn-dur">0.8s</span></div>
+                                        <div class="tn-error-line">HTTP 403 Forbidden — CRM API rejected auth token</div>
+                                        <div class="tn-detail">query="Acme Corp" · endpoint=/api/v2/contacts/search</div>
+                                    </div>
+                                    <div class="tn-status fail">✗ failed</div>
+                                </div>
+
+                                <!-- Retry chain -->
+                                <div class="tn-children">
+                                    <div class="tn">
+                                        <div class="tn-row">
+                                            <div class="tn-guide"></div>
+                                            <div class="tn-icon retry">↻</div>
+                                            <div class="tn-content">
+                                                <div class="tn-label" style="color:var(--text-muted)">retry #1 <span class="tn-dur">after 2s backoff</span></div>
+                                                <div class="tn-error-line" style="font-size:10px">HTTP 403 Forbidden — same auth rejection</div>
+                                            </div>
+                                            <div class="tn-status fail">✗</div>
+                                        </div>
+                                    </div>
+                                    <div class="tn">
+                                        <div class="tn-row">
+                                            <div class="tn-guide"></div>
+                                            <div class="tn-icon retry">↻</div>
+                                            <div class="tn-content">
+                                                <div class="tn-label" style="color:var(--text-muted)">retry #2 <span class="tn-dur">after 5s backoff</span></div>
+                                                <div class="tn-error-line" style="font-size:10px">HTTP 403 Forbidden — auth token expired</div>
+                                            </div>
+                                            <div class="tn-status fail">✗</div>
+                                        </div>
+                                    </div>
+                                    <div class="tn">
+                                        <div class="tn-row">
+                                            <div class="tn-guide last"></div>
+                                            <div class="tn-icon retry">↻</div>
+                                            <div class="tn-content">
+                                                <div class="tn-label" style="color:var(--text-muted)">retry #3 <span class="tn-dur">after 10s backoff</span></div>
+                                                <div class="tn-error-line" style="font-size:10px">HTTP 403 Forbidden — max retries exhausted</div>
+                                            </div>
+                                            <div class="tn-status fail">✗</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- LLM: error analysis -->
+                            <div class="tn">
+                                <div class="tn-row">
+                                    <div class="tn-guide"></div>
+                                    <div class="tn-icon llm" style="background:rgba(217,119,6,0.1);color:var(--warning)">💭</div>
+                                    <div class="tn-content">
+                                        <div class="tn-label">LLM · error analysis <span class="tn-dur">0.9s</span></div>
+                                        <div class="tn-detail">
+                                            <span class="tn-model">claude-sonnet-4-5</span>
+                                            <span>1400→180</span>
+                                            <span class="tn-cost">$0.012</span>
+                                            <span style="color:var(--warning);font-size:9px">→ report issue</span>
+                                        </div>
+                                    </div>
+                                    <div class="tn-status ok">✓</div>
+                                </div>
+                            </div>
+
+                            <!-- report_issue -->
+                            <div class="tn">
+                                <div class="tn-row">
+                                    <div class="tn-guide"></div>
+                                    <div class="tn-icon err" style="background:rgba(220,38,38,0.08)">⚑</div>
+                                    <div class="tn-content">
+                                        <div class="tn-label">report_issue <span class="tn-dur">0.1s</span></div>
+                                        <div class="tn-detail">severity=high · category=permissions · "CRM API returning 403"</div>
+                                    </div>
+                                    <div class="tn-status ok" style="color:var(--warning)">⚑</div>
+                                </div>
+                            </div>
+
+                            <!-- task_failed -->
+                            <div class="tn">
+                                <div class="tn-row" style="background:rgba(220,38,38,0.03)">
+                                    <div class="tn-guide last"></div>
+                                    <div class="tn-icon err">✗</div>
+                                    <div class="tn-content">
+                                        <div class="tn-label" style="color:var(--error)">task_failed <span class="tn-dur">47.1s total</span></div>
+                                        <div class="tn-error-line">Lead processing aborted — CRM unavailable after 3 retries. Lead queued for retry.</div>
+                                    </div>
+                                    <div class="tn-status fail">✗ failed</div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Callout -->
+        <div class="investigation-callout">
+            <div class="callout-line"></div>
+            <div class="callout-text">
+                The CRM credentials expired over the weekend.<br>
+                All lead processing <span class="ct-red">silently failed for 2 hours</span>.<br>
+                <span class="ct-dim">Without HiveBoard, you'd have found out when a customer complained — days later.</span>
+            </div>
+            <div class="callout-stat">
+                <div class="cs-item">
+                    <div class="cs-val red">8</div>
+                    <div class="cs-label">Leads backed up</div>
+                </div>
+                <div class="cs-divider"></div>
+                <div class="cs-item">
+                    <div class="cs-val amber">2h 14m</div>
+                    <div class="cs-label">Silent failure</div>
+                </div>
+                <div class="cs-divider"></div>
+                <div class="cs-item">
+                    <div class="cs-val" style="color:var(--success)">15s</div>
+                    <div class="cs-label">Time to diagnose</div>
+                </div>
+            </div>
+
+            <div class="section2-scroll-cue">
+                <div class="scroll-cue-text">But invisible failures aren't the only thing hiding</div>
+                <div class="scroll-arrow">↓</div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 3 — THE $40→$8 MOMENT
+         ════════════════════════════════════════ -->
+    <section class="cost-section">
+
+        <!-- Narrative bridge -->
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">The Optimization</div>
+            <h2 class="narrative-headline">
+                Invisible failures aren't the only thing hiding.<br>
+                <span class="nh-dim">So is </span><span class="nh-purple">invisible waste.</span>
+            </h2>
+            <p class="narrative-body">Your agents are making LLM calls every second. Do you know which model, how many tokens, and how much each one costs?</p>
+        </div>
+
+        <!-- Cost Explorer embed -->
+        <div class="cost-explorer-frame">
+            <div class="cost-explorer">
+
+                <!-- Header -->
+                <div class="ce-header">
+                    <div class="ce-header-left">
+                        <div class="ce-title">
+                            <span class="ce-title-icon">◆</span>
+                            Cost Explorer
+                        </div>
+                        <div class="ce-range">Last 7 days</div>
+                    </div>
+                    <div class="ce-header-right">
+                        <div class="ce-toggle">
+                            <button class="ce-toggle-btn active">By Model</button>
+                            <button class="ce-toggle-btn">By Agent</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats ribbon -->
+                <div class="ce-stats">
+                    <div class="ce-stat">
+                        <div class="ce-stat-label">Total LLM Spend</div>
+                        <div class="ce-stat-val purple">$847.20</div>
+                        <div class="ce-stat-sub">↓ 74% from last week</div>
+                    </div>
+                    <div class="ce-stat">
+                        <div class="ce-stat-label">LLM Calls</div>
+                        <div class="ce-stat-val">12,847</div>
+                        <div class="ce-stat-sub">avg 1,835/day</div>
+                    </div>
+                    <div class="ce-stat">
+                        <div class="ce-stat-label">Avg Cost / Task</div>
+                        <div class="ce-stat-val green">$0.04</div>
+                        <div class="ce-stat-sub">was $0.16 last week</div>
+                    </div>
+                    <div class="ce-stat">
+                        <div class="ce-stat-label">Total Tokens</div>
+                        <div class="ce-stat-val">8.4M</div>
+                        <div class="ce-stat-sub">↓ 68% from last week</div>
+                    </div>
+                    <div class="ce-stat">
+                        <div class="ce-stat-label">Savings This Week</div>
+                        <div class="ce-stat-val green">$2,412</div>
+                        <div class="ce-stat-sub">vs. previous run rate</div>
+                    </div>
+                </div>
+
+                <!-- Timeseries chart: stacked by model, showing cost drop -->
+                <div class="ce-chart-area">
+                    <div class="ce-chart-header">
+                        <div class="ce-chart-title">Daily LLM Spend by Model</div>
+                        <div class="ce-chart-legend">
+                            <div class="ce-legend-item"><div class="ce-legend-dot" style="background:var(--opus)"></div>claude-opus</div>
+                            <div class="ce-legend-item"><div class="ce-legend-dot" style="background:var(--sonnet)"></div>claude-sonnet</div>
+                            <div class="ce-legend-item"><div class="ce-legend-dot" style="background:var(--haiku)"></div>claude-haiku</div>
+                        </div>
+                    </div>
+                    <div class="ce-chart" style="padding-left:32px;">
+                        <!-- Annotation: "HiveBoard installed" -->
+                        <div class="ce-annotation" style="left: calc(32px + (100% - 32px) * 0.5); ">
+                            <div class="ce-annotation-label">HiveBoard visibility begins</div>
+                            <div class="ce-annotation-line"></div>
+                        </div>
+
+                        <!-- BEFORE: High cost days (Mon-Thu) -->
+                        <!-- Mon -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:130px">
+                                <div class="ce-bar-seg" style="height:55%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:32%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:13%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Mon</div>
+                        </div>
+                        <!-- Tue -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:125px">
+                                <div class="ce-bar-seg" style="height:52%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:34%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:14%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Tue</div>
+                        </div>
+                        <!-- Wed (spike) -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:140px">
+                                <div class="ce-bar-seg" style="height:60%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:28%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:12%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Wed</div>
+                        </div>
+                        <!-- Thu (visibility starts mid-day, begins to drop) -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:120px">
+                                <div class="ce-bar-seg" style="height:48%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:35%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:17%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Thu</div>
+                        </div>
+                        <!-- TRANSITION: model swaps happening -->
+                        <!-- Thu-PM -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:105px">
+                                <div class="ce-bar-seg" style="height:38%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:40%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:22%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label"></div>
+                        </div>
+                        <!-- Fri-AM -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:80px">
+                                <div class="ce-bar-seg" style="height:24%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:42%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:34%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Fri</div>
+                        </div>
+                        <!-- AFTER: Optimized (Fri-PM onward) -->
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:50px">
+                                <div class="ce-bar-seg" style="height:12%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:44%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:44%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label"></div>
+                        </div>
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:38px">
+                                <div class="ce-bar-seg" style="height:8%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:40%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:52%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Sat</div>
+                        </div>
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:35px">
+                                <div class="ce-bar-seg" style="height:6%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:38%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:56%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Sun</div>
+                        </div>
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:34px">
+                                <div class="ce-bar-seg" style="height:5%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:36%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:59%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Mon</div>
+                        </div>
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:32px">
+                                <div class="ce-bar-seg" style="height:4%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:34%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:62%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Tue</div>
+                        </div>
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:30px">
+                                <div class="ce-bar-seg" style="height:4%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:32%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:64%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Wed</div>
+                        </div>
+                        <div class="ce-bar-group">
+                            <div class="ce-bar-stack" style="height:30px">
+                                <div class="ce-bar-seg" style="height:3%;background:var(--opus)"></div>
+                                <div class="ce-bar-seg" style="height:33%;background:var(--sonnet)"></div>
+                                <div class="ce-bar-seg" style="height:64%;background:var(--haiku)"></div>
+                            </div>
+                            <div class="ce-bar-label">Today</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom: 3 columns — Model table, Agent table, Bloat discovery -->
+                <div class="ce-bottom">
+
+                    <!-- Cost by Model -->
+                    <div class="ce-table-section">
+                        <div class="ce-table-title">Cost by Model</div>
+                        <table class="ce-table">
+                            <thead><tr><th>Model</th><th>Calls</th><th>Cost</th></tr></thead>
+                            <tbody>
+                                <tr class="ce-table-highlight">
+                                    <td><span class="ce-model-dot" style="background:var(--opus)"></span>claude-opus</td>
+                                    <td>842</td>
+                                    <td>$412.60</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ce-model-dot" style="background:var(--sonnet)"></span>claude-sonnet</td>
+                                    <td>6,204</td>
+                                    <td>$318.40</td>
+                                </tr>
+                                <tr>
+                                    <td><span class="ce-model-dot" style="background:var(--haiku)"></span>claude-haiku</td>
+                                    <td>5,801</td>
+                                    <td>$116.20</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div style="margin-top:12px;padding:8px 10px;background:rgba(194,65,12,0.04);border-radius:var(--radius-sm);border-left:2.5px solid var(--accent);">
+                            <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--accent);margin-bottom:2px;">💡 Optimization found</div>
+                            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);line-height:1.5;">
+                                Opus used for classify_intent (842 calls).<br>
+                                Haiku handles this at <strong style="color:var(--success)">1/10th the cost</strong>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost by Agent -->
+                    <div class="ce-table-section">
+                        <div class="ce-table-title">Cost by Agent</div>
+                        <table class="ce-table">
+                            <thead><tr><th>Agent</th><th>Tasks</th><th>Cost</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td>sales</td>
+                                    <td>4,280</td>
+                                    <td>$412.80</td>
+                                </tr>
+                                <tr>
+                                    <td>support</td>
+                                    <td>3,640</td>
+                                    <td>$286.40</td>
+                                </tr>
+                                <tr>
+                                    <td>main</td>
+                                    <td>2,927</td>
+                                    <td>$148.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div style="margin-top:12px;padding:8px 10px;background:rgba(194,65,12,0.04);border-radius:var(--radius-sm);border-left:2.5px solid var(--accent);">
+                            <div style="font-family:var(--font-sans);font-size:11px;font-weight:600;color:var(--accent);margin-bottom:2px;">💡 Anomaly detected</div>
+                            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-secondary);line-height:1.5;">
+                                sales costs $0.10/task, support costs $0.08.<br>
+                                Same task type. <strong style="color:var(--warning)">Check prompt sizes</strong>.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prompt bloat discovery -->
+                    <div class="ce-bloat-card">
+                        <div class="ce-bloat-title">
+                            <span class="ce-bloat-icon">⚠</span>
+                            Prompt Bloat Analysis
+                        </div>
+                        <div class="ce-prompt-compare">
+                            <!-- Before -->
+                            <div class="ce-prompt-row">
+                                <div class="ce-prompt-label">
+                                    <span>Before — avg prompt size</span>
+                                    <span style="color:var(--error);font-weight:600">~18,000 tok</span>
+                                </div>
+                                <div class="ce-prompt-bar-track">
+                                    <div class="ce-prompt-bar-fill bloated">18,000 tokens</div>
+                                </div>
+                            </div>
+                            <!-- Breakdown of bloat -->
+                            <div class="ce-prompt-row">
+                                <div class="ce-prompt-label"><span>What's inside that prompt</span></div>
+                                <div class="ce-prompt-breakdown">
+                                    <div class="ce-pb-seg" style="flex:4;background:var(--error);opacity:0.7">redundant context</div>
+                                    <div class="ce-pb-seg" style="flex:3;background:var(--warning);opacity:0.7">verbose instructions</div>
+                                    <div class="ce-pb-seg" style="flex:2;background:var(--llm);opacity:0.7">repeated turns</div>
+                                    <div class="ce-pb-seg" style="flex:3;background:var(--success);opacity:0.8">actual content</div>
+                                </div>
+                            </div>
+                            <!-- After -->
+                            <div class="ce-prompt-row">
+                                <div class="ce-prompt-label">
+                                    <span>After — trimmed & optimized</span>
+                                    <span style="color:var(--success);font-weight:600">~5,000 tok</span>
+                                </div>
+                                <div class="ce-prompt-bar-track">
+                                    <div class="ce-prompt-bar-fill optimized">5,000 tokens</div>
+                                </div>
+                            </div>
+
+                            <!-- Result -->
+                            <div class="ce-bloat-result">
+                                <div class="ce-bloat-stat">
+                                    <div class="ce-bloat-stat-val red">18k</div>
+                                    <div class="ce-bloat-stat-label">Before</div>
+                                </div>
+                                <div class="ce-bloat-arrow">→</div>
+                                <div class="ce-bloat-stat">
+                                    <div class="ce-bloat-stat-val green">5k</div>
+                                    <div class="ce-bloat-stat-label">After</div>
+                                </div>
+                                <div style="width:1px;height:30px;background:var(--border)"></div>
+                                <div class="ce-bloat-stat">
+                                    <div class="ce-bloat-stat-val green">−72%</div>
+                                    <div class="ce-bloat-stat-label">Token reduction</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- The $40→$8 Hero Stat -->
+        <div class="cost-hero">
+            <div class="cost-hero-line"></div>
+            <div class="cost-hero-stat">
+                <div>
+                    <div class="chs-amount before">$40</div>
+                    <div class="chs-label">/hour</div>
+                </div>
+                <div class="chs-arrow">→</div>
+                <div>
+                    <div class="chs-amount after">$8</div>
+                    <div class="chs-label">/hour</div>
+                </div>
+            </div>
+            <div class="cost-hero-text">
+                <strong>No model switch. No architecture change.</strong><br>
+                Just visibility into what was already happening, followed by informed prompt optimization.
+            </div>
+            <div class="cost-hero-sub">80% cost reduction from observability alone</div>
+            <div class="savings-badge">
+                <div class="savings-badge-dot"></div>
+                <div class="savings-badge-text">Saving $768/week at current volume</div>
+            </div>
+
+            <div class="section3-scroll-cue">
+                <div class="scroll-cue-text">All of this — from a 3-line change to your code</div>
+                <div class="scroll-arrow">↓</div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 3.5 — THE COST EXPLORER
+         ════════════════════════════════════════ -->
+    <section class="costx-section">
+
+        <!-- Narrative bridge -->
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">Cost Explorer</div>
+            <h2 class="narrative-headline">
+                <span class="nh-dim">The $40/hr was hidden in</span><br>
+                <span class="nh-purple">842 Opus calls</span> <span class="nh-dim">doing</span> <span class="nh-accent">Haiku's job.</span>
+            </h2>
+            <p class="narrative-body">Click a model row. See every call. Spot the pattern. Opus was running classify_intent — a task Haiku handles at 1/10th the cost. That's $370/week found in 30 seconds.</p>
+        </div>
+
+        <!-- Discovery cards — three-step optimization story -->
+        <div class="discovery-strip">
+            <div class="disc-card">
+                <div class="disc-step">Step 1 · See</div>
+                <div class="disc-title">Cost by Model breakdown</div>
+                <div class="disc-body">Total spend split by model. <strong>One bar dominates.</strong> Opus at $412 — nearly half the total. That's where you look first.</div>
+                <div class="disc-example">
+                    <div class="ex-label">What you see</div>
+                    <span class="ex-hl">claude-opus-4-6</span> · 842 calls · <span class="ex-hl">$412.60</span>
+                </div>
+            </div>
+            <div class="disc-card">
+                <div class="disc-step">Step 2 · Drill</div>
+                <div class="disc-title">Click the row. See every call.</div>
+                <div class="disc-body">Expand to individual LLM calls. Name, agent, tokens, cost. <strong>Same function, repeated 842 times.</strong></div>
+                <div class="disc-example">
+                    <div class="ex-label">The pattern</div>
+                    <span class="ex-accent">classify_intent</span> · 4,200 in / 120 out · <span class="ex-hl">$0.49</span><br>
+                    <span class="ex-accent">classify_intent</span> · 4,180 in / 115 out · <span class="ex-hl">$0.49</span><br>
+                    <span class="ex-accent">classify_intent</span> · 4,210 in / 118 out · <span class="ex-hl">$0.49</span>
+                </div>
+            </div>
+            <div class="disc-card">
+                <div class="disc-step">Step 3 · Fix</div>
+                <div class="disc-title">Switch model. Save $370/week.</div>
+                <div class="disc-body">classify_intent is simple routing. <strong>Haiku handles it at 1/10th the cost</strong> with identical accuracy. One config change.</div>
+                <div class="disc-example">
+                    <div class="ex-label">The result</div>
+                    Opus: <span class="ex-hl">$0.49/call</span> → Haiku: <span class="ex-green">$0.05/call</span><br>
+                    842 calls × $0.44 saved = <span class="ex-green">$370/week</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- THE IFRAME — live Cost Explorer embed -->
+        <div class="costx-frame-wrap">
+            <div class="costx-frame">
+                <iframe src="cost-explorer-embed.html" title="HiveBoard Cost Explorer"></iframe>
+                <div class="costx-fade"></div>
+            </div>
+        </div>
+
+        <!-- Bottom callout -->
+        <div class="costx-callout">
+            <div class="callout-rule"></div>
+            <div class="callout-text">
+                The most expensive line item in your AI stack isn't the model.<br>
+                <strong>It's using <span class="ct-purple">the wrong model</span> for <span class="ct-accent">the right task.</span></strong>
+            </div>
+        </div>
+
+        <!-- Scroll cue -->
+        <div class="section3_5-scroll-cue">
+            <div class="scroll-cue-text">Three lines of code to get here</div>
+            <div class="scroll-arrow">↓</div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 4 — THE 3-LINES PROMISE
+         ════════════════════════════════════════ -->
+    <section class="sdk-section">
+
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">The Integration</div>
+            <h2 class="narrative-headline">
+                Three layers.<br>
+                <span class="nh-dim">Ship after </span><span class="nh-accent">any one.</span>
+            </h2>
+            <p class="narrative-body">Each layer builds on the last. Each one unlocks new dashboard capabilities. Start with 3 lines, go deeper when you're ready.</p>
+        </div>
+
+        <div class="layers-container">
+
+            <!-- ═══════════════════════════════════
+                 LAYER 0 — Presence & Heartbeat
+                 ═══════════════════════════════════ -->
+            <div class="layer-card">
+                <div class="layer-header">
+                    <div class="layer-header-left">
+                        <div class="layer-number">0</div>
+                        <div class="layer-title">Presence & Heartbeat</div>
+                        <div class="layer-subtitle">— your agent is alive</div>
+                    </div>
+                    <div class="layer-effort">~10 lines · 2 minutes</div>
+                </div>
+
+                <!-- Code -->
+                <div class="layer-code">
+                    <span class="code-label">initialization — run once at startup</span>
+                    <div class="code-block">
+                        <span class="kw">import</span> <span class="ty">hiveloop</span>
+
+                        <span class="hl"><span class="ck"># One line: connect to HiveBoard</span></span>
+                        <span class="hl">hb <span class="op">=</span> <span class="ty">hiveloop</span><span class="op">.</span><span class="fn">init</span><span class="op">(</span><span class="pr">api_key</span><span class="op">=</span><span class="cs">"hb_live_your_key"</span><span class="op">,</span> <span class="pr">environment</span><span class="op">=</span><span class="cs">"production"</span><span class="op">)</span></span>
+                        <span class="hl"><span class="ck"># Two lines: register your agent</span></span>
+                        <span class="hl">agent <span class="op">=</span> hb<span class="op">.</span><span class="fn">agent</span><span class="op">(</span></span>
+                        <span class="hl">    <span class="pr">agent_id</span><span class="op">=</span><span class="cs">"sales"</span><span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">type</span><span class="op">=</span><span class="cs">"sales"</span><span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">version</span><span class="op">=</span><span class="cs">"1.2.0"</span><span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">heartbeat_interval</span><span class="op">=</span><span class="cn">30</span><span class="op">,</span></span>
+                        <span class="hl"><span class="op">)</span></span>
+
+                        <span class="ck"># That's it. Your agent now has:</span>
+                        <span class="ck"># ✓ Heartbeat every 30s</span>
+                        <span class="ck"># ✓ Online/offline detection</span>
+                        <span class="ck"># ✓ Stuck detection (5m default)</span>
+                        <span class="ck"># ✓ Dashboard card with sparkline</span>
+                    </div>
+                </div>
+
+                <!-- Dashboard preview -->
+                <div class="layer-dash">
+                    <div class="layer-dash-label">What lights up on the dashboard</div>
+
+                    <div class="mini-agent glow-success">
+                        <div class="mini-agent-top">
+                            <div class="mini-agent-name">sales</div>
+                            <div class="mini-badge mini-badge-idle">IDLE</div>
+                        </div>
+                        <div class="mini-meta">
+                            <div class="mini-type">sales</div>
+                            <div style="display:flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:11px;">
+                                <div class="mini-hb-dot"></div>12s ago
+                            </div>
+                            <div style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted)">v1.2.0</div>
+                        </div>
+                        <div class="mini-sparkline">
+                            <div class="mini-spark" style="height:4px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:6px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:4px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:5px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:7px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:4px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:6px;background:var(--active)"></div>
+                            <div class="mini-spark" style="height:5px;background:var(--active)"></div>
+                        </div>
+                    </div>
+
+                    <div class="mini-events">
+                        <div class="mini-events-title">Activity Stream</div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--success)"></div>
+                            <div class="mini-evt-type">agent_registered</div>
+                            <div class="mini-evt-text">sales · v1.2.0</div>
+                        </div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--idle)"></div>
+                            <div class="mini-evt-type">heartbeat</div>
+                            <div class="mini-evt-text">sales · 12s ago</div>
+                        </div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--success)"></div>
+                            <div class="mini-evt-type">status_change</div>
+                            <div class="mini-evt-text">sales → IDLE</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layer-unlocks">
+                    <div class="unlocks-label">Unlocks →</div>
+                    <div class="unlock-tag">Agent Cards</div>
+                    <div class="unlock-tag">Heartbeat Sparklines</div>
+                    <div class="unlock-tag">Stuck Detection</div>
+                    <div class="unlock-tag">Online/Offline Status</div>
+                    <div class="unlock-tag">Connection Indicator</div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════
+                 LAYER 1 — Tasks & Actions
+                 ═══════════════════════════════════ -->
+            <div class="layer-card">
+                <div class="layer-header">
+                    <div class="layer-header-left">
+                        <div class="layer-number">1</div>
+                        <div class="layer-title">Tasks & Actions</div>
+                        <div class="layer-subtitle">— what your agent is doing</div>
+                    </div>
+                    <div class="layer-effort">~30 lines · 10 minutes</div>
+                </div>
+
+                <div class="layer-code">
+                    <span class="code-label">wrap your task boundary</span>
+                    <div class="code-block">
+                        <span class="kw">def</span> <span class="fn">process_lead</span><span class="op">(</span>agent<span class="op">,</span> lead<span class="op">):</span>
+                        <span class="hl">    <span class="kw">with</span> agent<span class="op">.</span><span class="fn">task</span><span class="op">(</span><span class="cs">f"task-lead-</span><span class="op">{</span>lead<span class="op">.</span>id<span class="op">}</span><span class="cs">"</span><span class="op">,</span> <span class="pr">project</span><span class="op">=</span><span class="cs">"sales"</span><span class="op">,</span> <span class="pr">type</span><span class="op">=</span><span class="cs">"lead"</span><span class="op">)</span> <span class="kw">as</span> task<span class="op">:</span></span>
+                        result <span class="op">=</span> <span class="fn">run_pipeline</span><span class="op">(</span>lead<span class="op">)</span>
+                        <span class="kw">return</span> result
+                        <span class="ck"># ✓ task_started on entry</span>
+                        <span class="ck"># ✓ task_completed on clean exit</span>
+                        <span class="ck"># ✓ task_failed on exception (auto-caught)</span>
+                    </div>
+
+                    <hr class="code-divider">
+                    <span class="code-label">decorate key functions (5-7 nodes, not 30)</span>
+                    <div class="code-block">
+                        <span class="hl"><span class="at">@agent.track</span><span class="op">(</span><span class="cs">"evaluate_lead"</span><span class="op">)</span></span>
+                        <span class="kw">def</span> <span class="fn">evaluate_lead</span><span class="op">(</span>lead<span class="op">):</span>
+                        score <span class="op">=</span> <span class="fn">run_scoring_model</span><span class="op">(</span>lead<span class="op">)</span>
+                        <span class="kw">return</span> score
+
+                        <span class="hl"><span class="at">@agent.track</span><span class="op">(</span><span class="cs">"crm_search"</span><span class="op">)</span></span>
+                        <span class="kw">def</span> <span class="fn">search_crm</span><span class="op">(</span>query<span class="op">):</span>
+                        <span class="kw">return</span> crm_client<span class="op">.</span><span class="fn">search</span><span class="op">(</span>query<span class="op">)</span>
+
+                        <span class="hl"><span class="at">@agent.track</span><span class="op">(</span><span class="cs">"send_email"</span><span class="op">)</span></span>
+                        <span class="kw">def</span> <span class="fn">send_outreach</span><span class="op">(</span>contact<span class="op">,</span> template<span class="op">):</span>
+                        <span class="kw">return</span> email_client<span class="op">.</span><span class="fn">send</span><span class="op">(</span>contact<span class="op">,</span> template<span class="op">)</span>
+                    </div>
+
+                    <hr class="code-divider">
+                    <span class="code-label">or use context managers for dynamic names</span>
+                    <div class="code-block">
+                        <span class="ck"># When the LLM picks tools at runtime:</span>
+                        <span class="kw">for</span> tool_call <span class="kw">in</span> response<span class="op">.</span>tool_calls<span class="op">:</span>
+                        <span class="hl">    <span class="kw">with</span> agent<span class="op">.</span><span class="fn">track_context</span><span class="op">(</span>tool_call<span class="op">.</span>name<span class="op">)</span> <span class="kw">as</span> ctx<span class="op">:</span></span>
+                        result <span class="op">=</span> <span class="fn">execute_tool</span><span class="op">(</span>tool_call<span class="op">.</span>name<span class="op">,</span> tool_call<span class="op">.</span>args<span class="op">)</span>
+                    </div>
+                </div>
+
+                <!-- Dashboard preview -->
+                <div class="layer-dash">
+                    <div class="layer-dash-label">What lights up on the dashboard</div>
+
+                    <div class="mini-agent">
+                        <div class="mini-agent-top">
+                            <div class="mini-agent-name">sales</div>
+                            <div class="mini-badge mini-badge-processing">PROCESSING</div>
+                        </div>
+                        <div class="mini-meta">
+                            <div style="font-family:var(--font-mono);font-size:10px;color:var(--accent)">↳ task-lead-4801</div>
+                        </div>
+                    </div>
+
+                    <div class="mini-timeline">
+                        <div class="mini-tl-header">
+                            <div class="mini-tl-title">Timeline</div>
+                            <div class="mini-tl-id">task-lead-4801</div>
+                        </div>
+                        <div class="mini-tl-body">
+                            <div class="mini-tn">
+                                <div class="mini-tn-icon sys">▶</div>
+                                <div class="mini-tn-label">task-lead-4801</div>
+                                <div class="mini-tn-dur">14.2s</div>
+                                <div class="mini-tn-status ok">✓</div>
+                            </div>
+                            <div class="mini-tn mini-tn-child">
+                                <div class="mini-tn-icon action">⚡</div>
+                                <div class="mini-tn-label">evaluate_lead</div>
+                                <div class="mini-tn-dur">1.8s</div>
+                                <div class="mini-tn-status ok">✓</div>
+                            </div>
+                            <div class="mini-tn mini-tn-child">
+                                <div class="mini-tn-icon action">⚡</div>
+                                <div class="mini-tn-label">crm_search</div>
+                                <div class="mini-tn-dur">0.8s</div>
+                                <div class="mini-tn-status ok">✓</div>
+                            </div>
+                            <div class="mini-tn mini-tn-child">
+                                <div class="mini-tn-icon action">⚡</div>
+                                <div class="mini-tn-label">send_email</div>
+                                <div class="mini-tn-dur">3.1s</div>
+                                <div class="mini-tn-status fail">✗</div>
+                            </div>
+                            <div class="mini-tn-detail" style="color:var(--error)">↳ ConnectionError: smtp refused</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layer-unlocks">
+                    <div class="unlocks-label">Unlocks →</div>
+                    <div class="unlock-tag blue">Task Table</div>
+                    <div class="unlock-tag blue">Action Timelines</div>
+                    <div class="unlock-tag blue">Success / Failure Rates</div>
+                    <div class="unlock-tag blue">Duration Tracking</div>
+                    <div class="unlock-tag blue">Error Attribution</div>
+                </div>
+            </div>
+
+            <!-- ═══════════════════════════════════
+                 LAYER 2 — Full Narrative Telemetry
+                 ═══════════════════════════════════ -->
+            <div class="layer-card">
+                <div class="layer-header">
+                    <div class="layer-header-left">
+                        <div class="layer-number">2</div>
+                        <div class="layer-title">Full Narrative Telemetry</div>
+                        <div class="layer-subtitle">— the complete story</div>
+                    </div>
+                    <div class="layer-effort">~5–10 lines per call site</div>
+                </div>
+
+                <div class="layer-code">
+                    <span class="code-label">2a · LLM call tracking → cost explorer</span>
+                    <div class="code-block">
+                        response <span class="op">=</span> llm_client<span class="op">.</span><span class="fn">chat</span><span class="op">(</span>messages<span class="op">,</span> <span class="pr">tools</span><span class="op">=</span>tool_catalog<span class="op">)</span>
+
+                        <span class="hl">task<span class="op">.</span><span class="fn">llm_call</span><span class="op">(</span></span>
+                        <span class="hl">    <span class="cs">"agent_turn"</span><span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">model</span><span class="op">=</span>response<span class="op">.</span>model<span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">tokens_in</span><span class="op">=</span>response<span class="op">.</span>usage<span class="op">.</span>input_tokens<span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">tokens_out</span><span class="op">=</span>response<span class="op">.</span>usage<span class="op">.</span>output_tokens<span class="op">,</span></span>
+                        <span class="hl">    <span class="pr">cost</span><span class="op">=</span><span class="fn">estimate_cost</span><span class="op">(</span>response<span class="op">.</span>model<span class="op">,</span> tokens_in<span class="op">,</span> tokens_out<span class="op">),</span></span>
+                        <span class="hl">    <span class="pr">duration_ms</span><span class="op">=</span>elapsed_ms<span class="op">,</span></span>
+                        <span class="hl"><span class="op">)</span></span>
+                    </div>
+
+                    <hr class="code-divider">
+                    <span class="code-label">2b · Plans, issues, escalations</span>
+                    <div class="code-block">
+                        <span class="ck"># Agent decides on a plan</span>
+                        <span class="hl">task<span class="op">.</span><span class="fn">plan</span><span class="op">([</span><span class="cs">"Search CRM"</span><span class="op">,</span> <span class="cs">"Score lead"</span><span class="op">,</span> <span class="cs">"Draft email"</span><span class="op">,</span> <span class="cs">"Send"</span><span class="op">,</span> <span class="cs">"Log result"</span><span class="op">])</span></span>
+
+                        <span class="ck"># Agent detects something wrong</span>
+                        <span class="hl">agent<span class="op">.</span><span class="fn">report_issue</span><span class="op">(</span><span class="cs">"CRM API returning 403"</span><span class="op">,</span> <span class="pr">severity</span><span class="op">=</span><span class="cs">"high"</span><span class="op">,</span> <span class="pr">category</span><span class="op">=</span><span class="cs">"permissions"</span><span class="op">)</span></span>
+
+                        <span class="ck"># Agent needs a human</span>
+                        <span class="hl">task<span class="op">.</span><span class="fn">escalate</span><span class="op">(</span><span class="cs">"Credit &gt;$200 needs approval"</span><span class="op">,</span> <span class="pr">to</span><span class="op">=</span><span class="cs">"support-lead"</span><span class="op">)</span></span>
+
+                        <span class="ck"># Queue health snapshot</span>
+                        <span class="hl">agent<span class="op">.</span><span class="fn">queue_snapshot</span><span class="op">(</span><span class="pr">depth</span><span class="op">=</span><span class="cn">8</span><span class="op">,</span> <span class="pr">oldest_age_s</span><span class="op">=</span><span class="cn">2820</span><span class="op">)</span></span>
+                    </div>
+
+                    <hr class="code-divider">
+                    <span class="code-label">2c · Framework integrations (one line each)</span>
+                    <div class="code-block">
+                        <span class="ck"># LangChain</span>
+                        <span class="kw">from</span> <span class="ty">hiveloop.integrations.langchain</span> <span class="kw">import</span> <span class="ty">HiveLoopCallback</span>
+                        <span class="hl">chain<span class="op">.</span><span class="fn">invoke</span><span class="op">(</span>input<span class="op">,</span> <span class="pr">config</span><span class="op">={</span><span class="cs">"callbacks"</span><span class="op">: [</span><span class="ty">HiveLoopCallback</span><span class="op">(</span>hb<span class="op">)]</span>})</span>
+
+                        <span class="ck"># CrewAI</span>
+                        <span class="kw">from</span> <span class="ty">hiveloop.integrations.crewai</span> <span class="kw">import</span> <span class="ty">CrewAICallback</span>
+                        <span class="hl">crew <span class="op">=</span> <span class="ty">Crew</span><span class="op">(</span>agents<span class="op">=</span>agents<span class="op">,</span> <span class="pr">callbacks</span><span class="op">=[</span><span class="ty">CrewAICallback</span><span class="op">(</span>hb<span class="op">)])</span></span>
+
+                        <span class="ck"># AutoGen</span>
+                        <span class="kw">from</span> <span class="ty">hiveloop.integrations.autogen</span> <span class="kw">import</span> <span class="ty">AutoGenCallback</span>
+                        <span class="hl">callback <span class="op">=</span> <span class="ty">AutoGenCallback</span><span class="op">(</span>hb<span class="op">,</span> <span class="pr">project</span><span class="op">=</span><span class="cs">"sales-pipeline"</span><span class="op">)</span></span>
+                    </div>
+                </div>
+
+                <!-- Dashboard preview -->
+                <div class="layer-dash">
+                    <div class="layer-dash-label">What lights up on the dashboard</div>
+
+                    <!-- Full timeline with LLM nodes -->
+                    <div class="mini-timeline">
+                        <div class="mini-tl-header">
+                            <div class="mini-tl-title">Timeline</div>
+                            <div class="mini-tl-id">task-lead-4801</div>
+                            <div style="margin-left:auto;font-family:var(--font-mono);font-size:9px;color:var(--llm)">◆ 5 LLM · $0.04</div>
+                        </div>
+                        <div class="mini-tl-body">
+                            <div class="mini-tn">
+                                <div class="mini-tn-icon llm">◆</div>
+                                <div class="mini-tn-label">LLM · reasoning</div>
+                                <div class="mini-tn-dur">1.2s</div>
+                                <div class="mini-tn-status ok">✓</div>
+                            </div>
+                            <div class="mini-tn-detail"><span style="color:var(--llm)">claude-sonnet-4-5</span> · 842→156 · $0.008</div>
+                            <div class="mini-tn">
+                                <div class="mini-tn-icon action">⚡</div>
+                                <div class="mini-tn-label">crm_search</div>
+                                <div class="mini-tn-dur">0.8s</div>
+                                <div class="mini-tn-status ok">✓</div>
+                            </div>
+                            <div class="mini-tn">
+                                <div class="mini-tn-icon llm">◆</div>
+                                <div class="mini-tn-label">LLM · tool use</div>
+                                <div class="mini-tn-dur">1.4s</div>
+                                <div class="mini-tn-status ok">✓</div>
+                            </div>
+                            <div class="mini-tn">
+                                <div class="mini-tn-icon err">⚑</div>
+                                <div class="mini-tn-label" style="color:var(--error)">report_issue</div>
+                                <div class="mini-tn-dur"></div>
+                                <div class="mini-tn-status" style="color:var(--warning)">⚑ high</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mini cost card -->
+                    <div class="mini-cost">
+                        <div class="mini-cost-header">
+                            <div class="mini-cost-title"><span style="color:var(--llm)">◆</span> Cost Explorer</div>
+                            <div class="mini-cost-total">$0.04 this task</div>
+                        </div>
+                        <div class="mini-cost-row">
+                            <div class="mini-cost-dot" style="background:var(--llm)"></div>
+                            <div class="mini-cost-model">claude-sonnet-4-5</div>
+                            <div class="mini-cost-val">5 calls · $0.04</div>
+                        </div>
+                        <div class="mini-cost-row">
+                            <div class="mini-cost-dot" style="background:var(--success)"></div>
+                            <div class="mini-cost-model">Tokens: 5,200 in / 890 out</div>
+                            <div class="mini-cost-val"></div>
+                        </div>
+                    </div>
+
+                    <!-- Plan + Issues -->
+                    <div class="mini-events">
+                        <div class="mini-events-title">Rich Events</div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--active)"></div>
+                            <div class="mini-evt-type">plan</div>
+                            <div class="mini-evt-text">5 steps · 1/5 completed</div>
+                        </div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--error)"></div>
+                            <div class="mini-evt-type">issue</div>
+                            <div class="mini-evt-text">CRM 403 · high · ×8</div>
+                        </div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--warning)"></div>
+                            <div class="mini-evt-type">escalation</div>
+                            <div class="mini-evt-text">Credit approval → support-lead</div>
+                        </div>
+                        <div class="mini-evt">
+                            <div class="mini-evt-dot" style="background:var(--idle)"></div>
+                            <div class="mini-evt-type">queue</div>
+                            <div class="mini-evt-text">depth:8 · oldest: 47m</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="layer-unlocks">
+                    <div class="unlocks-label">Unlocks →</div>
+                    <div class="unlock-tag purple">Cost Explorer</div>
+                    <div class="unlock-tag purple">Token Usage</div>
+                    <div class="unlock-tag purple">LLM Nodes in Timeline</div>
+                    <div class="unlock-tag orange">Plan Progress Bars</div>
+                    <div class="unlock-tag orange">Issue Tracking</div>
+                    <div class="unlock-tag orange">Escalation Visibility</div>
+                    <div class="unlock-tag orange">Queue Health</div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Safety contract callout -->
+        <div class="safety-callout">
+            <div class="safety-box">
+                <div class="safety-title">🛡 The Safety Contract</div>
+                <div class="safety-text">
+                    Observability is a side channel. If HiveBoard goes down, your agents continue running identically. Every SDK call follows the guard pattern:
+                </div>
+                <div class="safety-code">
+                    <span style="color:#c792ea">if</span> <span style="color:rgba(255,255,255,0.7)">hiveloop_agent</span><span style="color:rgba(255,255,255,0.4)">:</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c792ea">try</span><span style="color:rgba(255,255,255,0.4)">:</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:rgba(255,255,255,0.7)">hiveloop_agent</span><span style="color:rgba(255,255,255,0.4)">.</span><span style="color:#82aaff">some_method</span><span style="color:rgba(255,255,255,0.4)">(</span><span style="color:rgba(255,255,255,0.4)">...</span><span style="color:rgba(255,255,255,0.4)">)</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c792ea">except</span> <span style="color:#ffcb6b">Exception</span><span style="color:rgba(255,255,255,0.4)">:</span><br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#c792ea">pass</span>&nbsp;&nbsp;<span style="color:rgba(255,255,255,0.25)"># observability must never break the agent</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll cue -->
+        <div class="section4-scroll-cue">
+            <div class="scroll-cue-text">38 questions, one dashboard</div>
+            <div class="scroll-arrow">↓</div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 5 — THE 38 QUESTIONS
+         ════════════════════════════════════════ -->
+    <section class="questions-section">
+
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">What HiveBoard Sees</div>
+            <h2 class="narrative-headline">
+                <span class="nh-num">38</span> questions.<br>
+                <span class="nh-dim">One dashboard. </span><span class="nh-accent">Four moments.</span>
+            </h2>
+            <p class="narrative-body">Every interaction with an observability tool happens in one of four moments. HiveBoard was designed to serve all of them — from a 2-second glance to a 30-minute strategic review.</p>
+        </div>
+
+        <!-- ─── FOUR MOMENTS GRID ─── -->
+        <div class="moments-grid">
+
+            <!-- ═══ MOMENT 1: THE GLANCE ═══ -->
+            <div class="moment-col">
+                <div class="moment-header">
+                    <div class="moment-number">Moment 1</div>
+                    <div class="moment-title">The Glance</div>
+                    <div class="moment-meta">
+                        <div class="moment-time">⏱ 2 seconds</div>
+                        <div class="moment-count">5 questions</div>
+                    </div>
+                    <div class="moment-scenario">Walking past a screen. Checking between meetings. Is everything OK?</div>
+                </div>
+                <div class="moment-questions">
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are my agents running?"</span></div>
+                        <div class="q-answer">Heartbeat dots on every agent card — green, amber, or red. No click needed.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Does anything need my attention?"</span></div>
+                        <div class="q-answer">Attention badge — red pulsing pill "2 ⚠". If it's not there, nothing needs you.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is anything stuck?"</span></div>
+                        <div class="q-answer">Stuck counter in Stats Ribbon. Stuck agents glow red, sorted to the top.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is work flowing?"</span></div>
+                        <div class="q-answer">Four mini-charts: throughput, success rate, errors, cost. Shapes, not numbers.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is anything happening right now?"</span></div>
+                        <div class="q-answer">Activity Stream with green "Live" pulse. If events appear, agents are working.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ MOMENT 2: THE INVESTIGATION ═══ -->
+            <div class="moment-col">
+                <div class="moment-header">
+                    <div class="moment-number">Moment 2</div>
+                    <div class="moment-title">The Investigation</div>
+                    <div class="moment-meta">
+                        <div class="moment-time">⏱ 2–5 minutes</div>
+                        <div class="moment-count">11 questions</div>
+                    </div>
+                    <div class="moment-scenario">Something's wrong. An agent is stuck. A task failed. What happened?</div>
+                </div>
+                <div class="moment-questions">
+                    <div class="q-group-label">Agent-level</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"What is this agent doing right now?"</span></div>
+                        <div class="q-answer">Click agent card → live timeline with task ID and elapsed time.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is this agent's heartbeat healthy?"</span></div>
+                        <div class="q-answer">Three states: green (recent), amber (drifting), red (stale). Sparkline shows trend.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Does it have pending work nobody's looking at?"</span></div>
+                        <div class="q-answer">Queue badge "Q:4" on card. Amber if exceeding threshold. Pipeline tab shows contents.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Has it reported its own problems?"</span></div>
+                        <div class="q-answer">Issues via agent.report_issue() → red dot, occurrence count, severity, category.</div>
+                    </div>
+                    <div class="q-group-label">Task-level</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"What steps did this task take?"</span></div>
+                        <div class="q-answer">Timeline renders every event as color-coded nodes. Read the story without clicking.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"What was the plan, and where did it go wrong?"</span></div>
+                        <div class="q-answer">Plan progress bar: green-green-red-gray = third step failed.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Which tool failed?"</span></div>
+                        <div class="q-answer">Red nodes in timeline. Click → tool name, arguments, error, retries visible.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Which LLM was called, and what did it see?"</span></div>
+                        <div class="q-answer">Purple nodes with model badge. Click → tokens, cost, prompt/response preview.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"How long did each step take?"</span></div>
+                        <div class="q-answer">Duration labels on every node. Time Breakdown bar shows where time went.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Was it escalated? Did it need human approval?"</span></div>
+                        <div class="q-answer">Amber escalation nodes. Approval request with approver name and resolution.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Can I share this investigation?"</span></div>
+                        <div class="q-answer">Every timeline has a permalink. Paste in Slack → full story in 15 seconds.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ MOMENT 3: THE OPTIMIZATION ═══ -->
+            <div class="moment-col">
+                <div class="moment-header">
+                    <div class="moment-number">Moment 3</div>
+                    <div class="moment-title">The Optimization</div>
+                    <div class="moment-meta">
+                        <div class="moment-time">⏱ 10–15 minutes</div>
+                        <div class="moment-count">12 questions</div>
+                    </div>
+                    <div class="moment-scenario">Nothing is on fire. But you suspect things could be better.</div>
+                </div>
+                <div class="moment-questions">
+                    <div class="q-group-label">Cost optimization</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"How much are my agents costing me?"</span></div>
+                        <div class="q-answer">Cost Explorer: total spend broken down by model and by agent.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Am I using expensive models where cheap ones would work?"</span></div>
+                        <div class="q-answer">Cost by Model table. Opus for classify_intent? That's Haiku's job at 1/10th the cost.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Why did costs spike this week?"</span></div>
+                        <div class="q-answer">Stacked timeseries chart. Click into spike period → inspect LLM call nodes.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is there prompt bloat?"</span></div>
+                        <div class="q-answer">LLM node: 18,000 tokens-in, 200 tokens-out = bloated. Fastest path to savings.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are different agents doing similar work at different costs?"</span></div>
+                        <div class="q-answer">Cost by Agent table. Compare per-task cost across agents doing the same job.</div>
+                    </div>
+                    <div class="q-group-label">Invisible failures</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are tasks being silently dropped?"</span></div>
+                        <div class="q-answer">Queue items aging beyond expected processing time. The most dangerous failure.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is the queue growing while the agent reports idle?"</span></div>
+                        <div class="q-answer">IDLE badge + "Q:8" amber = scheduling bug or silent crash recovery.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are credentials failing silently?"</span></div>
+                        <div class="q-answer">Issue: "CRM API 403" with occurrence count climbing. Pattern visible in timeline.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is the heartbeat doing less than it used to?"</span></div>
+                        <div class="q-answer">Payload-aware heartbeats catch behavioral drift — not just alive/dead.</div>
+                    </div>
+                    <div class="q-group-label">Operational health</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are human approvals backing up?"</span></div>
+                        <div class="q-answer">Stats Ribbon "Waiting" count. Activity Stream "human" filter shows queue depth.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Which action within a plan consistently fails?"</span></div>
+                        <div class="q-answer">Same red node position across timelines. Logs say "failed"; timelines say where.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is the same issue recurring without resolution?"</span></div>
+                        <div class="q-answer">Issue at "×50 occurrences" = agent flagged it fifty times, nobody addressed it.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ MOMENT 4: THE REVIEW ═══ -->
+            <div class="moment-col">
+                <div class="moment-header">
+                    <div class="moment-number">Moment 4</div>
+                    <div class="moment-title">The Review</div>
+                    <div class="moment-meta">
+                        <div class="moment-time">⏱ 20–30 minutes</div>
+                        <div class="moment-count">10 questions</div>
+                    </div>
+                    <div class="moment-scenario">End of week. Before a board meeting. After a deploy. Are things getting better?</div>
+                </div>
+                <div class="moment-questions">
+                    <div class="q-group-label">Performance trends</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is my success rate improving?"</span></div>
+                        <div class="q-answer">Stats Ribbon success rate + mini-chart trend. Line up = deploys working.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are tasks getting faster or slower?"</span></div>
+                        <div class="q-answer">Avg duration + Time Breakdown. LLM time up after model switch = explanation.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Which agent fails most often?"</span></div>
+                        <div class="q-answer">Compare sparklines across agent cards. Red-trending = localized problem.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are agents getting better after deploys?"</span></div>
+                        <div class="q-answer">Compare timelines before/after. Success rate, duration, cost, turns per task.</div>
+                    </div>
+                    <div class="q-group-label">Cost accountability</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"What's our total agent infrastructure cost?"</span></div>
+                        <div class="q-answer">Cost Explorer, full time range. One number. Break down by model or agent.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Is cost per task trending up or down?"</span></div>
+                        <div class="q-answer">LLM Cost/Task mini-chart. Rising = prompts growing. Falling = optimizations working.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Can I prove ROI on agent observability?"</span></div>
+                        <div class="q-answer">Cost before vs. after. $40/hr → $8/hr. That's your ROI.</div>
+                    </div>
+                    <div class="q-group-label">Fleet-level insights</div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"How many agents are in production?"</span></div>
+                        <div class="q-answer">Stats Ribbon: Total Agents. Each visible in The Hive with its own card.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"What's the overall health of the fleet?"</span></div>
+                        <div class="q-answer">All dots green + stuck=0 + errors low + success above baseline = healthy. 2 seconds.</div>
+                    </div>
+                    <div class="q-item">
+                        <div class="q-text"><span class="q-quote">"Are we ready to scale?"</span></div>
+                        <div class="q-answer">High success + stable costs + manageable queues = safe to add agents. Both signals, same screen.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ─── Competitive differentiator ─── -->
+        <div class="diff-strip">
+            <div class="diff-card">
+                <div class="diff-header">
+                    <div class="diff-title">Questions nobody else answers</div>
+                    <div class="diff-sub">Architectural differences, not feature gaps — these can't be patched</div>
+                </div>
+                <div class="diff-grid">
+                    <div class="diff-item">
+                        <div class="diff-question">"Is my agent stuck?"</div>
+                        <div class="diff-why">No heartbeat concept. No stuck threshold. No liveness beyond "last API call."</div>
+                        <div class="diff-others"><span class="diff-x">✗</span> LangSmith · Langfuse · Datadog</div>
+                    </div>
+                    <div class="diff-item">
+                        <div class="diff-question">"What's in the work queue?"</div>
+                        <div class="diff-why">No intent pipeline. They see what happened, not what's waiting to happen.</div>
+                        <div class="diff-others"><span class="diff-x">✗</span> LangSmith · Langfuse · Datadog</div>
+                    </div>
+                    <div class="diff-item">
+                        <div class="diff-question">"Did the agent plan to do vs. what it actually did?"</div>
+                        <div class="diff-why">No plan-step tracking. No planned-vs-actual comparison.</div>
+                        <div class="diff-others"><span class="diff-x">✗</span> LangSmith · Langfuse · Datadog</div>
+                    </div>
+                    <div class="diff-item">
+                        <div class="diff-question">"Is the heartbeat still doing what it used to?"</div>
+                        <div class="diff-why">No payload-aware heartbeat. Heartbeat is binary: alive or dead.</div>
+                        <div class="diff-others"><span class="diff-x">✗</span> LangSmith · Langfuse · Datadog</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scroll cue -->
+        <div class="section5-scroll-cue">
+            <div class="scroll-cue-text">The story behind the product</div>
+            <div class="scroll-arrow">↓</div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 5.5 — THE INSIGHTS ENGINE
+         ════════════════════════════════════════ -->
+    <section class="hivemind-section">
+
+        <!-- Narrative bridge -->
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">HiveMind · Insights Engine</div>
+            <h2 class="narrative-headline">
+                <span class="nh-num">38</span> questions.<br>
+                <span class="nh-purple">Already answered.</span> <span class="nh-dim">Before you ask.</span>
+            </h2>
+            <p class="narrative-body">HiveMind continuously analyzes your agent fleet and pre-computes the answers — from a 2-second health check to a full ROI report. Open the page and the story is already there.</p>
+        </div>
+
+        <!-- Highlight strip — 4 key data points -->
+        <div class="highlights-strip">
+            <div class="hl-card">
+                <div class="hl-icon">✔</div>
+                <div class="hl-value">94.2%</div>
+                <div class="hl-label">Success Rate</div>
+                <div class="hl-desc">↑ 3.1% from last week</div>
+            </div>
+            <div class="hl-card">
+                <div class="hl-icon">⚠</div>
+                <div class="hl-value">72/100</div>
+                <div class="hl-label">Fleet Health</div>
+                <div class="hl-desc">Degraded — 3 items to fix</div>
+            </div>
+            <div class="hl-card">
+                <div class="hl-icon">◆</div>
+                <div class="hl-value">$0.06</div>
+                <div class="hl-label">Avg Cost / Task</div>
+                <div class="hl-desc">↓ 18% cheaper this week</div>
+            </div>
+            <div class="hl-card">
+                <div class="hl-icon">⚡</div>
+                <div class="hl-value">$4,260</div>
+                <div class="hl-label">Projected Savings / yr</div>
+                <div class="hl-desc">ROI calculated live</div>
+            </div>
+        </div>
+
+        <!-- Feature tags -->
+        <div class="feature-tags">
+            <span class="ft-label">Pre-computed →</span>
+            <span class="ft-tag">Fleet Health Gauge</span>
+            <span class="ft-tag">Silent Failure Detectors</span>
+            <span class="ft-tag">Scale Readiness Checklist</span>
+            <span class="ft-tag">ROI Calculator</span>
+            <span class="ft-tag">Cost Trend Analysis</span>
+            <span class="ft-tag">Agent Comparison</span>
+        </div>
+
+        <!-- THE IFRAME -->
+        <div class="insights-frame-wrap">
+            <div class="insights-frame">
+                <iframe src="insights-embed.html" title="HiveBoard Insights Engine"></iframe>
+                <div class="insights-fade"></div>
+            </div>
+        </div>
+
+        <!-- Bottom callout + codename badge -->
+        <div class="hivemind-callout">
+            <div class="callout-rule"></div>
+            <div class="callout-text">
+                Other tools show you data and wait for you to ask questions.<br>
+                <strong>HiveMind <span class="ct-purple">answers them before you open the page.</span></strong>
+            </div>
+            <div class="codename-badge">
+                <div class="codename-dot"></div>
+                <span class="codename-text">HiveMind</span>
+                <span class="codename-sub">· Insights Engine</span>
+            </div>
+        </div>
+
+        <!-- Scroll cue -->
+        <div class="section5_5-scroll-cue">
+            <div class="scroll-cue-text">The story behind the product</div>
+            <div class="scroll-arrow">↓</div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 6 — THE STORY
+         ════════════════════════════════════════ -->
+    <section class="story-section">
+
+        <div class="narrative-bridge">
+            <div class="narrative-eyebrow">The Story</div>
+            <h2 class="narrative-headline">
+                Built from real pain.<br>
+                <span class="nh-dim">Documented in </span><span class="nh-accent">three parts.</span>
+            </h2>
+            <p class="narrative-body">HiveBoard wasn't imagined in a meeting room. It was forged from two weeks of deploying AI agents into production and watching them fail in ways nobody could see.</p>
+        </div>
+
+        <!-- ─── TRILOGY CARDS ─── -->
+        <div class="trilogy-grid">
+
+            <!-- ═══ CARD 1: THE JOURNEY ═══ -->
+            <div class="trilogy-card">
+                <div class="trilogy-visual tv-journey">
+                    <div class="tv-journey-overlay">
+                        <div class="tv-journey-stat">48h</div>
+                        <div class="tv-journey-stat-label">Total build time</div>
+                    </div>
+                    <div class="tv-journey-bars">
+                        <div class="tv-jbar" style="height:15%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:25%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:60%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:80%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:45%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:70%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:90%;background:var(--error)"></div>
+                        <div class="tv-jbar" style="height:55%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:95%;background:var(--accent)"></div>
+                        <div class="tv-jbar" style="height:60%;background:var(--success)"></div>
+                        <div class="tv-jbar" style="height:40%;background:var(--success)"></div>
+                        <div class="tv-jbar" style="height:50%;background:var(--success)"></div>
+                        <div class="tv-jbar" style="height:35%;background:var(--success)"></div>
+                    </div>
+                </div>
+
+                <div class="trilogy-body">
+                    <div class="trilogy-doc-type">Part 1 · Why it exists</div>
+                    <div class="trilogy-title">THE JOURNEY</div>
+                    <div class="trilogy-subtitle">How we built HiveBoard — the Datadog for AI Agents — in 48 hours. A chronicle of pain, pivots, and the moment visibility changed everything.</div>
+
+                    <div class="trilogy-facts">
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-orange">⚡</div>
+                            <div class="trilogy-fact-text"><strong>~2 hours</strong> actual coding out of 48 total</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-green">$</div>
+                            <div class="trilogy-fact-text"><strong>$40/hr → $8/hr</strong> — 80% cost cut from visibility alone</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-red">✗</div>
+                            <div class="trilogy-fact-text"><strong>FormsFlow killed</strong> in a single session. No sunk cost fallacy.</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-purple">◆</div>
+                            <div class="trilogy-fact-text"><strong>13 event types</strong>, 6 major specs, 5 data model iterations</div>
+                        </div>
+                    </div>
+
+                    <div class="trilogy-quote">"Nobody needs observability on demo day. Everyone needs it on day 30 when the agent silently stopped working and nobody noticed for 6 hours."</div>
+
+                    <a href="#" class="trilogy-cta">Read the full chronicle <span class="trilogy-cta-arrow">→</span></a>
+                </div>
+            </div>
+
+            <!-- ═══ CARD 2: THE HIVE METHOD ═══ -->
+            <div class="trilogy-card">
+                <div class="trilogy-visual tv-method">
+                    <div class="tv-method-overlay">
+                        <div class="tv-method-stat">450+</div>
+                        <div class="tv-method-stat-label">Audit checkpoints</div>
+                    </div>
+                    <div class="tv-dot-grid" id="dot-grid"></div>
+                </div>
+
+                <div class="trilogy-body">
+                    <div class="trilogy-doc-type">Part 2 · How it was built</div>
+                    <div class="trilogy-title">The Hive Method</div>
+                    <div class="trilogy-subtitle">A development methodology for building complex systems with AI teams. One human, three Claude instances, and the process that made it work.</div>
+
+                    <div class="trilogy-facts">
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-amber">⬡</div>
+                            <div class="trilogy-fact-text"><strong>1 human + 3 Claude instances</strong> — PM, Dev Team 1, Dev Team 2</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-red">⊗</div>
+                            <div class="trilogy-fact-text"><strong>12 critical bugs</strong> caught by cross-auditing — invisible to unit tests</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-green">✓</div>
+                            <div class="trilogy-fact-text"><strong>~96% specs, ~4% code</strong> — the code almost wrote itself</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-blue">↔</div>
+                            <div class="trilogy-fact-text"><strong>Divergent perspectives</strong> — CLI vs Cloud caught complementary blind spots</div>
+                        </div>
+                    </div>
+
+                    <div class="trilogy-quote">"Having Team 1 audit Team 2 and vice versa caught issues neither team found in their own work. The consumer of an API catches contract mismatches the producer's tests structurally cannot."</div>
+
+                    <a href="#" class="trilogy-cta">Read the methodology <span class="trilogy-cta-arrow">→</span></a>
+                </div>
+            </div>
+
+            <!-- ═══ CARD 3: WHAT HIVEBOARD SEES ═══ -->
+            <div class="trilogy-card">
+                <div class="trilogy-visual tv-sees">
+                    <div class="tv-sees-overlay">
+                        <div class="tv-sees-stat">38</div>
+                        <div class="tv-sees-stat-label">Questions answered</div>
+                    </div>
+                    <div class="tv-q-grid">
+                        <div class="tv-q" style="background:rgba(22,163,74,0.2);color:var(--success)">?</div>
+                        <div class="tv-q" style="background:rgba(22,163,74,0.2);color:var(--success)">?</div>
+                        <div class="tv-q" style="background:rgba(22,163,74,0.2);color:var(--success)">?</div>
+                        <div class="tv-q" style="background:rgba(22,163,74,0.2);color:var(--success)">?</div>
+                        <div class="tv-q" style="background:rgba(22,163,74,0.2);color:var(--success)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(37,99,235,0.2);color:var(--active)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(124,58,237,0.2);color:var(--llm)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                        <div class="tv-q" style="background:rgba(194,65,12,0.2);color:var(--accent)">?</div>
+                    </div>
+                </div>
+
+                <div class="trilogy-body">
+                    <div class="trilogy-doc-type">Part 3 · What it does</div>
+                    <div class="trilogy-title">What HiveBoard Sees</div>
+                    <div class="trilogy-subtitle">The 38 questions your agents can finally answer — organized by the four moments every operator lives in, from a 2-second glance to a 30-minute review.</div>
+
+                    <div class="trilogy-facts">
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-green">⏱</div>
+                            <div class="trilogy-fact-text"><strong>The Glance</strong> — 5 questions in 2 seconds</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-blue">🔍</div>
+                            <div class="trilogy-fact-text"><strong>The Investigation</strong> — 11 questions in 2–5 minutes</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-purple">◆</div>
+                            <div class="trilogy-fact-text"><strong>The Optimization</strong> — 12 questions in 10–15 minutes</div>
+                        </div>
+                        <div class="trilogy-fact">
+                            <div class="trilogy-fact-icon tf-orange">📊</div>
+                            <div class="trilogy-fact-text"><strong>The Review</strong> — 10 questions in 20–30 minutes</div>
+                        </div>
+                    </div>
+
+                    <div class="trilogy-quote">"Existing tools think your agent is a function that calls an LLM. HiveBoard thinks your agent is a worker that takes tasks, gets stuck, asks for help, and recovers. That's the difference."</div>
+
+                    <a href="#" class="trilogy-cta">Read the full catalog <span class="trilogy-cta-arrow">→</span></a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Closing quote -->
+        <div class="story-closer">
+            <div class="closer-line"></div>
+            <div class="closer-text">
+                "I was spending <span class="ct-accent">$40/hour</span> running my agents. I instrumented them with HiveLoop. I could see every prompt, every response, every token count. I cut my costs to <span class="ct-accent">$8/hour</span> in a week."
+            </div>
+            <div class="closer-attr">— That's not a feature list. That's a before-and-after that sells itself.</div>
+
+            <div class="section6-scroll-cue">
+                <div class="scroll-cue-text">Ready to see for yourself?</div>
+                <div class="scroll-arrow">↓</div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Generate audit dots for Hive Method card -->
+    <script>
+        (function () {
+            const grid = document.getElementById('dot-grid');
+            if (!grid) return;
+            const colors = ['var(--success)', 'var(--success)', 'var(--success)', 'var(--warning)', 'var(--error)'];
+            for (let i = 0; i < 90; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'tv-dot';
+                const rand = Math.random();
+                let color;
+                if (rand < 0.78) color = 'var(--success)';
+                else if (rand < 0.92) color = 'var(--warning)';
+                else color = 'var(--error)';
+                dot.style.background = color;
+                grid.appendChild(dot);
+            }
+        })();
+    </script>
+
+    <!-- ════════════════════════════════════════
+         SECTION 7a — CTA
+         ════════════════════════════════════════ -->
+    <section class="cta-section">
+
+        <!-- Decorative background -->
+        <div class="hex-bg">
+            <div class="hex-bg-inner">
+                <div class="hex-ring"></div>
+                <div class="hex-ring"></div>
+                <div class="hex-ring"></div>
+            </div>
+        </div>
+
+        <!-- CTA content -->
+        <div class="cta-content">
+            <div class="cta-eyebrow">Early Access</div>
+            <h2 class="cta-headline">
+                Your agents are working.<br>
+                <span class="ch-accent">Are they healthy?</span>
+            </h2>
+            <p class="cta-subhead">
+                HiveBoard is in private beta. Open-source SDK. Hosted dashboard.<br>
+                Three lines of code. Full visibility in 30 seconds.
+            </p>
+
+            <!-- Email form -->
+            <div class="cta-form">
+                <input type="email" class="cta-input" placeholder="you@company.com" aria-label="Email address">
+                <button class="cta-button">Request Beta Access</button>
+            </div>
+            <div class="cta-note">
+                Free during beta · No credit card · <a href="#">pip install hiveloop</a>
+            </div>
+        </div>
+
+        <!-- Three pillars -->
+        <div class="pillars">
+            <div class="pillar">
+                <div class="pillar-icon">⬡</div>
+                <div class="pillar-title">Open-Source SDK</div>
+                <div class="pillar-text">HiveLoop is open source. Instrument your agents in minutes. LangChain, CrewAI, AutoGen, or custom — it works with all of them.</div>
+            </div>
+            <div class="pillar">
+                <div class="pillar-icon">◆</div>
+                <div class="pillar-title">Hosted Dashboard</div>
+                <div class="pillar-text">Real-time agent cards, task timelines, cost explorer, and 38 questions answered. The wall-monitor test: healthy or on fire in 2 seconds.</div>
+            </div>
+            <div class="pillar">
+                <div class="pillar-icon">⚡</div>
+                <div class="pillar-title">Built from Production Pain</div>
+                <div class="pillar-text">Not a demo tool. Born from deploying agents that silently failed, burned money, and dropped tasks. Every feature traces to a real problem.</div>
+            </div>
+        </div>
+
+        <!-- One-liner quotes -->
+        <div class="quotes-strip">
+            <div class="quote-chip">
+                <strong>$40/hr → $8/hr.</strong> The only thing that changed was visibility.
+            </div>
+            <div class="quote-chip">
+                <strong>3 lines of code. 30 seconds.</strong> Your agent has a heartbeat.
+            </div>
+            <div class="quote-chip">
+                The most dangerous agent failure is the one that <strong>doesn't look like a failure.</strong>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ════════════════════════════════════════
+         SECTION 7b — FOOTER
+         ════════════════════════════════════════ -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-top">
+                <!-- Brand column -->
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <div class="footer-hex">
+                            <svg viewBox="0 0 28 28" fill="none">
+                                <path d="M14 1 L25.5 7.5 L25.5 20.5 L14 27 L2.5 20.5 L2.5 7.5 Z"
+                                      stroke="rgba(194,65,12,0.5)" stroke-width="1.5" fill="rgba(194,65,12,0.08)" />
+                                <circle cx="14" cy="14" r="3" fill="rgba(194,65,12,0.6)" />
+                            </svg>
+                        </div>
+                        <div class="footer-logo-text">Hive<span class="flt-accent">Board</span></div>
+                    </div>
+                    <div class="footer-tagline">
+                        Agent-level observability for production AI. The Datadog for AI Agents.
+                    </div>
+                    <div class="footer-status">
+                        <div class="footer-status-dot"></div>
+                        Private Beta · Accepting applications
+                    </div>
+                </div>
+
+                <!-- Product column -->
+                <div class="footer-col">
+                    <div class="footer-col-title">Product</div>
+                    <ul class="footer-links">
+                        <li><a href="#">Dashboard</a></li>
+                        <li><a href="#">Cost Explorer</a></li>
+                        <li><a href="#">Task Timelines</a></li>
+                        <li><a href="#" class="coming-soon">HiveMind <span class="cs-badge">Soon</span></a></li>
+                    </ul>
+                </div>
+
+                <!-- Developers column -->
+                <div class="footer-col">
+                    <div class="footer-col-title">Developers</div>
+                    <ul class="footer-links">
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Integration Guide</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">HiveLoop SDK ↗</a></li>
+                    </ul>
+                </div>
+
+                <!-- Company column -->
+                <div class="footer-col">
+                    <div class="footer-col-title">Story</div>
+                    <ul class="footer-links">
+                        <li><a href="#">THE JOURNEY</a></li>
+                        <li><a href="#">The Hive Method</a></li>
+                        <li><a href="#">What HiveBoard Sees</a></li>
+                        <li><a href="#">GitHub ↗</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer bottom -->
+            <div class="footer-bottom">
+                <div class="footer-copy">© 2026 HiveBoard. All rights reserved.</div>
+                <div class="footer-bottom-links">
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                    <a href="#">Status</a>
+                </div>
+            </div>
+
+            <!-- Build badge -->
+            <div class="build-badge">
+                <span class="bb-hex">⬡</span>
+                Built with The Hive Method · 48 hours · 1 human + 3 Claude instances
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
