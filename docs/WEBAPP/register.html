@@ -212,6 +212,15 @@ body {
 }
 .btn-continue:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
+.slug-status {
+    font-family: var(--font-sans); font-size: 12px; margin-top: 6px;
+    display: none; align-items: center; gap: 5px;
+}
+.slug-status.visible { display: flex; }
+.slug-status.available { color: var(--success-color); }
+.slug-status.taken { color: var(--error-color); }
+.slug-status.checking { color: var(--text-muted); }
+
 @media (max-width: 480px) {
     .site-nav { padding: 0 20px; }
     .auth-card { max-width: 100%; }
@@ -256,8 +265,15 @@ body {
                 </div>
 
                 <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" id="password" class="form-input" placeholder="Choose a password" autocomplete="new-password" required>
+                    <div id="passwordError" class="form-error">Password is required</div>
+                </div>
+
+                <div class="form-group">
                     <label class="form-label" for="tenantName">Workspace name <span class="form-hint">— your org or team</span></label>
                     <input type="text" id="tenantName" class="form-input" placeholder="Acme Inc" autocomplete="organization" required>
+                    <div id="slugStatus" class="slug-status"></div>
                     <div id="tenantNameError" class="form-error">Workspace name is required</div>
                 </div>
 
@@ -307,7 +323,7 @@ body {
             <a href="login.html" class="btn-continue" id="continueBtn">Continue to Sign In →</a>
 
             <div class="auth-footer" style="margin-top:20px">
-                You'll sign in with a code sent to your email — no password needed.
+                You'll sign in with your email and password.
             </div>
         </div>
 
@@ -340,6 +356,61 @@ if (localStorage.getItem('hb_token')) {
 }
 
 // ═══════════════════════════════════════
+// SLUG AVAILABILITY CHECK (debounced)
+// ═══════════════════════════════════════
+let slugTimeout = null;
+let slugAvailable = null; // null = unchecked, true/false = result
+
+const tenantNameInput = document.getElementById('tenantName');
+const slugStatus = document.getElementById('slugStatus');
+
+tenantNameInput.addEventListener('input', function() {
+    const val = this.value.trim();
+    slugAvailable = null;
+
+    if (slugTimeout) clearTimeout(slugTimeout);
+
+    if (!val) {
+        slugStatus.className = 'slug-status';
+        return;
+    }
+
+    slugStatus.className = 'slug-status visible checking';
+    slugStatus.textContent = 'Checking availability…';
+
+    slugTimeout = setTimeout(() => checkSlugAvailable(val), 400);
+});
+
+tenantNameInput.addEventListener('blur', function() {
+    const val = this.value.trim();
+    if (val && slugAvailable === null) {
+        checkSlugAvailable(val);
+    }
+});
+
+async function checkSlugAvailable(tenantName) {
+    try {
+        const resp = await fetch(
+            API_BASE + '/v1/auth/check-slug?slug=' + encodeURIComponent(tenantName)
+        );
+        const data = await resp.json();
+
+        slugAvailable = data.available;
+
+        if (data.available) {
+            slugStatus.className = 'slug-status visible available';
+            slugStatus.textContent = '✓ "' + data.slug + '" is available';
+        } else {
+            slugStatus.className = 'slug-status visible taken';
+            slugStatus.textContent = '✗ This workspace name is already taken. Try a different name.';
+        }
+    } catch (err) {
+        slugStatus.className = 'slug-status';
+        slugAvailable = null;
+    }
+}
+
+// ═══════════════════════════════════════
 // FORM SUBMIT → POST /v1/auth/register
 // ═══════════════════════════════════════
 const form = document.getElementById('registerForm');
@@ -352,29 +423,52 @@ form.addEventListener('submit', async function(e) {
 
     const name = document.getElementById('name').value.trim();
     const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
     const tenantName = document.getElementById('tenantName').value.trim();
 
     let bad = false;
     if (!name) { showFieldError('name', 'nameError'); bad = true; }
     if (!email || !isValidEmail(email)) { showFieldError('email', 'emailError'); bad = true; }
+    if (!password) { showFieldError('password', 'passwordError'); bad = true; }
     if (!tenantName) { showFieldError('tenantName', 'tenantNameError'); bad = true; }
+    if (slugAvailable === false) {
+        showFieldError('tenantName', 'tenantNameError');
+        document.getElementById('tenantNameError').textContent = 'This workspace name is already taken. Try a different name.';
+        bad = true;
+    }
     if (bad) return;
 
     setLoading(true);
 
     try {
-        // Backend: 201 { user, tenant: {tenant_id, name, slug}, api_key }
-        //          409 if email exists or pending invite
         const res = await apiPost('/v1/auth/register', {
             email: email,
+            password: password,
             name: name,
             tenant_name: tenantName
         });
 
         if (res.ok) {
             showApiKeyReveal(res.data, email);
+        } else if (res.status === 409) {
+            switch (res.data.error) {
+                case 'email_exists':
+                    showGlobalError('This email is already registered. If you already have an account, please sign in instead.');
+                    break;
+                case 'slug_exists':
+                    showGlobalError('This workspace name is already taken. Try a different name.');
+                    showFieldError('tenantName', 'tenantNameError');
+                    document.getElementById('tenantNameError').textContent = 'Workspace name taken';
+                    break;
+                case 'pending_invite':
+                    showGlobalError('You have a pending invitation to join a workspace. Please check your email and accept the invite instead.');
+                    break;
+                default:
+                    showGlobalError(res.data.message || res.data.detail || 'Registration failed. Please try again.');
+            }
+            setLoading(false);
         } else {
-            showGlobalError(res.data.detail || 'Registration failed. Please try again.');
+            showGlobalError(res.data.message || res.data.detail || 'Registration failed. Please try again.');
             setLoading(false);
         }
     } catch (err) {
@@ -391,6 +485,11 @@ function showApiKeyReveal(data, email) {
     document.getElementById('tenantNameDisplay').textContent = data.tenant?.name || '';
     document.getElementById('tenantSlugDisplay').textContent = data.tenant?.slug || '';
     document.getElementById('userEmailDisplay').textContent = email;
+
+    // Store tenant_id for login page
+    if (data.tenant?.tenant_id) {
+        localStorage.setItem('hb_tenant_id', data.tenant.tenant_id);
+    }
 
     // Pre-fill email on login page
     sessionStorage.setItem('hb_prefill_email', email);
