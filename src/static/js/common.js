@@ -1,9 +1,7 @@
-// ═══════════════════════════════════════════════════
-//  HIVEBOARD — SHARED UTILITIES (common.js)
-//  Used by hiveboard.js and insights.js
-// ═══════════════════════════════════════════════════
+// HIVEBOARD - SHARED UTILITIES (common.js)
+// Used by hiveboard.js and insights.js
 
-// ── Environment Detection ────────────────────────────
+// -- Environment Detection --
 var _isLocal = (window.location.hostname === 'localhost'
   || window.location.hostname === '127.0.0.1');
 
@@ -32,7 +30,7 @@ if (!_isLocal && !CONFIG.apiKey) {
   window.location.href = '/login.html';
 }
 
-// ── Formatting Helpers ─────────────────────────────
+// -- Formatting Helpers --
 
 function hbClass(seconds) {
   if (seconds == null) return 'hb-dead';
@@ -78,7 +76,7 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
-// ── Token Ratio Bar ────────────────────────────────
+// -- Token Ratio Bar --
 
 function tokenBarHtml(tokIn, tokOut) {
   if (tokIn == null && tokOut == null) return '';
@@ -93,7 +91,7 @@ function tokenBarHtml(tokIn, tokOut) {
     '<span class="token-label">' + fmtTokens(tIn) + '\u2192' + fmtTokens(tOut) + '</span></span>';
 }
 
-// ── API Client ─────────────────────────────────────
+// -- API Client --
 
 async function apiFetch(path, params) {
   var url = new URL(CONFIG.endpoint + path);
@@ -115,7 +113,7 @@ async function apiFetch(path, params) {
   }
 }
 
-// ── Toast Notifications ────────────────────────────
+// -- Toast Notifications --
 
 function showToast(msg, isError) {
   var container = document.getElementById('toastContainer');
