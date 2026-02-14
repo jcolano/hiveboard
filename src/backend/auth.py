@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import secrets
 import time
 from uuid import uuid4
@@ -11,9 +10,10 @@ from uuid import uuid4
 import bcrypt
 import jwt
 
-# Configuration via environment variables
-JWT_SECRET = os.environ.get("HIVEBOARD_JWT_SECRET", "hiveboard-dev-secret-change-in-production")
-JWT_EXPIRY = int(os.environ.get("HIVEBOARD_JWT_EXPIRY", "3600"))
+from backend.config import get as _cfg
+
+JWT_SECRET = _cfg("jwt_secret", "hiveboard-dev-secret-change-in-production")
+JWT_EXPIRY = int(_cfg("jwt_expiry", 3600))
 JWT_ALGORITHM = "HS256"
 
 

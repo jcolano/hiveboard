@@ -187,8 +187,9 @@ class JsonStorageBackend:
     """MVP storage — one JSON file per table, in-memory + write-through."""
 
     def __init__(self, data_dir: str | Path | None = None):
+        from backend.config import get as _cfg
         self._data_dir = Path(
-            data_dir or os.environ.get("HIVEBOARD_DATA", "data")
+            data_dir or _cfg("data_dir", "data")
         )
         self._tables: dict[str, list[dict[str, Any]]] = {}
         self._locks: dict[str, asyncio.Lock] = {}

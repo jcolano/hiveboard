@@ -1,0 +1,7 @@
+{
+  "dev_key": "hb_live_CHANGE_ME_00000000000000000000",
+  "dev_password": "change-me",
+  "jwt_secret": "change-me-in-production",
+  "jwt_expiry": 3600,
+  "data_dir": "data"
+}

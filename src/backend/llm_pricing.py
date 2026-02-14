@@ -58,7 +58,8 @@ class LlmPricingEngine:
     """In-memory LLM pricing cache with file persistence."""
 
     def __init__(self, data_dir: str | None = None):
-        self._data_dir = data_dir or os.environ.get("HIVEBOARD_DATA", "./data")
+        from backend.config import get as _cfg
+        self._data_dir = data_dir or _cfg("data_dir", "data")
         self._pricing_file = Path(self._data_dir) / "llm_pricing.json"
         self._entries: list[dict[str, Any]] = []
         self._lock = asyncio.Lock()
