@@ -1,1 +1,80 @@
-[]
+[
+  {
+    "project_id": "84167f75-8b80-4182-adef-0d93397c3bf3",
+    "tenant_id": "dev",
+    "name": "Default",
+    "slug": "default",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T21:12:09.457137Z",
+    "updated_at": "2026-02-14T21:12:09.457137Z"
+  },
+  {
+    "project_id": "489bb070-8e39-4495-b724-84d52b56b5e4",
+    "tenant_id": "dev",
+    "name": "Lead Generation",
+    "slug": "lead-gen",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T21:13:06.431416Z",
+    "updated_at": "2026-02-14T21:13:06.431416Z"
+  },
+  {
+    "project_id": "3891cc0a-b4dc-487f-af58-c6f1ad402cac",
+    "tenant_id": "dev",
+    "name": "Sales Pipeline",
+    "slug": "sales-pipeline",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T21:13:08.453036Z",
+    "updated_at": "2026-02-14T21:13:08.453036Z"
+  },
+  {
+    "project_id": "3eeb0e50-51a1-46ff-a51d-c96d5ee77c73",
+    "tenant_id": "dev",
+    "name": "Customer Success",
+    "slug": "customer-success",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T21:13:10.471239Z",
+    "updated_at": "2026-02-14T21:13:10.471239Z"
+  },
+  {
+    "project_id": "6b298dbd-d662-4163-bab1-f165674b6c38",
+    "tenant_id": "dev",
+    "name": "Marketing Ops",
+    "slug": "marketing-ops",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T21:13:12.511651Z",
+    "updated_at": "2026-02-14T21:13:12.511651Z"
+  },
+  {
+    "project_id": "0b56f772-54f7-4b31-aacb-7be025631dcd",
+    "tenant_id": "dev",
+    "name": "Back Office",
+    "slug": "back-office",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T21:13:14.534883Z",
+    "updated_at": "2026-02-14T21:13:14.534883Z"
+  }
+]

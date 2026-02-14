@@ -70,6 +70,125 @@ const KIND_ICON = { llm_call: '◆', queue_snapshot: '⊞', todo: '☐', issue: 
 const TREE_ICON = { llm: '◆', action: '⚡', error: '✗', success: '✓', system: '▶', warning: '💭', human: '👤', retry: '↻' };
 
 // ═══════════════════════════════════════════════════
+//  NARRATIVE LOG — Template Registry
+// ═══════════════════════════════════════════════════
+
+var EVENT_TEMPLATES = {
+  'agent_registered': '{agent} registered ({framework})',
+  'heartbeat': '{agent} sent heartbeat',
+  'task_started': '{agent} started {taskType} {task}',
+  'task_completed': '{agent} completed {task} in {duration}',
+  'task_failed': '{agent} failed {task}: {error}',
+  'action_started': '{agent} began {summary}',
+  'action_completed': '{agent} finished {summary} in {duration}',
+  'action_failed': '{agent} failed on {summary}: {error}',
+  'retry_started': '{agent} retrying {summary}',
+  'escalated': '{agent} escalated {task}: {summary}',
+  'approval_requested': '{agent} requested approval for {summary}',
+  'approval_received': '{agent} received approval from {approver}',
+  'custom': '{agent}: {summary}',
+};
+
+var KIND_TEMPLATES = {
+  'llm_call': '{agent} called {model} for {llmName} ({tokensIn} tokens)',
+  'issue': '{agent} reported {issueSeverity} {category} issue: {summary}',
+  'issue:resolved': '{agent} resolved {category} issue: {summary}',
+  'queue_snapshot': '{agent} queue depth: {queueDepth} items',
+  'todo': '{agent} {todoAction} todo: {summary}',
+  'todo:completed': '{agent} completed todo: {summary}',
+  'plan_created': '{agent} created plan with {stepCount} steps',
+  'plan_step:started': '{agent} started step {stepIndex}/{totalSteps}: {summary}',
+  'plan_step:completed': '{agent} completed step {stepIndex}/{totalSteps}',
+  'plan_step:failed': '{agent} failed on step {stepIndex}/{totalSteps}: {summary}',
+  'scheduled': '{agent} reported {scheduledCount} scheduled items',
+};
+
+function shortModelName(model) {
+  if (!model) return 'LLM';
+  return model.replace(/-\d{8,}$/, '');
+}
+
+function interpolateTemplate(template, vals) {
+  // Pass 1: parenthesized groups — drop entire group if key is null
+  var result = template.replace(/\(([^)]*\{(\w+)\}[^)]*)\)/g, function(match, inner, key) {
+    if (vals[key] == null) return '';
+    var filled = inner.replace(/\{(\w+)\}/g, function(m, k) {
+      return vals[k] != null ? vals[k] : '';
+    });
+    return '(' + filled.trim() + ')';
+  });
+
+  // Pass 2: connector + placeholder — drop both if null
+  result = result.replace(/((?:\s+(?:in|for|from|with|on)\s+)|(?::\s*)|(?:\s*—\s*))?(\{(\w+)\})/g,
+    function(match, connector, placeholder, key) {
+      if (vals[key] == null) return '';
+      return (connector || '') + vals[key];
+    }
+  );
+
+  // Pass 3: remaining placeholders
+  result = result.replace(/\{(\w+)\}/g, function(match, key) {
+    return vals[key] != null ? vals[key] : '';
+  });
+
+  return result.replace(/\s{2,}/g, ' ').trim();
+}
+
+function formatEventSentence(e) {
+  // 1. Select template (kind:action > kind > event_type > fallback)
+  var template = null;
+  var action = e.action || null;
+  if (e.kind && action) template = KIND_TEMPLATES[e.kind + ':' + action];
+  if (!template && e.kind) template = KIND_TEMPLATES[e.kind];
+  if (!template) template = EVENT_TEMPLATES[e.type];
+  if (!template) return escHtml(e.summary || e.type);
+
+  // 2. Build placeholder values (all escaped)
+  var truncSummary = e.summary;
+  if (truncSummary && truncSummary.length > 120) truncSummary = truncSummary.slice(0, 117) + '...';
+
+  var vals = {
+    agent: escHtml(e.agent || 'unknown'),
+    task: e.task ? escHtml(e.task) : null,
+    taskType: e.taskType ? escHtml(e.taskType) : null,
+    summary: truncSummary ? escHtml(truncSummary) : null,
+    duration: e.durationMs != null ? fmtDuration(e.durationMs) : null,
+    error: e.errorMessage ? escHtml(e.errorMessage) : (e.errorType ? escHtml(e.errorType) : null),
+    model: e.model ? shortModelName(e.model) : null,
+    llmName: e.llmName ? escHtml(e.llmName) : (e.summary ? escHtml(e.summary) : null),
+    tokensIn: e.tokensIn != null ? fmtTokens(e.tokensIn) : null,
+    cost: e.cost != null ? '$' + e.cost.toFixed(3) : null,
+    approver: e.approver ? escHtml(e.approver) : null,
+    issueSeverity: e.issueSeverity ? escHtml(e.issueSeverity) : null,
+    category: e.category ? escHtml(e.category) : null,
+    queueDepth: e.queueDepth != null ? String(e.queueDepth) : null,
+    todoAction: e.todoAction ? escHtml(e.todoAction) : null,
+    stepIndex: e.stepIndex != null ? String(e.stepIndex) : null,
+    totalSteps: e.totalSteps != null ? String(e.totalSteps) : null,
+    stepCount: e.stepCount != null ? String(e.stepCount) : null,
+    scheduledCount: e.scheduledCount != null ? String(e.scheduledCount) : null,
+    framework: e.framework ? escHtml(e.framework) : null,
+  };
+
+  // 3. Interpolate
+  var result = interpolateTemplate(template, vals);
+
+  // 4. Wrap agent/task as clickable (inject HTML after escaping)
+  if (e.agent) {
+    var agentText = escHtml(e.agent);
+    var agentSpan = '<span class="clickable-entity" onclick="selectAgent(\'' + agentText + '\')">' + agentText + '</span>';
+    result = result.replace(agentText, agentSpan);
+  }
+  if (e.task) {
+    var taskText = escHtml(e.task);
+    var taskSpan = '<span class="clickable-entity" onclick="selectTask(\'' + taskText + '\')">' + taskText + '</span>';
+    result = result.replace(taskText, taskSpan);
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════
 //  HELPERS
 // ═══════════════════════════════════════════════════
 
@@ -386,6 +505,16 @@ async function fetchEvents(since) {
       responsePreview: pd.response_preview || null,
       llmMetadata: pd.metadata || null,
       llmName: pd.name || null,
+      // ★ Narrative log fields
+      taskType: e.task_type || null,
+      action: pd.action || null,
+      issueSeverity: pd.severity || null,
+      todoAction: pd.action || null,
+      stepIndex: pd.step_index || null,
+      totalSteps: pd.total_steps || null,
+      stepCount: (pd.steps && pd.steps.length) ? pd.steps.length : null,
+      scheduledCount: (pd.items && pd.items.length) ? pd.items.length : null,
+      framework: e.framework || null,
     };
   });
   if (since) {
@@ -1018,12 +1147,30 @@ function buildStreamDetailTags(e) {
   return tags.join('');
 }
 
+function renderNarrativeLog() {
+  var list = document.getElementById('narrativeList');
+  if (!list) return;
+  var filtered = getFilteredStream();
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;">No events</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(function(e) {
+    return '<div class="narrative-event">' +
+      '<span class="narrative-sentence">' + formatEventSentence(e) + '</span>' +
+      '<span class="narrative-time">' + e.time + '</span>' +
+    '</div>';
+  }).join('');
+}
+
 function renderStream() {
   const list = document.getElementById('streamList');
   const filtered = getFilteredStream();
   document.getElementById('eventCount').textContent = filtered.length + ' event' + (filtered.length !== 1 ? 's' : '');
 
-  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state" style="padding-top: 40px;"><span class="empty-state-icon">📡</span>No events match filters</div>'; return; }
+  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state" style="padding-top: 40px;"><span class="empty-state-icon">📡</span>No events match filters</div>'; renderNarrativeLog(); return; }
 
   list.innerHTML = filtered.map(e => {
     const kindIcon = e.kind ? (KIND_ICON[e.kind] || '') : '';
@@ -1048,6 +1195,8 @@ function renderStream() {
       ${detailTags ? `<div class="stream-event-detail">${detailTags}</div>` : ''}
     </div>`;
   }).join('');
+
+  renderNarrativeLog();
 }
 
 // ═══════════════════════════════════════════════════
@@ -1909,6 +2058,16 @@ function handleWsMessage(msg) {
       responsePreview: pd.response_preview || null,
       llmMetadata: pd.metadata || null,
       llmName: pd.name || null,
+      // ★ Narrative log fields
+      taskType: e.task_type || null,
+      action: pd.action || null,
+      issueSeverity: pd.severity || null,
+      todoAction: pd.action || null,
+      stepIndex: pd.step_index || null,
+      totalSteps: pd.total_steps || null,
+      stepCount: (pd.steps && pd.steps.length) ? pd.steps.length : null,
+      scheduledCount: (pd.items && pd.items.length) ? pd.items.length : null,
+      framework: e.framework || null,
     };
     if (!STREAM_EVENTS.find(function(ev) { return ev.eventId === newEvent.eventId; })) {
       STREAM_EVENTS.unshift(newEvent);

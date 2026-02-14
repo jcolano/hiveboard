@@ -169,15 +169,27 @@
 
         <!-- RIGHT: ACTIVITY STREAM -->
         <div class="stream-panel">
-            <div class="panel-header">
-                <div class="panel-header-group">
-                    <div class="panel-title">Activity</div>
+            <!-- TOP: Narrative Log (~40%) -->
+            <div class="narrative-panel">
+                <div class="sub-panel-header">
+                    <span class="sub-panel-title">Narrative</span>
                     <div class="live-badge"><div class="live-dot"></div> Live</div>
                 </div>
-                <div class="panel-count" id="eventCount">0 events</div>
+                <div class="narrative-list" id="narrativeList"></div>
             </div>
-            <div class="stream-filters" id="streamFilters"></div>
-            <div class="stream-list" id="streamList"></div>
+
+            <!-- Divider -->
+            <div class="stream-divider"></div>
+
+            <!-- BOTTOM: Raw Activity Stream (~60%) -->
+            <div class="raw-stream-panel">
+                <div class="sub-panel-header">
+                    <span class="sub-panel-title">Activity</span>
+                    <div class="panel-count" id="eventCount">0 events</div>
+                </div>
+                <div class="stream-filters" id="streamFilters"></div>
+                <div class="stream-list" id="streamList"></div>
+            </div>
         </div>
     </div>
 

@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Guide — HiveBoard Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (HiveBoard system)
+   ═══════════════════════════════════════ */
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --accent-light: rgba(194, 65, 12, 0.1);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --success-dim: rgba(22, 163, 74, 0.08);
+    --error: #dc2626;
+    --error-dim: rgba(220, 38, 38, 0.06);
+    --warning: #d97706;
+    --warning-dim: rgba(217, 119, 6, 0.08);
+    --info: #2563eb;
+    --info-dim: rgba(37, 99, 235, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.docs-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 3px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 1px solid rgba(194, 65, 12, 0.12);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.topbar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-link.primary {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+}
+.topbar-link.primary:hover { background: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.docs-layout {
+    display: flex; min-height: 100vh; padding-top: 56px;
+}
+
+/* ─── LEFT SIDEBAR ─── */
+.docs-sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: fixed; top: 56px; bottom: 0; left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.docs-nav-section {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding: 16px 12px 6px;
+}
+.docs-nav-section:first-child { padding-top: 0; }
+
+.docs-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    transition: all 0.12s; border: 1px solid transparent;
+}
+.docs-nav-item:hover {
+    background: var(--bg-hover); color: var(--text-primary);
+}
+.docs-nav-item.active {
+    background: var(--accent-dim); color: var(--accent);
+    font-weight: 600; border-color: rgba(194, 65, 12, 0.1);
+}
+.docs-nav-icon {
+    width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5;
+    display: flex; align-items: center;
+}
+.docs-nav-icon svg { width: 18px; height: 18px; }
+.docs-nav-item.active .docs-nav-icon { opacity: 1; color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.docs-main {
+    flex: 1; margin-left: 260px; margin-right: 220px;
+    padding: 40px 48px 80px;
+    max-width: 820px;
+    animation: fade-in 0.3s ease;
+}
+
+/* ─── RIGHT TOC ─── */
+.page-toc {
+    position: fixed; top: 96px; right: 24px;
+    width: 196px; max-height: calc(100vh - 120px);
+    overflow-y: auto; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.page-toc::-webkit-scrollbar { width: 3px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.page-toc-title {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+}
+.toc-link {
+    display: block; padding: 4px 0;
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s;
+    line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -1px;
+}
+.toc-link:hover { color: var(--text-primary); }
+.toc-link.toc-h3 { padding-left: 22px; font-size: 12px; }
+.toc-link.active {
+    color: var(--accent); font-weight: 600;
+    border-left-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   CONTENT TYPOGRAPHY
+   ═══════════════════════════════════════ */
+.doc-content h1 {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    letter-spacing: -0.7px; line-height: 1.2;
+    margin-bottom: 8px; color: var(--text-primary);
+}
+.doc-content h2 {
+    font-family: var(--font-sans); font-size: 21px; font-weight: 700;
+    letter-spacing: -0.3px; line-height: 1.3;
+    margin-top: 48px; margin-bottom: 16px;
+    padding-top: 24px; border-top: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+.doc-content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+
+.doc-content h3 {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    margin-top: 32px; margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.doc-content h4 {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    margin-top: 24px; margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.heading-anchor {
+    color: var(--accent); text-decoration: none;
+    opacity: 0; font-weight: 400; margin-left: 6px;
+    transition: opacity 0.15s;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor { opacity: 0.5; }
+.heading-anchor:hover { opacity: 1 !important; }
+
+.doc-content p {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 16px;
+}
+.doc-content strong { color: var(--text-primary); font-weight: 600; }
+
+.doc-content a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(194, 65, 12, 0.2);
+    transition: border-color 0.15s;
+}
+.doc-content a:hover { border-bottom-color: var(--accent); }
+
+.doc-content ul, .doc-content ol {
+    margin-bottom: 16px; padding-left: 24px;
+}
+.doc-content li {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.doc-content li strong { color: var(--text-primary); }
+
+/* Inline code */
+.doc-content code {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(194, 65, 12, 0.08);
+}
+
+/* Code blocks */
+.code-block {
+    position: relative; margin-bottom: 20px;
+    background: #1e1e2e; border-radius: var(--radius-md);
+    border: 1px solid #2a2a3e;
+    overflow: hidden;
+}
+.code-block .code-lang {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8888aa; background: rgba(255,255,255,0.05);
+    padding: 4px 12px; border-radius: 0 var(--radius-md) 0 6px;
+}
+.code-block pre {
+    margin: 0; padding: 20px 24px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.code-block pre::-webkit-scrollbar { height: 4px; }
+.code-block pre::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.code-block pre code {
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    color: #cdd6f4; background: none; padding: 0; border: none; border-radius: 0;
+}
+
+/* Tables */
+.table-wrapper {
+    margin-bottom: 20px; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    scrollbar-width: thin;
+}
+.table-wrapper table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px;
+}
+.table-wrapper th {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); background: var(--bg-elevated);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.table-wrapper td {
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+    color: var(--text-secondary); padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+}
+.table-wrapper tr:last-child td { border-bottom: none; }
+.table-wrapper tr:hover td { background: var(--bg-elevated); }
+.table-wrapper td code {
+    font-size: 12px;
+}
+
+/* Blockquotes / Callouts */
+.callout {
+    margin-bottom: 20px; padding: 16px 20px;
+    border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--bg-elevated);
+}
+.callout p { margin-bottom: 8px; font-size: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.callout em { color: var(--text-muted); }
+
+.callout-warning {
+    border-left-color: var(--warning);
+    background: var(--warning-dim);
+}
+.callout-tip {
+    border-left-color: var(--success);
+    background: var(--success-dim);
+}
+.callout-info {
+    border-left-color: var(--info);
+    background: var(--info-dim);
+}
+.callout-danger {
+    border-left-color: var(--error);
+    background: var(--error-dim);
+}
+
+/* HR */
+.doc-content hr {
+    border: none; height: 1px;
+    background: var(--border); margin: 32px 0;
+}
+
+/* ─── VERSION BADGE ─── */
+.doc-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.doc-meta-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); background: var(--bg-elevated);
+    padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ─── PREV / NEXT NAV ─── */
+.prev-next {
+    display: flex; gap: 16px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+}
+.prev-next-link {
+    flex: 1; display: block; padding: 16px 20px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); text-decoration: none;
+    transition: all 0.15s;
+}
+.prev-next-link:hover {
+    border-color: var(--accent); background: var(--accent-dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.06);
+}
+.prev-next-link.next { text-align: right; }
+.prev-next-label {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--text-muted); display: block; margin-bottom: 4px;
+}
+.prev-next-title {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    color: var(--text-primary);
+}
+.prev-next-link:hover .prev-next-title { color: var(--accent); }
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+    cursor: pointer; color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 1200px) {
+    .page-toc { display: none; }
+    .docs-main { margin-right: 0; }
+}
+
+@media (max-width: 860px) {
+    .mobile-menu-toggle { display: flex; }
+    .docs-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 50;
+        box-shadow: none;
+    }
+    .docs-sidebar.open {
+        transform: translateX(0);
+        box-shadow: 8px 0 30px rgba(0,0,0,0.1);
+    }
+    .docs-main {
+        margin-left: 0; padding: 28px 20px 60px;
+    }
+    .doc-content h1 { font-size: 24px; }
+    .doc-content h2 { font-size: 19px; }
+    .prev-next { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════
+   PRISM THEME OVERRIDES (dark code blocks)
+   ═══════════════════════════════════════ */
+.code-block .token.comment,
+.code-block .token.prolog,
+.code-block .token.doctype { color: #6c7086; }
+.code-block .token.punctuation { color: #a6adc8; }
+.code-block .token.property,
+.code-block .token.tag,
+.code-block .token.boolean,
+.code-block .token.number { color: #fab387; }
+.code-block .token.string,
+.code-block .token.attr-value { color: #a6e3a1; }
+.code-block .token.selector,
+.code-block .token.attr-name,
+.code-block .token.builtin { color: #89b4fa; }
+.code-block .token.keyword { color: #cba6f7; }
+.code-block .token.function { color: #89b4fa; }
+.code-block .token.operator { color: #89dceb; }
+.code-block .token.class-name { color: #f9e2af; }
+.code-block .token.decorator { color: #f38ba8; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="home.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <span class="docs-badge">Docs</span>
+    </div>
+    <div class="topbar-right">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <a href="https://github.com/hiveboard/hiveloop" class="topbar-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="home.html" class="topbar-link primary">Open Dashboard</a>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="docs-layout">
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar" id="docsSidebar">
+<div class="docs-nav-section">Getting Started</div>
+<a class="docs-nav-item" href="user-manual.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7a2 2 0 012 2v12.5l-.5-.5-3-3H3.5A1.5 1.5 0 012 11.5v-8z" stroke="currentColor" stroke-width="1.3"/><path d="M16 3.5A1.5 1.5 0 0014.5 2H11a2 2 0 00-2 2v12.5l.5-.5 3-3h2A1.5 1.5 0 0016 11.5v-8z" stroke="currentColor" stroke-width="1.3"/></svg></span><span>SDK Manual</span></a>
+<a class="docs-nav-item" href="integration-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M6 2v4M12 2v4M4 6h10v3a5 5 0 01-5 5 5 5 0 01-5-5V6zM9 14v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Integration Guide</span></a>
+<div class="docs-nav-section">Dashboard</div>
+<a class="docs-nav-item active" href="docs-dashboard-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 7h14M7 7v9" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Dashboard Guide</span></a>
+<div class="docs-nav-section">Instrumentation</div>
+<a class="docs-nav-item" href="docs-instrumentation-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Instrumentation</span></a>
+<a class="docs-nav-item" href="docs-layer1-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6l7 4 7-4-7-4zM2 12l7 4 7-4M2 9l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Layer 1 Guide</span></a>
+<div class="docs-nav-section">Rich Events</div>
+<a class="docs-nav-item" href="docs-layer2-rich-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M10 2L3 10h5l-1 6 7-8h-5l1-6z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Rich Events</span></a>
+<a class="docs-nav-item" href="docs-layer2-llm-tracking.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="7" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2v2M11 2v2M7 14v2M11 14v2M2 7h2M2 11h2M14 7h2M14 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>LLM Tracking</span></a>
+<a class="docs-nav-item" href="docs-operational-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M16 9h-3l-2 7L7 2 5 9H2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Operational Events</span></a>
+<a class="docs-nav-item" href="docs-track-context.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7v4M13 7c0 3-2 4-8 4" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Track Context</span></a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+        <div class="doc-meta">
+            <span class="doc-meta-badge">v0.1.0</span>
+            <span class="doc-meta-badge">Updated Feb 2026</span>
+        </div>
+        <article class="doc-content">
+<h1 id="hiveboard-user-manual-part-2-dashboard-guide">HiveBoard — User Manual Part 2: Dashboard Guide <a class="heading-anchor" href="#hiveboard-user-manual-part-2-dashboard-guide" aria-label="Link to this section">#</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Last updated:</strong> 2026-02-12</p>
+<blockquote class="callout"><p><em>Every screen, every element, every question the dashboard answers.</em></p></blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents <a class="heading-anchor" href="#table-of-contents" aria-label="Link to this section">#</a></h2>
+<ol>
+<li><a href="#1-dashboard-overview">Dashboard Overview</a></li>
+<li><a href="#2-the-top-bar">The Top Bar</a></li>
+<li><a href="#3-the-hive--agent-fleet-panel">The Hive — Agent Fleet Panel</a></li>
+<li><a href="#4-mission-control--the-center-panel">Mission Control — The Center Panel</a></li>
+<li><a href="#5-the-activity-stream--live-event-feed">The Activity Stream — Live Event Feed</a></li>
+<li><a href="#6-agent-detail-view">Agent Detail View</a></li>
+<li><a href="#7-cost-explorer">Cost Explorer</a></li>
+<li><a href="#8-filtering-and-navigation">Filtering and Navigation</a></li>
+<li><a href="#9-reading-the-dashboard-by-instrumentation-layer">Reading the Dashboard by Instrumentation Layer</a></li>
+<li><a href="#10-common-scenarios-and-what-to-look-for">Common Scenarios and What to Look For</a></li>
+<li><a href="#11-color-reference">Color Reference</a></li>
+<li><a href="#12-glossary">Glossary</a></li>
+</ol>
+<hr />
+<h2 id="1-dashboard-overview">1. Dashboard Overview <a class="heading-anchor" href="#1-dashboard-overview" aria-label="Link to this section">#</a></h2>
+<p>HiveBoard is a single-screen dashboard divided into three columns:</p>
+<div class="code-block"><pre><code>┌──────────────────────────────────────────────────────────────────────────┐
+│                            TOP BAR                                       │
+│  Logo  │ Mission Control │ Cost Explorer │         Connected │ production │
+├─────────┬──────────────────────────────────────────┬─────────────────────┤
+│         │                                          │                     │
+│   THE   │          MISSION CONTROL                 │     ACTIVITY        │
+│   HIVE  │       (or Cost Explorer                  │     STREAM          │
+│         │        or Agent Detail)                   │                     │
+│  Agent  │                                          │  Real-time          │
+│  cards  │  Stats ribbon                            │  event feed         │
+│  with   │  Mini-charts                             │  with filters       │
+│  status │  Timeline                                │                     │
+│  and    │  Task table                              │                     │
+│  health │                                          │                     │
+│         │                                          │                     │
+├─────────┴──────────────────────────────────────────┴─────────────────────┤
+</code></pre></div>
+<p><strong>Left column (280px):</strong> The Hive — your agent fleet at a glance.
+<strong>Center column (flexible):</strong> Mission Control, Cost Explorer, or Agent Detail — depending on what you're viewing.
+<strong>Right column (320px):</strong> Activity Stream — live event feed.</p>
+<p>The dashboard is real-time. It connects to the HiveBoard server via WebSocket and updates automatically as events arrive. You never need to refresh.</p>
+<hr />
+<h2 id="2-the-top-bar">2. The Top Bar <a class="heading-anchor" href="#2-the-top-bar" aria-label="Link to this section">#</a></h2>
+<p>The top bar is always visible and provides global controls.</p>
+<h3 id="21-elements-left-to-right">2.1 Elements (left to right) <a class="heading-anchor" href="#21-elements-left-to-right" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>What it is</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>HiveBoard logo</strong></td>
+  <td>Product identity</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><strong>Workspace badge</strong></td>
+  <td>Your workspace/tenant name</td>
+  <td>Identifies which account you're viewing</td>
+</tr>
+<tr>
+  <td><strong>Mission Control tab</strong></td>
+  <td>View switcher</td>
+  <td>Shows the fleet overview with stats, timeline, and task table</td>
+</tr>
+<tr>
+  <td><strong>Cost Explorer tab</strong></td>
+  <td>View switcher</td>
+  <td>Shows LLM cost breakdown by model and agent</td>
+</tr>
+<tr>
+  <td><strong>Connected indicator</strong></td>
+  <td>WebSocket status</td>
+  <td>Green pulsing dot = live connection. If this goes away, you're not receiving real-time updates</td>
+</tr>
+<tr>
+  <td><strong>Environment selector</strong></td>
+  <td>Filter dropdown</td>
+  <td>Switches between <code>production</code>, <code>staging</code>, etc. Only shows agents and events for the selected environment</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="22-connection-status">2.2 Connection status <a class="heading-anchor" href="#22-connection-status" aria-label="Link to this section">#</a></h3>
+<p>The <strong>Connected</strong> indicator tells you if the dashboard has a live WebSocket connection to the server.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Status</th>
+  <th>Meaning</th>
+  <th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>🟢 <strong>Connected</strong> (pulsing)</td>
+  <td>Dashboard is receiving events in real time</td>
+  <td>None needed</td>
+</tr>
+<tr>
+  <td>No indicator / disconnected</td>
+  <td>WebSocket dropped</td>
+  <td>Check if the HiveBoard server is running. The dashboard will automatically reconnect</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="23-environment-selector">2.3 Environment selector <a class="heading-anchor" href="#23-environment-selector" aria-label="Link to this section">#</a></h3>
+<p>The environment dropdown filters the entire dashboard. When set to <code>production</code>, you only see agents and events from agents initialized with <code>environment=&quot;production&quot;</code>. This maps to the <code>environment</code> parameter in <code>hiveloop.init()</code>.</p>
+<p>Use this to separate production monitoring from staging/development.</p>
+<hr />
+<h2 id="3-the-hive-agent-fleet-panel">3. The Hive — Agent Fleet Panel <a class="heading-anchor" href="#3-the-hive-agent-fleet-panel" aria-label="Link to this section">#</a></h2>
+<p>The left sidebar shows every registered agent as a card. This is your fleet-at-a-glance view — the first thing to check when you open the dashboard.</p>
+<h3 id="31-the-hive-header">3.1 The Hive header <a class="heading-anchor" href="#31-the-hive-header" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>&quot;THE HIVE&quot;</strong></td>
+  <td>Panel title</td>
+</tr>
+<tr>
+  <td><strong>Agent count</strong></td>
+  <td>Total number of agents matching current filters (e.g. &quot;2 agents&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Attention badge</strong> (red, pulsing)</td>
+  <td>Appears when agents need attention — stuck, error, or waiting for approval. The number indicates how many agents need attention. If you see this, something needs action</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="32-agent-cards">3.2 Agent cards <a class="heading-anchor" href="#32-agent-cards" aria-label="Link to this section">#</a></h3>
+<p>Each agent is displayed as a card with these elements:</p>
+<div class="code-block"><pre><code>┌─────────────────────────────────┐
+│ main                      IDLE  │  ← agent name + status badge
+│ general  ● 24s ago              │  ← type label + heartbeat indicator
+│ ↳ task_lead-4821                │  ← current task (if processing)
+│ ▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪              │  ← heartbeat sparkline
+│ Q:3  ● 1 issue                  │  ← pipeline enrichment (if present)
+└─────────────────────────────────┘
+</code></pre></div>
+<h4 id="agent-name">Agent name <a class="heading-anchor" href="#agent-name" aria-label="Link to this section">#</a></h4>
+<p>The <code>agent_id</code> passed to <code>hb.agent()</code>. This is your primary identifier. Use human-readable names like <code>&quot;lead-qualifier&quot;</code> or <code>&quot;support-triage&quot;</code> instead of auto-generated IDs.</p>
+<h4 id="status-badge">Status badge <a class="heading-anchor" href="#status-badge" aria-label="Link to this section">#</a></h4>
+<p>The current state of the agent, derived from its events and heartbeat:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Badge</th>
+  <th>Color</th>
+  <th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>IDLE</strong></td>
+  <td>Gray</td>
+  <td>Agent is alive (heartbeat active) but not currently working on a task</td>
+</tr>
+<tr>
+  <td><strong>PROCESSING</strong></td>
+  <td>Blue</td>
+  <td>Agent is actively executing a task</td>
+</tr>
+<tr>
+  <td><strong>WAITING</strong></td>
+  <td>Amber/Yellow</td>
+  <td>Agent has requested human approval and is blocked</td>
+</tr>
+<tr>
+  <td><strong>ERROR</strong></td>
+  <td>Red</td>
+  <td>Agent's most recent task failed</td>
+</tr>
+<tr>
+  <td><strong>STUCK</strong></td>
+  <td>Red, blinking</td>
+  <td>No heartbeat received within the stuck threshold. The agent may have crashed, hung, or lost connectivity</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>STUCK is the most critical status.</strong> If you see a blinking red STUCK badge, the agent has stopped communicating. Investigate immediately — the agent process may have crashed, the network may be down, or the agent may be in an infinite loop.</p>
+<h4 id="type-label">Type label <a class="heading-anchor" href="#type-label" aria-label="Link to this section">#</a></h4>
+<p>The <code>type</code> parameter from <code>hb.agent()</code> (e.g. <code>&quot;general&quot;</code>, <code>&quot;sales&quot;</code>, <code>&quot;support&quot;</code>). Helps you visually categorize agents at a glance.</p>
+<h4 id="heartbeat-indicator">Heartbeat indicator <a class="heading-anchor" href="#heartbeat-indicator" aria-label="Link to this section">#</a></h4>
+<p>Shows the agent's health signal:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dot color</th>
+  <th>Text</th>
+  <th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>🟢 Green</td>
+  <td>&quot;24s ago&quot;</td>
+  <td>Heartbeat received recently — agent is healthy</td>
+</tr>
+<tr>
+  <td>🟡 Yellow</td>
+  <td>&quot;2m ago&quot;</td>
+  <td>Heartbeat is slightly stale — not critical yet, but watch it</td>
+</tr>
+<tr>
+  <td>🔴 Red</td>
+  <td>&quot;8m ago&quot;</td>
+  <td>Heartbeat is overdue — agent is likely stuck or crashed</td>
+</tr>
+</tbody>
+</table></div>
+<p>The timestamp shows how long ago the last heartbeat was received. Under normal operation with <code>heartbeat_interval=30</code>, you should see numbers under 60 seconds.</p>
+<h4 id="current-task">Current task <a class="heading-anchor" href="#current-task" aria-label="Link to this section">#</a></h4>
+<p>If the agent is currently processing a task, you'll see <code>↳ task_id</code> below the metadata. Click the task ID to jump to its timeline in Mission Control.</p>
+<h4 id="heartbeat-sparkline">Heartbeat sparkline <a class="heading-anchor" href="#heartbeat-sparkline" aria-label="Link to this section">#</a></h4>
+<p>The row of small bars at the bottom of the card shows heartbeat activity over time. A steady, even pattern means the agent is running stably. Gaps indicate periods where the agent was offline or heartbeats were missed.</p>
+<h4 id="pipeline-enrichment-layer-2">Pipeline enrichment (Layer 2+) <a class="heading-anchor" href="#pipeline-enrichment-layer-2" aria-label="Link to this section">#</a></h4>
+<p>When you instrument with <code>queue_provider</code>, <code>report_issue</code>, etc., the card shows additional badges:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Badge</th>
+  <th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Q:3</strong> (blue)</td>
+  <td>Agent has 3 items in its work queue</td>
+</tr>
+<tr>
+  <td><strong>Q:8</strong> (amber)</td>
+  <td>Queue depth is high (&gt;5 items) — agent may be falling behind</td>
+</tr>
+<tr>
+  <td><strong>● 1 issue</strong> (red)</td>
+  <td>Agent has self-reported an active issue</td>
+</tr>
+<tr>
+  <td><strong>↳ Processing lead #4801</strong></td>
+  <td>Current processing summary from heartbeat payload</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="33-card-interactions">3.3 Card interactions <a class="heading-anchor" href="#33-card-interactions" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Action</th>
+  <th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Click a card</strong></td>
+  <td>Filters the entire dashboard to that agent. Stats, timeline, tasks, and activity stream all scope to the selected agent. A yellow highlight appears on the card and a filter bar appears at the top</td>
+</tr>
+<tr>
+  <td><strong>Click the selected card again</strong></td>
+  <td>Clears the filter (deselects)</td>
+</tr>
+<tr>
+  <td><strong>Double-click a card</strong></td>
+  <td>Opens the Agent Detail view (expanded view with Tasks and Pipeline tabs)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="34-card-sorting">3.4 Card sorting <a class="heading-anchor" href="#34-card-sorting" aria-label="Link to this section">#</a></h3>
+<p>Cards are sorted by <strong>attention priority</strong>:</p>
+<ol>
+<li>Stuck agents (first — most critical)</li>
+<li>Error agents</li>
+<li>Waiting for approval</li>
+<li>Processing</li>
+<li>Idle (last — everything is fine)</li>
+</ol>
+<p>Within each status group, agents are sorted by most recent activity. This means the agents that need your attention most are always at the top.</p>
+<hr />
+<h2 id="4-mission-control-the-center-panel">4. Mission Control — The Center Panel <a class="heading-anchor" href="#4-mission-control-the-center-panel" aria-label="Link to this section">#</a></h2>
+<p>Mission Control is the default center view. It has four sections stacked vertically: the Stats Ribbon, the Mini-Charts, the Timeline, and the Task Table.</p>
+<h3 id="41-stats-ribbon">4.1 Stats Ribbon <a class="heading-anchor" href="#41-stats-ribbon" aria-label="Link to this section">#</a></h3>
+<p>A row of summary statistics across the top of Mission Control:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Stat</th>
+  <th>What it shows</th>
+  <th>What to watch for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Total Agents</strong></td>
+  <td>Number of registered agents</td>
+  <td>Sudden drops mean agents crashed or deregistered</td>
+</tr>
+<tr>
+  <td><strong>Processing</strong> (blue)</td>
+  <td>Agents currently working on tasks</td>
+  <td>Click to filter the dashboard to only processing agents</td>
+</tr>
+<tr>
+  <td><strong>Waiting</strong> (amber)</td>
+  <td>Agents blocked on human approval</td>
+  <td>If this is high, your approval workflow may be a bottleneck</td>
+</tr>
+<tr>
+  <td><strong>Stuck</strong> (red)</td>
+  <td>Agents that stopped heartbeating</td>
+  <td><strong>Any number &gt; 0 needs immediate investigation</strong></td>
+</tr>
+<tr>
+  <td><strong>Errors</strong> (red)</td>
+  <td>Agents whose last task failed</td>
+  <td>Click to filter to agents in error state</td>
+</tr>
+<tr>
+  <td><strong>Success Rate (1h)</strong> (green)</td>
+  <td>Percentage of tasks completed successfully in the last hour</td>
+  <td>Drop below your baseline = something changed</td>
+</tr>
+<tr>
+  <td><strong>Avg Duration</strong></td>
+  <td>Average task processing time in the last hour</td>
+  <td>Sudden increase = agents are slowing down (LLM latency? API issues?)</td>
+</tr>
+<tr>
+  <td><strong>Cost (1h)</strong> (purple)</td>
+  <td>Total LLM cost in the last hour</td>
+  <td>Spikes indicate runaway agents or unexpected model usage</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The Processing, Waiting, Stuck, and Errors stats are clickable</strong> — they act as quick filters. Click &quot;Stuck&quot; and the dashboard filters to only show stuck agents, their events, and their tasks.</p>
+<h3 id="42-mini-charts">4.2 Mini-Charts <a class="heading-anchor" href="#42-mini-charts" aria-label="Link to this section">#</a></h3>
+<p>Below the Stats Ribbon, four small bar charts show trends over the last hour:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Chart</th>
+  <th>Label</th>
+  <th>What it tells you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Throughput (1h)</strong></td>
+  <td>Tasks completed per time bucket</td>
+  <td>Shows throughput patterns — is work flowing steadily or in bursts?</td>
+</tr>
+<tr>
+  <td><strong>Success Rate</strong></td>
+  <td>Green bars = success ratio per time bucket</td>
+  <td>Dropping bars = increasing failure rate</td>
+</tr>
+<tr>
+  <td><strong>Errors</strong></td>
+  <td>Red bars = error count per time bucket</td>
+  <td>Spikes indicate incident onset</td>
+</tr>
+<tr>
+  <td><strong>LLM Cost/Task</strong></td>
+  <td>Purple bars = average cost per task per time bucket</td>
+  <td>Rising cost means agents are using more tokens or more expensive models</td>
+</tr>
+</tbody>
+</table></div>
+<p>These charts give you a quick visual feel for whether things are normal or trending in the wrong direction, without needing to dig into data.</p>
+<h3 id="43-timeline">4.3 Timeline <a class="heading-anchor" href="#43-timeline" aria-label="Link to this section">#</a></h3>
+<p>The Timeline is the most detailed view on the dashboard. It shows the step-by-step story of a selected task — what happened, in what order, how long each step took, and what went wrong if something failed.</p>
+<h4 id="when-its-empty">When it's empty <a class="heading-anchor" href="#when-its-empty" aria-label="Link to this section">#</a></h4>
+<p>If you see &quot;No timeline data&quot;, either:</p>
+<ul>
+<li>No task is selected (click a task in the Task Table below)</li>
+<li>You're on Layer 0 only (no <code>agent.task()</code> instrumentation yet)</li>
+</ul>
+<h4 id="timeline-header">Timeline header <a class="heading-anchor" href="#timeline-header" aria-label="Link to this section">#</a></h4>
+<p>Shows the currently selected task's metadata:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Task ID</strong></td>
+  <td>The <code>task_id</code> from <code>agent.task()</code></td>
+</tr>
+<tr>
+  <td><strong>Agent name</strong> (clickable)</td>
+  <td>Which agent ran this task. Click to filter to that agent</td>
+</tr>
+<tr>
+  <td><strong>Permalink button</strong></td>
+  <td>Copies a shareable link to this specific task timeline</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="plan-progress-bar">Plan progress bar <a class="heading-anchor" href="#plan-progress-bar" aria-label="Link to this section">#</a></h4>
+<p>If the task has a plan (<code>task.plan()</code>), a progress bar appears above the timeline showing plan steps and their status:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Step color</th>
+  <th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Green</td>
+  <td>Completed</td>
+</tr>
+<tr>
+  <td>Blue (pulsing)</td>
+  <td>In progress</td>
+</tr>
+<tr>
+  <td>Gray</td>
+  <td>Not started</td>
+</tr>
+<tr>
+  <td>Red</td>
+  <td>Failed</td>
+</tr>
+</tbody>
+</table></div>
+<p>Hover over a step to see its description.</p>
+<h4 id="timeline-nodes">Timeline nodes <a class="heading-anchor" href="#timeline-nodes" aria-label="Link to this section">#</a></h4>
+<p>The timeline is displayed as a horizontal track of connected nodes. Each node represents an event:</p>
+<div class="code-block"><pre><code>[action_started] ──── [llm_call] ──── [action_completed] ──── [escalated]
+   score_lead          claude-sonnet      score_lead            Low score
+     0.0s                1.2s               1.8s                 1.8s
+</code></pre></div>
+<p><strong>Node shapes and colors:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Node type</th>
+  <th>Visual</th>
+  <th>Color</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Action (started/completed)</td>
+  <td>Circle outline</td>
+  <td>Blue</td>
+</tr>
+<tr>
+  <td>Action (failed)</td>
+  <td>Filled circle</td>
+  <td>Red</td>
+</tr>
+<tr>
+  <td>LLM call</td>
+  <td>Circle with model badge above</td>
+  <td>Purple</td>
+</tr>
+<tr>
+  <td>Escalation</td>
+  <td>Filled circle</td>
+  <td>Amber</td>
+</tr>
+<tr>
+  <td>Approval requested</td>
+  <td>Circle outline</td>
+  <td>Amber</td>
+</tr>
+<tr>
+  <td>Approval received</td>
+  <td>Filled circle</td>
+  <td>Green or Red (based on decision)</td>
+</tr>
+<tr>
+  <td>Custom event</td>
+  <td>Circle outline</td>
+  <td>Gray</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Connectors</strong> between nodes show duration — the time elapsed between events. Long connectors with high durations indicate slow steps.</p>
+<p><strong>Branching:</strong> When a task has retries or nested actions, the timeline branches vertically. Child actions appear below their parent with smaller nodes.</p>
+<h4 id="clicking-a-timeline-node">Clicking a timeline node <a class="heading-anchor" href="#clicking-a-timeline-node" aria-label="Link to this section">#</a></h4>
+<p>Click any node to <strong>pin its detail panel</strong> below the timeline. The detail panel shows:</p>
+<ul>
+<li>Event type and name</li>
+<li>All payload fields (key-value pairs)</li>
+<li>Duration</li>
+<li>Tags</li>
+<li>For LLM calls: model, token counts, cost, prompt/response previews</li>
+</ul>
+<p>Click &quot;✕ Close&quot; to dismiss the detail panel.</p>
+<h3 id="44-task-table">4.4 Task Table <a class="heading-anchor" href="#44-task-table" aria-label="Link to this section">#</a></h3>
+<p>Below the timeline, a sortable table lists all tasks:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Task ID</strong></td>
+  <td>Unique task identifier (clickable — selects the task for timeline view)</td>
+</tr>
+<tr>
+  <td><strong>Agent</strong></td>
+  <td>Which agent ran the task (clickable — filters to that agent)</td>
+</tr>
+<tr>
+  <td><strong>Type</strong></td>
+  <td>Task type classification</td>
+</tr>
+<tr>
+  <td><strong>Status</strong></td>
+  <td>Current status with color dot: completed (green), failed (red), processing (blue), waiting (amber)</td>
+</tr>
+<tr>
+  <td><strong>Duration</strong></td>
+  <td>How long the task took (or has been running)</td>
+</tr>
+<tr>
+  <td><strong>LLM</strong></td>
+  <td>Number of LLM calls made (shown as &quot;◆ 3&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Cost</strong></td>
+  <td>Total LLM cost for this task</td>
+</tr>
+<tr>
+  <td><strong>Time</strong></td>
+  <td>When the task started</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Interaction:</strong> Click any row to select that task. Its timeline loads above. The selected row is highlighted.</p>
+<p><strong>Empty state:</strong> If you see &quot;No tasks&quot;, either no tasks have been created (Layer 0 only) or the current filter excludes all tasks.</p>
+<hr />
+<h2 id="5-the-activity-stream-live-event-feed">5. The Activity Stream — Live Event Feed <a class="heading-anchor" href="#5-the-activity-stream-live-event-feed" aria-label="Link to this section">#</a></h2>
+<p>The right sidebar shows events as they happen, in real time. Every event emitted by any agent appears here immediately.</p>
+<h3 id="51-stream-header">5.1 Stream header <a class="heading-anchor" href="#51-stream-header" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>&quot;ACTIVITY&quot;</strong></td>
+  <td>Panel title</td>
+</tr>
+<tr>
+  <td><strong>● LIVE</strong> (green dot)</td>
+  <td>Indicates real-time streaming is active</td>
+</tr>
+<tr>
+  <td><strong>Event count</strong></td>
+  <td>Total events matching current filters</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="52-filter-chips">5.2 Filter chips <a class="heading-anchor" href="#52-filter-chips" aria-label="Link to this section">#</a></h3>
+<p>A row of filter chips lets you narrow the event feed by type:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Filter</th>
+  <th>What events it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>all</strong></td>
+  <td>Everything</td>
+</tr>
+<tr>
+  <td><strong>task</strong></td>
+  <td><code>task_started</code>, <code>task_completed</code>, <code>task_failed</code></td>
+</tr>
+<tr>
+  <td><strong>action</strong></td>
+  <td><code>action_started</code>, <code>action_completed</code>, <code>action_failed</code></td>
+</tr>
+<tr>
+  <td><strong>error</strong></td>
+  <td><code>task_failed</code>, <code>action_failed</code>, and any error-type events</td>
+</tr>
+<tr>
+  <td><strong>llm</strong></td>
+  <td>LLM call events (<code>custom</code> with <code>kind: &quot;llm_call&quot;</code>)</td>
+</tr>
+<tr>
+  <td><strong>pipeline</strong></td>
+  <td>Queue snapshots, TODOs, scheduled, issues</td>
+</tr>
+<tr>
+  <td><strong>human</strong></td>
+  <td>Escalations, approval requests, approval received</td>
+</tr>
+</tbody>
+</table></div>
+<p>Click a chip to filter. Click the active chip again to return to &quot;all&quot;.</p>
+<h3 id="53-event-entries">5.3 Event entries <a class="heading-anchor" href="#53-event-entries" aria-label="Link to this section">#</a></h3>
+<p>Each event in the stream shows:</p>
+<div class="code-block"><pre><code>● agent_registered                    1m ago
+  main
+  Agent main registered
+</code></pre></div>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Color dot</strong></td>
+  <td>Matches the event type color (green for success, red for error, purple for LLM, etc.)</td>
+</tr>
+<tr>
+  <td><strong>Event type</strong> (or kind)</td>
+  <td>The event type or payload kind. Clickable to filter by that type</td>
+</tr>
+<tr>
+  <td><strong>Timestamp</strong></td>
+  <td>Relative time (&quot;1m ago&quot;, &quot;just now&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Agent name</strong> (clickable)</td>
+  <td>Click to filter dashboard to that agent</td>
+</tr>
+<tr>
+  <td><strong>Task ID</strong> (clickable, if present)</td>
+  <td>Click to load that task's timeline</td>
+</tr>
+<tr>
+  <td><strong>Summary</strong></td>
+  <td>Human-readable description of the event</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="54-event-type-icons">5.4 Event type icons <a class="heading-anchor" href="#54-event-type-icons" aria-label="Link to this section">#</a></h3>
+<p>Certain event types have icons for quick visual scanning:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Icon</th>
+  <th>Event type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>🤖</td>
+  <td>Agent registered</td>
+</tr>
+<tr>
+  <td>❤️</td>
+  <td>Heartbeat</td>
+</tr>
+<tr>
+  <td>▶</td>
+  <td>Task started</td>
+</tr>
+<tr>
+  <td>✓</td>
+  <td>Task completed</td>
+</tr>
+<tr>
+  <td>✕</td>
+  <td>Task failed</td>
+</tr>
+<tr>
+  <td>◆</td>
+  <td>LLM call</td>
+</tr>
+<tr>
+  <td>⚡</td>
+  <td>Action started/completed</td>
+</tr>
+<tr>
+  <td>⬆</td>
+  <td>Escalation</td>
+</tr>
+<tr>
+  <td>🔒</td>
+  <td>Approval requested</td>
+</tr>
+<tr>
+  <td>🔓</td>
+  <td>Approval received</td>
+</tr>
+<tr>
+  <td>🔄</td>
+  <td>Retry</td>
+</tr>
+<tr>
+  <td>⚠</td>
+  <td>Issue</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="55-using-the-activity-stream-effectively">5.5 Using the Activity Stream effectively <a class="heading-anchor" href="#55-using-the-activity-stream-effectively" aria-label="Link to this section">#</a></h3>
+<p>The Activity Stream is your <strong>live monitoring feed</strong>. Here's how to use it:</p>
+<ul>
+<li><strong>Normal monitoring:</strong> Leave on &quot;all&quot; and glance periodically. The scrolling feed gives you a heartbeat of system activity.</li>
+<li><strong>Debugging a failure:</strong> Filter to &quot;error&quot; to see only failures. Click the agent name to see which agent failed, then click the task ID to see the full timeline.</li>
+<li><strong>Tracking costs:</strong> Filter to &quot;llm&quot; to see every LLM call as it happens, with model and cost.</li>
+<li><strong>Human-in-the-loop monitoring:</strong> Filter to &quot;human&quot; to see approvals and escalations. If approvals are piling up, your review queue needs attention.</li>
+<li><strong>Agent investigation:</strong> Click an agent name in any event to filter the entire dashboard to that agent. The stream, stats, and timeline all scope to your selection.</li>
+</ul>
+<hr />
+<h2 id="6-agent-detail-view">6. Agent Detail View <a class="heading-anchor" href="#6-agent-detail-view" aria-label="Link to this section">#</a></h2>
+<p>The Agent Detail view gives a deeper look at a single agent. Access it by double-clicking an agent card in the Hive, or by clicking an agent name in a clickable context.</p>
+<h3 id="61-agent-detail-header">6.1 Agent Detail header <a class="heading-anchor" href="#61-agent-detail-header" aria-label="Link to this section">#</a></h3>
+<p>Shows the agent's name and current status badge. Click &quot;✕ Close Detail&quot; to return to Mission Control.</p>
+<h3 id="62-tabs">6.2 Tabs <a class="heading-anchor" href="#62-tabs" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Tab</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Tasks</strong></td>
+  <td>All tasks for this agent — same columns as the Task Table in Mission Control but scoped to one agent</td>
+</tr>
+<tr>
+  <td><strong>Pipeline</strong></td>
+  <td>Work pipeline data: active issues, queue, TODOs, and scheduled work</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="63-pipeline-tab">6.3 Pipeline tab <a class="heading-anchor" href="#63-pipeline-tab" aria-label="Link to this section">#</a></h3>
+<p>The Pipeline tab surfaces operational context about the agent beyond individual tasks. Each section only appears if there's data:</p>
+<h4 id="active-issues">Active Issues <a class="heading-anchor" href="#active-issues" aria-label="Link to this section">#</a></h4>
+<p>Self-reported issues from <code>agent.report_issue()</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Issue</td>
+  <td>Summary text</td>
+</tr>
+<tr>
+  <td>Severity</td>
+  <td><code>low</code>, <code>medium</code>, <code>high</code>, or <code>critical</code> — color-coded</td>
+</tr>
+<tr>
+  <td>Category</td>
+  <td>Issue classification (e.g. &quot;connectivity&quot;, &quot;timeout&quot;, &quot;data_quality&quot;)</td>
+</tr>
+<tr>
+  <td>Occurrences</td>
+  <td>How many times this issue has been reported (deduplicated by <code>issue_id</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="queue">Queue <a class="heading-anchor" href="#queue" aria-label="Link to this section">#</a></h4>
+<p>Work queue state from <code>queue_provider</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>ID</td>
+  <td>Queue item identifier</td>
+</tr>
+<tr>
+  <td>Priority</td>
+  <td><code>low</code>, <code>normal</code>, <code>high</code>, <code>urgent</code> — color-coded</td>
+</tr>
+<tr>
+  <td>Source</td>
+  <td>Where this work item came from</td>
+</tr>
+<tr>
+  <td>Summary</td>
+  <td>What the item is about</td>
+</tr>
+<tr>
+  <td>Age</td>
+  <td>How long the item has been in the queue</td>
+</tr>
+</tbody>
+</table></div>
+<p>An empty queue shows &quot;Queue is empty — agent is caught up.&quot;</p>
+<h4 id="active-todos">Active TODOs <a class="heading-anchor" href="#active-todos" aria-label="Link to this section">#</a></h4>
+<p>Agent-managed work items from <code>agent.todo()</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>TODO</td>
+  <td>Summary text</td>
+</tr>
+<tr>
+  <td>Priority</td>
+  <td>Priority level — color-coded</td>
+</tr>
+<tr>
+  <td>Source</td>
+  <td>What created this TODO (e.g. &quot;agent_decision&quot;, &quot;retry_failure&quot;)</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="scheduled">Scheduled <a class="heading-anchor" href="#scheduled" aria-label="Link to this section">#</a></h4>
+<p>Recurring tasks from <code>agent.scheduled()</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Name</td>
+  <td>Scheduled task name</td>
+</tr>
+<tr>
+  <td>Next Run</td>
+  <td>When it runs next</td>
+</tr>
+<tr>
+  <td>Interval</td>
+  <td>How often (e.g. &quot;1h&quot;, &quot;daily&quot;)</td>
+</tr>
+<tr>
+  <td>Status</td>
+  <td>Last execution status</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="7-cost-explorer">7. Cost Explorer <a class="heading-anchor" href="#7-cost-explorer" aria-label="Link to this section">#</a></h2>
+<p>The Cost Explorer is a dedicated view for LLM cost analysis. Switch to it by clicking &quot;Cost Explorer&quot; in the top bar. It only shows data when you've instrumented with <code>task.llm_call()</code> or <code>agent.llm_call()</code> (Layer 2).</p>
+<h3 id="71-cost-ribbon">7.1 Cost Ribbon <a class="heading-anchor" href="#71-cost-ribbon" aria-label="Link to this section">#</a></h3>
+<p>Summary statistics across the top:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Stat</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Total Cost</strong></td>
+  <td>Total LLM spending in the selected time period</td>
+</tr>
+<tr>
+  <td><strong>LLM Calls</strong></td>
+  <td>Total number of LLM calls made</td>
+</tr>
+<tr>
+  <td><strong>Tokens In</strong></td>
+  <td>Total input tokens consumed</td>
+</tr>
+<tr>
+  <td><strong>Tokens Out</strong></td>
+  <td>Total output tokens generated</td>
+</tr>
+<tr>
+  <td><strong>Avg Cost/Call</strong></td>
+  <td>Average cost per LLM call</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="72-cost-by-model">7.2 Cost by Model <a class="heading-anchor" href="#72-cost-by-model" aria-label="Link to this section">#</a></h3>
+<p>A table breaking down spending by LLM model:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Model</td>
+  <td>Model identifier (e.g. <code>claude-sonnet-4-20250514</code>, <code>gpt-4o-mini</code>)</td>
+</tr>
+<tr>
+  <td>Calls</td>
+  <td>Number of calls to this model</td>
+</tr>
+<tr>
+  <td>Tokens In</td>
+  <td>Total input tokens for this model</td>
+</tr>
+<tr>
+  <td>Tokens Out</td>
+  <td>Total output tokens for this model</td>
+</tr>
+<tr>
+  <td>Cost</td>
+  <td>Total cost for this model</td>
+</tr>
+<tr>
+  <td>Bar</td>
+  <td>Visual cost comparison — longest bar = most expensive model</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>What to look for:</strong></p>
+<ul>
+<li>Is an expensive model being used where a cheaper one would work? (e.g. using <code>claude-opus</code> for simple classification when <code>claude-haiku</code> would suffice)</li>
+<li>Is one model dominating cost? That's your optimization target</li>
+</ul>
+<h3 id="73-cost-by-agent">7.3 Cost by Agent <a class="heading-anchor" href="#73-cost-by-agent" aria-label="Link to this section">#</a></h3>
+<p>A table breaking down spending by agent:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Agent</td>
+  <td>Agent name (clickable — opens Agent Detail)</td>
+</tr>
+<tr>
+  <td>Calls</td>
+  <td>Number of LLM calls this agent made</td>
+</tr>
+<tr>
+  <td>Tokens In</td>
+  <td>Total input tokens for this agent</td>
+</tr>
+<tr>
+  <td>Tokens Out</td>
+  <td>Total output tokens for this agent</td>
+</tr>
+<tr>
+  <td>Cost</td>
+  <td>Total cost for this agent</td>
+</tr>
+<tr>
+  <td>Bar</td>
+  <td>Visual cost comparison — longest bar = most expensive agent</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>What to look for:</strong></p>
+<ul>
+<li>Which agent is the biggest spender? Is that expected?</li>
+<li>Are costs distributed evenly or is one agent an outlier?</li>
+<li>Sorted by cost descending — most expensive agent is always at the top</li>
+</ul>
+<h3 id="74-using-cost-explorer-for-optimization">7.4 Using Cost Explorer for optimization <a class="heading-anchor" href="#74-using-cost-explorer-for-optimization" aria-label="Link to this section">#</a></h3>
+<p>The Cost Explorer is designed to answer these questions:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Question</th>
+  <th>Where to look</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>How much am I spending on LLM calls?</td>
+  <td>Cost Ribbon → Total Cost</td>
+</tr>
+<tr>
+  <td>Which model costs the most?</td>
+  <td>Cost by Model table → sorted by cost</td>
+</tr>
+<tr>
+  <td>Which agent costs the most?</td>
+  <td>Cost by Agent table → sorted by cost</td>
+</tr>
+<tr>
+  <td>Am I using expensive models unnecessarily?</td>
+  <td>Compare model table — if a costly model has many calls for simple tasks, consider switching to a cheaper model</td>
+</tr>
+<tr>
+  <td>Has cost increased recently?</td>
+  <td>Compare current total to previous periods. The LLM Cost/Task mini-chart in Mission Control shows the trend</td>
+</tr>
+<tr>
+  <td>What's my average cost per call?</td>
+  <td>Cost Ribbon → Avg Cost/Call. Compare across models to find efficiency gains</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="8-filtering-and-navigation">8. Filtering and Navigation <a class="heading-anchor" href="#8-filtering-and-navigation" aria-label="Link to this section">#</a></h2>
+<p>HiveBoard uses a unified filtering model — when you apply a filter, it affects all three columns simultaneously.</p>
+<h3 id="81-filter-bar">8.1 Filter bar <a class="heading-anchor" href="#81-filter-bar" aria-label="Link to this section">#</a></h3>
+<p>When a filter is active, a yellow-highlighted bar appears between the top bar and the main content:</p>
+<div class="code-block"><pre><code>⬡ Filtering: agent = main                              ✕ Clear
+</code></pre></div>
+<p>This tells you the dashboard is scoped. Click &quot;✕ Clear&quot; to remove the filter and see all data.</p>
+<h3 id="82-ways-to-filter">8.2 Ways to filter <a class="heading-anchor" href="#82-ways-to-filter" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Action</th>
+  <th>What it filters to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Click an agent card in the Hive</td>
+  <td>That agent's data only</td>
+</tr>
+<tr>
+  <td>Click an agent name in the Activity Stream</td>
+  <td>That agent's data only</td>
+</tr>
+<tr>
+  <td>Click an agent name in the Task Table</td>
+  <td>That agent's data only</td>
+</tr>
+<tr>
+  <td>Click a status stat (Processing, Waiting, Stuck, Errors)</td>
+  <td>All agents with that status</td>
+</tr>
+<tr>
+  <td>Click a task ID in the Activity Stream</td>
+  <td>Loads that task's timeline</td>
+</tr>
+<tr>
+  <td>Click a task row in the Task Table</td>
+  <td>Loads that task's timeline</td>
+</tr>
+<tr>
+  <td>Select an environment in the dropdown</td>
+  <td>All agents in that environment</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="83-navigation-flow">8.3 Navigation flow <a class="heading-anchor" href="#83-navigation-flow" aria-label="Link to this section">#</a></h3>
+<p>A typical investigation flow:</p>
+<ol>
+<li><strong>Notice</strong> — Attention badge pulses red on The Hive, or Stuck/Error count &gt; 0 in Stats Ribbon</li>
+<li><strong>Filter</strong> — Click the &quot;Stuck&quot; stat or the stuck agent's card</li>
+<li><strong>Identify</strong> — See which agent is stuck and when its last heartbeat was</li>
+<li><strong>Investigate</strong> — Click the agent's most recent task in the Task Table</li>
+<li><strong>Diagnose</strong> — Read the Timeline to see what the agent was doing when it got stuck</li>
+<li><strong>Detail</strong> — Click a timeline node to see the full payload (LLM call content, error message, etc.)</li>
+</ol>
+<h3 id="84-cross-referencing-between-panels">8.4 Cross-referencing between panels <a class="heading-anchor" href="#84-cross-referencing-between-panels" aria-label="Link to this section">#</a></h3>
+<p>The three columns are designed to work together:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>See something in...</th>
+  <th>Click to...</th>
+  <th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Hive (agent card)</td>
+  <td>Click card</td>
+  <td>Stats + Timeline + Stream all filter to that agent</td>
+</tr>
+<tr>
+  <td>Activity Stream (event)</td>
+  <td>Click agent name</td>
+  <td>Same as above</td>
+</tr>
+<tr>
+  <td>Activity Stream (event)</td>
+  <td>Click task ID</td>
+  <td>Timeline loads that task</td>
+</tr>
+<tr>
+  <td>Task Table (row)</td>
+  <td>Click row</td>
+  <td>Timeline loads that task</td>
+</tr>
+<tr>
+  <td>Task Table (agent column)</td>
+  <td>Click agent name</td>
+  <td>Filters to that agent</td>
+</tr>
+<tr>
+  <td>Timeline (agent name in header)</td>
+  <td>Click agent name</td>
+  <td>Filters to that agent</td>
+</tr>
+</tbody>
+</table></div>
+<p>Everything is interconnected — you can always drill down from any element to get more detail.</p>
+<hr />
+<h2 id="9-reading-the-dashboard-by-instrumentation-layer">9. Reading the Dashboard by Instrumentation Layer <a class="heading-anchor" href="#9-reading-the-dashboard-by-instrumentation-layer" aria-label="Link to this section">#</a></h2>
+<p>What you see on the dashboard depends on how much you've instrumented with HiveLoop. Here's what each layer unlocks:</p>
+<h3 id="91-layer-0-only-init-heartbeat">9.1 Layer 0 only (init + heartbeat) <a class="heading-anchor" href="#91-layer-0-only-init-heartbeat" aria-label="Link to this section">#</a></h3>
+<p><strong>What you see:</strong></p>
+<ul>
+<li>Agent cards in the Hive with names, types, and status badges</li>
+<li>Heartbeat indicators (green/yellow/red dots with timestamps)</li>
+<li>Heartbeat sparklines showing activity over time</li>
+<li>Stats Ribbon: Total Agents, Stuck count</li>
+<li>Activity Stream: <code>agent_registered</code> events</li>
+<li><code>queue_provider</code> data on agent cards (if provided)</li>
+</ul>
+<p><strong>What's empty:</strong></p>
+<ul>
+<li>Mission Control: &quot;No tasks&quot;, &quot;No timeline data&quot;</li>
+<li>Task Table: empty</li>
+<li>Cost Explorer: all zeros</li>
+<li>Most Activity Stream filters show nothing</li>
+</ul>
+<p><strong>Questions you can answer:</strong></p>
+<ul>
+<li>Are my agents alive?</li>
+<li>How many agents are running?</li>
+<li>Is anything stuck?</li>
+<li>When did each agent come online?</li>
+</ul>
+<h3 id="92-layer-1-decorators-task-context">9.2 Layer 1 (decorators + task context) <a class="heading-anchor" href="#92-layer-1-decorators-task-context" aria-label="Link to this section">#</a></h3>
+<p><strong>What's now populated:</strong></p>
+<ul>
+<li>Task Table fills with tasks — status, duration, time</li>
+<li>Timeline shows task events and action nodes with timing</li>
+<li>Activity Stream shows task and action events</li>
+<li>Stats Ribbon: Processing, Waiting, Errors, Success Rate, Avg Duration</li>
+<li>Mini-Charts: Throughput, Success Rate, Errors</li>
+<li>Agent status correctly reflects Processing / Error / Waiting</li>
+</ul>
+<p><strong>New questions you can answer:</strong></p>
+<ul>
+<li>What task is each agent working on right now?</li>
+<li>How long do tasks take?</li>
+<li>What's my success rate?</li>
+<li>When a task fails, which action was it on?</li>
+<li>What's my throughput over time?</li>
+</ul>
+<h3 id="93-layer-2-rich-events">9.3 Layer 2 (rich events) <a class="heading-anchor" href="#93-layer-2-rich-events" aria-label="Link to this section">#</a></h3>
+<p><strong>What's now populated:</strong></p>
+<ul>
+<li>Timeline enriched with LLM call nodes (purple), plan progress bars, escalation/approval nodes</li>
+<li>Cost Explorer: fully functional with model and agent breakdowns</li>
+<li>Stats Ribbon: Cost (1h) populated</li>
+<li>Mini-Charts: LLM Cost/Task populated</li>
+<li>Agent Detail → Pipeline tab shows issues, queue, TODOs, scheduled</li>
+<li>Agent cards show pipeline enrichment (queue badges, issue indicators)</li>
+<li>Activity Stream: full range of event types with icons</li>
+</ul>
+<p><strong>New questions you can answer:</strong></p>
+<ul>
+<li>How much is each LLM call costing me?</li>
+<li>Which model is the most expensive?</li>
+<li>Which agent is the biggest spender?</li>
+<li>What was the agent's reasoning at each step?</li>
+<li>Where in the plan did it fail?</li>
+<li>How long has the work queue been growing?</li>
+<li>What issues has the agent self-reported?</li>
+<li>Is the human approval queue backed up?</li>
+</ul>
+<hr />
+<h2 id="10-common-scenarios-and-what-to-look-for">10. Common Scenarios and What to Look For <a class="heading-anchor" href="#10-common-scenarios-and-what-to-look-for" aria-label="Link to this section">#</a></h2>
+<h3 id="101-quotis-everything-ok-right-nowquot">10.1 &quot;Is everything OK right now?&quot; <a class="heading-anchor" href="#101-quotis-everything-ok-right-nowquot" aria-label="Link to this section">#</a></h3>
+<p><strong>Where to look:</strong> Stats Ribbon + The Hive</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Signal</th>
+  <th>Healthy</th>
+  <th>Unhealthy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Stuck count</td>
+  <td>0</td>
+  <td>Any number &gt; 0</td>
+</tr>
+<tr>
+  <td>Error count</td>
+  <td>0 or low</td>
+  <td>Sudden increase</td>
+</tr>
+<tr>
+  <td>Attention badge</td>
+  <td>Not visible</td>
+  <td>Red pulsing badge on The Hive header</td>
+</tr>
+<tr>
+  <td>Heartbeat dots</td>
+  <td>All green</td>
+  <td>Yellow or red dots</td>
+</tr>
+<tr>
+  <td>Success Rate</td>
+  <td>At or above your baseline</td>
+  <td>Dropping</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="102-quotan-agent-is-stuck-what-happenedquot">10.2 &quot;An agent is stuck — what happened?&quot; <a class="heading-anchor" href="#102-quotan-agent-is-stuck-what-happenedquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Look at the Hive — the stuck agent will have a blinking red <strong>STUCK</strong> badge and a red heartbeat dot</li>
+<li>Note the heartbeat timestamp — &quot;8m ago&quot; tells you how long it's been unreachable</li>
+<li>Click the agent card to filter to it</li>
+<li>Check the Activity Stream — what was the last event before it went silent?</li>
+<li>If there's a task in the Task Table, click it to see the Timeline — where in the task did it stop?</li>
+<li>Check your agent's process (logs, systemd status, container health) — the dashboard tells you <em>when</em> and <em>where</em>, your infrastructure tells you <em>why</em></li>
+</ol>
+<h3 id="103-quota-task-failed-whyquot">10.3 &quot;A task failed — why?&quot; <a class="heading-anchor" href="#103-quota-task-failed-whyquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Find the failed task in the Task Table (red status dot)</li>
+<li>Click it to load the Timeline</li>
+<li>Look for the red node — that's where the failure occurred</li>
+<li>Click the red node to see the error detail (exception, error message, payload)</li>
+<li>Look at the preceding nodes — what was the agent doing just before the failure? Was it an LLM call that returned something unexpected? A tool that timed out?</li>
+</ol>
+<h3 id="104-quotcosts-are-spiking-where-is-the-money-goingquot">10.4 &quot;Costs are spiking — where is the money going?&quot; <a class="heading-anchor" href="#104-quotcosts-are-spiking-where-is-the-money-goingquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Switch to Cost Explorer</li>
+<li>Check Cost by Model — is an expensive model being overused?</li>
+<li>Check Cost by Agent — is one agent responsible for the spike?</li>
+<li>Click the expensive agent to see its tasks</li>
+<li>In Mission Control, look at the LLM Cost/Task mini-chart — when did the spike start?</li>
+<li>Cross-reference with the Activity Stream (filter to &quot;llm&quot;) — are there more calls than expected, or are individual calls more expensive?</li>
+</ol>
+<h3 id="105-quotmy-agent-seems-slow-where-is-the-bottleneckquot">10.5 &quot;My agent seems slow — where is the bottleneck?&quot; <a class="heading-anchor" href="#105-quotmy-agent-seems-slow-where-is-the-bottleneckquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Check Avg Duration in the Stats Ribbon — is it higher than your baseline?</li>
+<li>Click a slow task in the Task Table</li>
+<li>In the Timeline, look at the connector durations between nodes — the longest connector is your bottleneck</li>
+<li>Common culprits: LLM call latency (purple nodes), external API calls, or long wait times between actions</li>
+</ol>
+<h3 id="106-quoti-need-to-monitor-approvalsquot">10.6 &quot;I need to monitor approvals&quot; <a class="heading-anchor" href="#106-quoti-need-to-monitor-approvalsquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Check the Waiting count in the Stats Ribbon</li>
+<li>Filter the Activity Stream to &quot;human&quot;</li>
+<li>Agents waiting for approval show amber <strong>WAITING</strong> badges in the Hive</li>
+<li>Each pending approval appears as an <code>approval_requested</code> event in the stream with details on what's being requested</li>
+<li>When approvals are received, <code>approval_received</code> events appear with the decision</li>
+</ol>
+<h3 id="107-quoti-want-to-see-what-happened-to-a-specific-taskquot">10.7 &quot;I want to see what happened to a specific task&quot; <a class="heading-anchor" href="#107-quoti-want-to-see-what-happened-to-a-specific-taskquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>If you have the task ID: look for it in the Task Table or use the Activity Stream</li>
+<li>Click the task row in the Task Table</li>
+<li>The Timeline loads with the full step-by-step narrative</li>
+<li>Click any node for the detail view</li>
+<li>Use the <strong>Permalink</strong> button to copy a shareable link to this specific task</li>
+</ol>
+<hr />
+<h2 id="11-color-reference">11. Color Reference <a class="heading-anchor" href="#11-color-reference" aria-label="Link to this section">#</a></h2>
+<p>Colors are used consistently throughout the dashboard to communicate status and type at a glance.</p>
+<h3 id="111-status-colors">11.1 Status colors <a class="heading-anchor" href="#111-status-colors" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Color</th>
+  <th>Hex</th>
+  <th>Meaning</th>
+  <th>Where used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Gray</td>
+  <td><code>#6b7280</code></td>
+  <td>Idle / inactive / not started</td>
+  <td>Idle badges, pending plan steps, muted text</td>
+</tr>
+<tr>
+  <td>Blue</td>
+  <td><code>#3b82f6</code></td>
+  <td>Active / processing</td>
+  <td>Processing badges, action events, queue badges</td>
+</tr>
+<tr>
+  <td>Green</td>
+  <td><code>#10b981</code></td>
+  <td>Success / healthy</td>
+  <td>Completed badges, success rate, fresh heartbeats, connected indicator</td>
+</tr>
+<tr>
+  <td>Amber</td>
+  <td><code>#f59e0b</code></td>
+  <td>Warning / waiting</td>
+  <td>Waiting badges, escalations, stale heartbeats, approval events</td>
+</tr>
+<tr>
+  <td>Red</td>
+  <td><code>#ef4444</code></td>
+  <td>Error / failure</td>
+  <td>Error badges, failed events, issues</td>
+</tr>
+<tr>
+  <td>Deep red</td>
+  <td><code>#dc2626</code></td>
+  <td>Stuck (critical)</td>
+  <td>Stuck badges (blinking), dead heartbeats</td>
+</tr>
+<tr>
+  <td>Purple</td>
+  <td><code>#8b5cf6</code></td>
+  <td>LLM / cost</td>
+  <td>LLM call events, cost values, Cost Explorer</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="112-accent-color">11.2 Accent color <a class="heading-anchor" href="#112-accent-color" aria-label="Link to this section">#</a></h3>
+<p><strong>Amber/Gold (<code>#f59e0b</code>)</strong> is the HiveBoard accent color — used for the logo, selected states, active filters, clickable entity highlights, and the filter bar.</p>
+<hr />
+<h2 id="12-glossary">12. Glossary <a class="heading-anchor" href="#12-glossary" aria-label="Link to this section">#</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Term</th>
+  <th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>The Hive</strong></td>
+  <td>The left sidebar showing all agent cards — your fleet overview</td>
+</tr>
+<tr>
+  <td><strong>Mission Control</strong></td>
+  <td>The main center view with stats, timeline, and task table</td>
+</tr>
+<tr>
+  <td><strong>Cost Explorer</strong></td>
+  <td>The center view for LLM cost analysis by model and agent</td>
+</tr>
+<tr>
+  <td><strong>Agent Detail</strong></td>
+  <td>An expanded center view focused on one agent, with Tasks and Pipeline tabs</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>The right sidebar showing events in real time</td>
+</tr>
+<tr>
+  <td><strong>Stats Ribbon</strong></td>
+  <td>The row of summary numbers at the top of Mission Control</td>
+</tr>
+<tr>
+  <td><strong>Timeline</strong></td>
+  <td>The horizontal visualization of events within a single task</td>
+</tr>
+<tr>
+  <td><strong>Plan Bar</strong></td>
+  <td>The step-by-step progress indicator above the Timeline (when a plan exists)</td>
+</tr>
+<tr>
+  <td><strong>Heartbeat</strong></td>
+  <td>An automatic periodic signal from an agent confirming it's alive</td>
+</tr>
+<tr>
+  <td><strong>Stuck</strong></td>
+  <td>An agent that has stopped sending heartbeats beyond its threshold</td>
+</tr>
+<tr>
+  <td><strong>Sparkline</strong></td>
+  <td>The small bar chart on each agent card showing heartbeat activity over time</td>
+</tr>
+<tr>
+  <td><strong>Pipeline</strong></td>
+  <td>An agent's operational context: queue, TODOs, issues, scheduled work</td>
+</tr>
+<tr>
+  <td><strong>Attention badge</strong></td>
+  <td>The red pulsing counter on The Hive header when agents need attention</td>
+</tr>
+<tr>
+  <td><strong>Filter bar</strong></td>
+  <td>The yellow bar that appears when the dashboard is filtered to a specific agent or status</td>
+</tr>
+<tr>
+  <td><strong>Permalink</strong></td>
+  <td>A shareable URL that links directly to a specific task timeline</td>
+</tr>
+<tr>
+  <td><strong>Pin</strong></td>
+  <td>Clicking a timeline node &quot;pins&quot; its detail panel open for inspection</td>
+</tr>
+<tr>
+  <td><strong>Environment</strong></td>
+  <td>An organizational scope (e.g. production, staging) set in <code>hiveloop.init()</code></td>
+</tr>
+<tr>
+  <td><strong>Group</strong></td>
+  <td>An organizational label (e.g. team name, region) set in <code>hiveloop.init()</code></td>
+</tr>
+<tr>
+  <td><strong>Enrichment</strong></td>
+  <td>Additional data on agent cards from <code>queue_provider</code>, <code>heartbeat_payload</code>, and <code>report_issue</code></td>
+</tr>
+</tbody>
+</table></div>
+
+        </article>
+        <div class="prev-next"><a class="prev-next-link prev" href="integration-guide.html"><span class="prev-next-label">← Previous</span><span class="prev-next-title">Integration Guide</span></a><a class="prev-next-link next" href="docs-instrumentation-guide.html"><span class="prev-next-label">Next →</span><span class="prev-next-title">Instrumentation</span></a></div>
+    </main>
+
+    <!-- RIGHT TOC -->
+<nav class="page-toc"><div class="page-toc-title">On this page</div>
+<a class="toc-link" href="#table-of-contents">Table of Contents</a>
+<a class="toc-link" href="#1-dashboard-overview">1. Dashboard Overview</a>
+<a class="toc-link" href="#2-the-top-bar">2. The Top Bar</a>
+<a class="toc-link toc-h3" href="#21-elements-left-to-right">2.1 Elements (left to right)</a>
+<a class="toc-link toc-h3" href="#22-connection-status">2.2 Connection status</a>
+<a class="toc-link toc-h3" href="#23-environment-selector">2.3 Environment selector</a>
+<a class="toc-link" href="#3-the-hive-agent-fleet-panel">3. The Hive — Agent Fleet Panel</a>
+<a class="toc-link toc-h3" href="#31-the-hive-header">3.1 The Hive header</a>
+<a class="toc-link toc-h3" href="#32-agent-cards">3.2 Agent cards</a>
+<a class="toc-link toc-h3" href="#33-card-interactions">3.3 Card interactions</a>
+<a class="toc-link toc-h3" href="#34-card-sorting">3.4 Card sorting</a>
+<a class="toc-link" href="#4-mission-control-the-center-panel">4. Mission Control — The Center Panel</a>
+<a class="toc-link toc-h3" href="#41-stats-ribbon">4.1 Stats Ribbon</a>
+<a class="toc-link toc-h3" href="#42-mini-charts">4.2 Mini-Charts</a>
+<a class="toc-link toc-h3" href="#43-timeline">4.3 Timeline</a>
+<a class="toc-link toc-h3" href="#44-task-table">4.4 Task Table</a>
+<a class="toc-link" href="#5-the-activity-stream-live-event-feed">5. The Activity Stream — Live Event Feed</a>
+<a class="toc-link toc-h3" href="#51-stream-header">5.1 Stream header</a>
+<a class="toc-link toc-h3" href="#52-filter-chips">5.2 Filter chips</a>
+<a class="toc-link toc-h3" href="#53-event-entries">5.3 Event entries</a>
+<a class="toc-link toc-h3" href="#54-event-type-icons">5.4 Event type icons</a>
+<a class="toc-link toc-h3" href="#55-using-the-activity-stream-effectively">5.5 Using the Activity Stream effectively</a>
+<a class="toc-link" href="#6-agent-detail-view">6. Agent Detail View</a>
+<a class="toc-link toc-h3" href="#61-agent-detail-header">6.1 Agent Detail header</a>
+<a class="toc-link toc-h3" href="#62-tabs">6.2 Tabs</a>
+<a class="toc-link toc-h3" href="#63-pipeline-tab">6.3 Pipeline tab</a>
+<a class="toc-link" href="#7-cost-explorer">7. Cost Explorer</a>
+<a class="toc-link toc-h3" href="#71-cost-ribbon">7.1 Cost Ribbon</a>
+<a class="toc-link toc-h3" href="#72-cost-by-model">7.2 Cost by Model</a>
+<a class="toc-link toc-h3" href="#73-cost-by-agent">7.3 Cost by Agent</a>
+<a class="toc-link toc-h3" href="#74-using-cost-explorer-for-optimization">7.4 Using Cost Explorer for optimization</a>
+<a class="toc-link" href="#8-filtering-and-navigation">8. Filtering and Navigation</a>
+<a class="toc-link toc-h3" href="#81-filter-bar">8.1 Filter bar</a>
+<a class="toc-link toc-h3" href="#82-ways-to-filter">8.2 Ways to filter</a>
+<a class="toc-link toc-h3" href="#83-navigation-flow">8.3 Navigation flow</a>
+<a class="toc-link toc-h3" href="#84-cross-referencing-between-panels">8.4 Cross-referencing between panels</a>
+<a class="toc-link" href="#9-reading-the-dashboard-by-instrumentation-layer">9. Reading the Dashboard by Instrumentation Layer</a>
+<a class="toc-link toc-h3" href="#91-layer-0-only-init-heartbeat">9.1 Layer 0 only (init + heartbeat)</a>
+<a class="toc-link toc-h3" href="#92-layer-1-decorators-task-context">9.2 Layer 1 (decorators + task context)</a>
+<a class="toc-link toc-h3" href="#93-layer-2-rich-events">9.3 Layer 2 (rich events)</a>
+<a class="toc-link" href="#10-common-scenarios-and-what-to-look-for">10. Common Scenarios and What to Look For</a>
+<a class="toc-link toc-h3" href="#101-is-everything-ok-right-now">10.1 "Is everything OK right now?"</a>
+<a class="toc-link toc-h3" href="#102-an-agent-is-stuck-what-happened">10.2 "An agent is stuck — what happened?"</a>
+<a class="toc-link toc-h3" href="#103-a-task-failed-why">10.3 "A task failed — why?"</a>
+<a class="toc-link toc-h3" href="#104-costs-are-spiking-where-is-the-money-going">10.4 "Costs are spiking — where is the money going?"</a>
+<a class="toc-link toc-h3" href="#105-my-agent-seems-slow-where-is-the-bottleneck">10.5 "My agent seems slow — where is the bottleneck?"</a>
+<a class="toc-link toc-h3" href="#106-i-need-to-monitor-approvals">10.6 "I need to monitor approvals"</a>
+<a class="toc-link toc-h3" href="#107-i-want-to-see-what-happened-to-a-specific-task">10.7 "I want to see what happened to a specific task"</a>
+<a class="toc-link" href="#11-color-reference">11. Color Reference</a>
+<a class="toc-link toc-h3" href="#111-status-colors">11.1 Status colors</a>
+<a class="toc-link toc-h3" href="#112-accent-color">11.2 Accent color</a>
+<a class="toc-link" href="#12-glossary">12. Glossary</a>
+</nav>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script>
+// Re-highlight after load
+Prism.highlightAll();
+
+// Mobile menu toggle
+document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.toggle('open');
+});
+
+// Close sidebar on content click (mobile)
+document.querySelector('.docs-main')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.remove('open');
+});
+
+// Active TOC tracking
+(function() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    if (!tocLinks.length) return;
+    
+    const headings = [];
+    tocLinks.forEach(link => {
+        const id = link.getAttribute('href')?.slice(1);
+        const el = id && document.getElementById(id);
+        if (el) headings.push({ el, link });
+    });
+    
+    function updateActive() {
+        let current = headings[0];
+        for (const h of headings) {
+            if (h.el.getBoundingClientRect().top <= 100) current = h;
+        }
+        tocLinks.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+    
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', a.getAttribute('href'));
+        }
+    });
+});
+</script>
+</body>
+</html>
