@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/hiveboard-logo.png" alt="HiveBoard Logo" width="120" />
+  <img src="https://hiveboard.net/logo/hiveboard-logo.png" alt="HiveBoard Logo" width="120" />
 </p>
 
 <h1 align="center">HiveBoard</h1>
@@ -26,6 +26,25 @@
   <img src="https://img.shields.io/badge/built_with-Claude-blueviolet.svg" alt="Built with Claude" />
   <img src="https://img.shields.io/badge/hackathon-Anthropic_2026-orange.svg" alt="Anthropic Hackathon 2026" />
 </p>
+
+<p align="center">
+  <strong>🔴 <a href="https://hiveboard.net/static/index.html?apiKey=hb_live_dev000000000000000000000000000000">Try It Live</a></strong> &nbsp;·&nbsp;
+  <strong>📖 <a href="https://hiveboard.net/docs/user-manual.html">Documentation</a></strong> &nbsp;·&nbsp;
+  <strong>🎬 <a href="#demo-video">Watch the Demo</a></strong>
+</p>
+
+---
+
+> **Anthropic Virtual Hackathon 2026 — Problem Statement One: Build a Tool That Should Exist**
+>
+> *Agent observability is the tool every team deploying AI agents needs and nobody has built properly. HiveBoard fills that gap.*
+
+---
+
+## Demo Video
+
+<!-- Replace with actual video embed or link after recording -->
+*Coming soon — 3-minute demo showing the live dashboard, task timelines, cost optimization, and The Hive Method.*
 
 ---
 
@@ -67,7 +86,7 @@ HiveBoard treats AI agents as **workers** — not as API calls or trace spans. E
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/hiveboard.git
+git clone https://github.com/jcolano/hiveboard.git
 cd hiveboard
 
 # Install dependencies
@@ -337,8 +356,11 @@ The gap: none of these think in terms of agents-as-workers with tasks, actions, 
 ## Built For
 
 - **Anthropic Virtual Hackathon** — February 2026
-- Built entirely using **Claude** (Opus 4.5 + Claude Code CLI + Claude Code Cloud)
+- **Problem Statement One:** Build a Tool That Should Exist
+- Built entirely using **Claude Opus 4.6** (Claude Chat + Claude Code CLI + Claude Code Cloud)
 - Demonstrates both the product and **The Hive Method** — a novel multi-agent development methodology
+- **🔴 [Live Demo](https://hiveboard.net/static/index.html?apiKey=hb_live_dev000000000000000000000000000000)** — 5 AI agents running live, fed by the BrightPath Digital simulator
+- **📖 [Full Documentation](https://hiveboard.net/docs/user-manual.html)** — SDK manual, integration guide, dashboard guide
 
 ---
 
