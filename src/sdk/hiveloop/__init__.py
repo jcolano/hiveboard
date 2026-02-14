@@ -16,7 +16,9 @@ Usage:
 
 from __future__ import annotations
 
+import configparser
 import logging
+from pathlib import Path
 from typing import Any, Callable
 
 from ._agent import Agent, Task, HiveLoopError, SDK_VERSION, tool_payload
@@ -37,6 +39,32 @@ __all__ = [
 
 logger = logging.getLogger("hiveloop")
 
+_DEFAULT_ENDPOINT = "https://mlbackend.net/loophive"
+
+
+def _resolve_endpoint() -> str:
+    """Resolve the backend endpoint from config file or default.
+
+    Search order:
+      1. ./loophive.cfg  (current working directory)
+      2. ~/.loophive/loophive.cfg  (user home)
+      3. Default production URL
+    """
+    candidates = [
+        Path.cwd() / "loophive.cfg",
+        Path.home() / ".loophive" / "loophive.cfg",
+    ]
+    for path in candidates:
+        if path.is_file():
+            cfg = configparser.ConfigParser()
+            cfg.read(path)
+            ep = cfg.get("loophive", "endpoint", fallback=None)
+            if ep:
+                logger.debug("Endpoint resolved from %s: %s", path, ep)
+                return ep.strip().rstrip("/")
+    return _DEFAULT_ENDPOINT
+
+
 # Module-level singleton
 _instance: HiveBoard | None = None
 
@@ -47,7 +75,7 @@ class HiveBoard:
     def __init__(
         self,
         api_key: str,
-        endpoint: str = "https://api.hiveboard.io",
+        endpoint: str | None = None,
         environment: str = "production",
         group: str = "default",
         flush_interval: float = 5.0,
@@ -56,7 +84,7 @@ class HiveBoard:
         debug: bool = False,
     ) -> None:
         self._api_key = api_key
-        self._endpoint = endpoint
+        self._endpoint = endpoint or _resolve_endpoint()
         self._environment = environment
         self._group = group
         self._debug = debug
@@ -65,7 +93,7 @@ class HiveBoard:
             logging.getLogger("hiveloop").setLevel(logging.DEBUG)
 
         self._transport = Transport(
-            endpoint=endpoint,
+            endpoint=self._endpoint,
             api_key=api_key,
             flush_interval=flush_interval,
             batch_size=batch_size,
@@ -136,7 +164,7 @@ def init(
     api_key: str,
     environment: str = "production",
     group: str = "default",
-    endpoint: str = "https://api.hiveboard.io",
+    endpoint: str | None = None,
     flush_interval: float = 5.0,
     batch_size: int = 100,
     max_queue_size: int = 10_000,

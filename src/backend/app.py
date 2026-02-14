@@ -98,6 +98,26 @@ async def lifespan(app: FastAPI):
     app.state.pricing = pricing
     # Bootstrap: create default tenant + key if none exist
     await _bootstrap_dev_tenant(storage)
+    # Initialize WebSocket mode (local direct WS vs production AWS bridge)
+    from backend.config import get as _cfg
+    mode = _cfg("mode", "local")
+    if mode == "production":
+        ws_endpoint = _cfg("ws_gateway_endpoint", "")
+        ws_region = _cfg("ws_gateway_region", "us-east-1")
+        if ws_endpoint:
+            from backend.ws_bridge import WebSocketBridge
+            bridge = WebSocketBridge(gateway_endpoint=ws_endpoint, region=ws_region)
+            app.state.ws_bridge = bridge
+            app.state.ws_mode = "bridge"
+        else:
+            logging.getLogger(__name__).warning(
+                "Production mode but no ws_gateway_endpoint — falling back to local WS"
+            )
+            app.state.ws_bridge = None
+            app.state.ws_mode = "local"
+    else:
+        app.state.ws_bridge = None
+        app.state.ws_mode = "local"
     # Start background tasks
     from backend.websocket import ws_manager
     ping_task = asyncio.create_task(_ws_ping_loop())
@@ -184,18 +204,33 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS — allow all origins for MVP
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — only in local mode; IIS handles CORS in production
+from backend.config import get as _cfg
+if _cfg("mode", "local") != "production":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Middleware stack (order matters: rate limit wraps auth wraps routes)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(AuthMiddleware)
+
+
+def _get_broadcaster(app_instance: FastAPI):
+    """Return the active broadcaster (bridge in production, ws_manager locally).
+
+    Both WebSocketBridge and WebSocketManager share the same broadcast API:
+    broadcast_events(), broadcast_agent_status_change(),
+    broadcast_agent_stuck(), clear_stuck().
+    """
+    if getattr(app_instance.state, "ws_mode", "local") == "bridge":
+        return app_instance.state.ws_bridge
+    from backend.websocket import ws_manager
+    return ws_manager
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -523,11 +558,11 @@ async def ingest(body: IngestRequest, request: Request):
             tenant_id, pid, body.envelope.agent_id
         )
 
-    # Step 9: WebSocket broadcast
-    from backend.websocket import ws_manager
+    # Step 9: WebSocket broadcast (uses bridge in production, ws_manager locally)
+    broadcaster = _get_broadcaster(request.app)
     if accepted_events:
         event_dicts = [e.model_dump(mode="json") for e in accepted_events]
-        await ws_manager.broadcast_events(tenant_id, event_dicts)
+        await broadcaster.broadcast_events(tenant_id, event_dicts)
 
         # F11: Check for agent status change and broadcast
         if agent_record:
@@ -538,7 +573,7 @@ async def ingest(body: IngestRequest, request: Request):
                 hb_age = None
                 if agent_record.last_heartbeat:
                     hb_age = int((datetime.now(timezone.utc) - agent_record.last_heartbeat).total_seconds())
-                await ws_manager.broadcast_agent_status_change(
+                await broadcaster.broadcast_agent_status_change(
                     tenant_id, agent_record.agent_id,
                     previous_status, new_status.value,
                     agent_record.last_task_id, agent_record.last_project_id,
@@ -546,14 +581,14 @@ async def ingest(body: IngestRequest, request: Request):
                 )
 
             if new_status == AgentStatus.STUCK:
-                await ws_manager.broadcast_agent_stuck(
+                await broadcaster.broadcast_agent_stuck(
                     tenant_id, agent_record.agent_id,
                     agent_record.last_heartbeat.isoformat() if agent_record.last_heartbeat else None,
                     agent_record.stuck_threshold_seconds,
                     agent_record.last_task_id, agent_record.last_project_id,
                 )
             else:
-                ws_manager.clear_stuck(tenant_id, agent_record.agent_id)
+                broadcaster.clear_stuck(tenant_id, agent_record.agent_id)
 
     # Step 10: Alert evaluation
     from backend.alerting import evaluate_alerts
@@ -2063,3 +2098,96 @@ async def websocket_stream(ws: WebSocket):
         ws_manager.disconnect(conn)
     except Exception:
         ws_manager.disconnect(conn)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  WEBSOCKET BRIDGE ENDPOINTS (production — AWS API Gateway integration)
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.post("/ws/connect")
+async def ws_bridge_connect(request: Request):
+    """Called by AWS API Gateway on $connect."""
+    if getattr(request.app.state, "ws_mode", "local") != "bridge":
+        return JSONResponse({"error": "WebSocket bridge not active"}, status_code=501)
+
+    connection_id = request.headers.get("connectionId")
+    token = request.query_params.get("token", "")
+
+    if not connection_id or not token:
+        return JSONResponse(
+            {"error": "missing connectionId or token"}, status_code=400
+        )
+
+    # Authenticate via API key (same as direct WebSocket handler)
+    key_hash = hashlib.sha256(token.encode()).hexdigest()
+    storage = request.app.state.storage
+    info = await storage.authenticate(key_hash)
+    if info is None:
+        return JSONResponse({"error": "invalid API key"}, status_code=403)
+
+    request.app.state.ws_bridge.register(connection_id, info.tenant_id, info.key_id)
+    return JSONResponse({"status": "connected"})
+
+
+@app.post("/ws/disconnect")
+async def ws_bridge_disconnect(request: Request):
+    """Called by AWS API Gateway on $disconnect."""
+    if getattr(request.app.state, "ws_mode", "local") != "bridge":
+        return JSONResponse({"error": "WebSocket bridge not active"}, status_code=501)
+
+    connection_id = request.headers.get("connectionId")
+    if connection_id:
+        request.app.state.ws_bridge.unregister(connection_id)
+    return JSONResponse({"status": "disconnected"})
+
+
+@app.post("/ws/message")
+async def ws_bridge_message(request: Request):
+    """Called by AWS API Gateway on $default (all client messages).
+
+    Dispatches by 'action' field: subscribe, unsubscribe, ping.
+    """
+    if getattr(request.app.state, "ws_mode", "local") != "bridge":
+        return JSONResponse({"error": "WebSocket bridge not active"}, status_code=501)
+
+    connection_id = request.headers.get("connectionId")
+    if not connection_id:
+        return JSONResponse({"error": "missing connectionId"}, status_code=400)
+
+    body = await request.json()
+    action = body.get("action", "")
+    bridge = request.app.state.ws_bridge
+
+    # IN-1: Defensive re-registration for unknown connectionIds
+    # (e.g., after backend restart while client stays connected at API Gateway)
+    if not bridge.is_registered(connection_id):
+        token = body.get("token")
+        if token:
+            key_hash = hashlib.sha256(token.encode()).hexdigest()
+            storage = request.app.state.storage
+            info = await storage.authenticate(key_hash)
+            if info:
+                bridge.register(connection_id, info.tenant_id, info.key_id)
+            else:
+                return JSONResponse({"error": "invalid token"}, status_code=403)
+        else:
+            return JSONResponse(
+                {"error": "unknown connection, include token to re-register"},
+                status_code=400,
+            )
+
+    if action == "subscribe":
+        channels = body.get("channels", [])
+        filters = body.get("filters", {})
+        bridge.subscribe(connection_id, channels, filters)
+        return JSONResponse({"status": "subscribed", "channels": channels})
+
+    elif action == "unsubscribe":
+        channels = body.get("channels", [])
+        bridge.unsubscribe(connection_id, channels)
+        return JSONResponse({"status": "unsubscribed", "channels": channels})
+
+    elif action == "ping":
+        return JSONResponse({"status": "pong"})
+
+    return JSONResponse({"status": "unknown_action"})
