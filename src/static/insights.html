@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiveBoard — Insights</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+/* ═══════════════════════════════════════════════════════
+   HiveBoard Insights — Production Standalone Page
+   Reuses design tokens from hiveboard.css
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+    --idle: #94a3b8;
+    --active: #2563eb;
+    --success: #16a34a;
+    --warning: #d97706;
+    --error: #dc2626;
+    --stuck: #b91c1c;
+    --llm: #7c3aed;
+
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: rgba(194, 65, 12, 0.1);
+
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════════ */
+
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; color: var(--text-primary); text-decoration: none;
+}
+.logo span { color: var(--accent); }
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.workspace-badge {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+    background: var(--bg-deep); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border);
+}
+.view-tabs { display: flex; gap: 4px; background: var(--bg-deep); padding: 4px; border-radius: var(--radius-md); }
+.view-tab {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-muted); padding: 6px 16px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: all 0.2s ease; border: none; background: transparent;
+    white-space: nowrap; display: flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.view-tab:hover { color: var(--text-secondary); background: var(--bg-hover); }
+.view-tab.active { background: var(--bg-primary); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.view-tab svg { opacity: 0.7; }
+.view-tab.active svg { opacity: 1; stroke: var(--accent); }
+.topbar-right { display: flex; align-items: center; gap: 16px; }
+.status-pill {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+    background: var(--bg-deep); padding: 5px 14px; border-radius: 20px;
+}
+.status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+    animation: pulse-dot 2.5s ease infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.3); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 5px rgba(22, 163, 74, 0); }
+}
+.env-selector {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary);
+    padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; outline: none;
+}
+.env-selector:focus { border-color: var(--accent); }
+
+/* ═══════════════════════════════════════════
+   INSIGHTS LAYOUT
+   ═══════════════════════════════════════════ */
+
+.insights-container {
+    height: calc(100vh - 56px); overflow-y: auto; overflow-x: hidden;
+    padding: 24px 32px 48px; scroll-behavior: smooth;
+}
+.insights-container::-webkit-scrollbar { width: 5px; }
+.insights-container::-webkit-scrollbar-track { background: transparent; }
+.insights-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Toolbar */
+.insights-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px; padding: 12px 16px;
+    background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-md);
+}
+.insights-toolbar label {
+    font-size: 12px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.insights-toolbar select {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+    background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary);
+    padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; outline: none;
+}
+.insights-toolbar select:focus { border-color: var(--accent); }
+.toolbar-spacer { flex: 1; }
+.refresh-btn {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim); border: 1px solid transparent;
+    padding: 6px 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+}
+.refresh-btn:hover { background: var(--accent-hover); border-color: var(--accent); }
+.refresh-btn.spinning svg { animation: spin 0.8s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.last-updated { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+
+/* Sections */
+.insights-section {
+    margin-bottom: 20px; background: var(--bg-primary);
+    border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+}
+.insights-section-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; cursor: pointer; user-select: none;
+    transition: background 0.15s; border-bottom: 1px solid transparent;
+}
+.insights-section-header:hover { background: var(--bg-hover); }
+.insights-section-header.expanded { border-bottom-color: var(--border-subtle); }
+.insights-section-header:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.section-chevron {
+    width: 20px; height: 20px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.2s ease; color: var(--text-muted);
+}
+.section-chevron.expanded { transform: rotate(90deg); }
+.section-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.section-subtitle { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-left: 4px; }
+.section-moment-tag {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 8px; border-radius: 10px; letter-spacing: 0.3px;
+}
+.insights-section-body { padding: 20px; display: none; }
+.insights-section-body.expanded { display: block; }
+
+/* Grids */
+.insights-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.insights-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.insights-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.insights-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* Cards */
+.insights-card {
+    background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: 16px; transition: border-color 0.15s;
+}
+.insights-card:hover { border-color: var(--border); }
+.insights-card-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+}
+.insights-card-label {
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.insights-card-qid { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); opacity: 0.5; }
+.insights-card-body { font-size: 13px; color: var(--text-secondary); }
+.insights-card--full { grid-column: 1 / -1; }
+
+/* Detector cards */
+.insights-card--detector {
+    background: var(--bg-elevated); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: 16px; border-left: 3px solid var(--border);
+}
+.insights-card--detector.detector-ok { border-left-color: var(--success); }
+.insights-card--detector.detector-warn { border-left-color: var(--warning); }
+.insights-card--detector.detector-error { border-left-color: var(--error); }
+
+/* Big Numbers */
+.insights-big-number {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    color: var(--text-primary); line-height: 1;
+}
+.insights-big-number.small { font-size: 22px; }
+.insights-metric-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+
+/* Badges & Pills */
+.insights-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    padding: 2px 10px; border-radius: 12px;
+}
+.insights-badge--green { background: rgba(22,163,74,0.1); color: #16a34a; }
+.insights-badge--amber { background: rgba(217,119,6,0.1); color: #d97706; }
+.insights-badge--red { background: rgba(220,38,38,0.1); color: #dc2626; }
+.insights-badge--blue { background: rgba(37,99,235,0.1); color: #2563eb; }
+.insights-badge--purple { background: rgba(124,58,237,0.1); color: #7c3aed; }
+.insights-badge--gray { background: rgba(148,163,184,0.1); color: #64748b; }
+
+.insights-pill {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--font-sans); font-size: 32px; font-weight: 800;
+    width: 72px; height: 72px; border-radius: 50%;
+}
+.insights-pill--green { background: rgba(22,163,74,0.1); color: #16a34a; }
+.insights-pill--amber { background: rgba(217,119,6,0.1); color: #d97706; }
+.insights-pill--red { background: rgba(220,38,38,0.1); color: #dc2626; }
+
+/* Trend Arrows */
+.insights-trend { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.insights-trend--up { color: var(--success); }
+.insights-trend--down { color: var(--error); }
+.insights-trend--flat { color: var(--text-muted); }
+.insights-trend--good-down { color: var(--success); }
+
+/* Fleet Status Bar (Q1) */
+.fleet-status-bar { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+.fleet-status-bar .segment {
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: white; transition: width 0.3s ease; min-width: 30px; cursor: default;
+}
+
+/* Sparkline (Q4) */
+.sparkline-container { margin-top: 8px; }
+.sparkline-container svg { display: block; width: 100%; }
+
+/* Horizontal Bars */
+.insights-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.insights-bar-label {
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary);
+    width: 120px; text-align: right; flex-shrink: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.insights-bar-track { flex: 1; height: 18px; background: var(--bg-hover); border-radius: 4px; overflow: hidden; }
+.insights-bar-fill {
+    height: 100%; border-radius: 4px; transition: width 0.3s ease;
+    display: flex; align-items: center; padding-left: 6px;
+    font-family: var(--font-mono); font-size: 10px; color: white; font-weight: 600;
+}
+.insights-bar-value { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 60px; flex-shrink: 0; }
+
+/* Tables */
+.insights-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.insights-table th {
+    font-weight: 600; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.5px; font-size: 10px; padding: 8px 10px;
+    text-align: left; border-bottom: 1px solid var(--border);
+}
+.insights-table td {
+    padding: 8px 10px; border-bottom: 1px solid var(--border-subtle);
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);
+}
+.insights-table tr:last-child td { border-bottom: none; }
+.insights-table tr:hover td { background: var(--bg-hover); }
+
+/* Activity Feed (Q5) */
+.activity-feed { max-height: 180px; overflow-y: auto; }
+.activity-feed::-webkit-scrollbar { width: 4px; }
+.activity-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.activity-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid var(--border-subtle); font-size: 12px;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.activity-time { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.activity-text { color: var(--text-secondary); line-height: 1.4; }
+.activity-agent { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+.live-badge-inline {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    color: var(--success); background: rgba(22,163,74,0.08);
+    padding: 1px 8px; border-radius: 10px;
+}
+.live-badge-inline .dot {
+    width: 5px; height: 5px; border-radius: 50%; background: var(--success);
+    animation: pulse-dot 2s ease infinite;
+}
+
+/* Health Gauge (Q37) */
+.gauge-container { display: flex; flex-direction: column; align-items: center; padding: 12px 0; }
+.gauge-svg { width: 140px; height: 140px; }
+.gauge-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 8px; }
+
+/* Checklist (Q38) */
+.checklist-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border-subtle); font-size: 13px;
+}
+.checklist-item:last-child { border-bottom: none; }
+.check-icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.check-pass { color: var(--success); }
+.check-fail { color: var(--error); }
+.check-label { color: var(--text-secondary); flex: 1; }
+.check-value { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+
+/* Investigation Agent Selector */
+.investigation-agent-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; margin-bottom: 16px;
+    background: var(--accent-dim); border-radius: var(--radius-sm);
+    border: 1px solid rgba(194,65,12,0.12);
+}
+.investigation-agent-bar label { font-size: 12px; font-weight: 600; color: var(--accent); }
+.investigation-agent-bar select {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary);
+    padding: 5px 10px; border-radius: var(--radius-sm); cursor: pointer;
+}
+
+/* Heartbeat Visual (Q7) */
+.hb-bar-track { height: 8px; background: var(--bg-hover); border-radius: 4px; position: relative; margin: 10px 0 4px; }
+.hb-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+.hb-bar-threshold { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--text-muted); border-radius: 1px; }
+
+/* Token Bar (Q20) */
+.token-bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; width: 100px; }
+.token-bar .in { background: var(--active); }
+.token-bar .out { background: var(--success); }
+
+/* Navigation Links */
+.nav-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px; font-weight: 600; color: var(--accent);
+    text-decoration: none; cursor: pointer; transition: opacity 0.15s;
+}
+.nav-link:hover { opacity: 0.7; }
+
+/* ROI Calculator */
+.roi-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.roi-input-group label {
+    display: block; font-size: 11px; font-weight: 600; color: var(--text-muted);
+    margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.roi-input-group input {
+    width: 100%; font-family: var(--font-mono); font-size: 13px;
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg-primary); color: var(--text-primary); outline: none;
+}
+.roi-input-group input:focus { border-color: var(--accent); }
+.roi-result {
+    display: flex; gap: 20px; padding: 12px; background: var(--bg-primary);
+    border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);
+}
+.roi-result-item { text-align: center; }
+.roi-result-item .val { font-size: 18px; font-weight: 800; color: var(--success); }
+.roi-result-item .lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+
+/* Verdict banners */
+.verdict-banner {
+    padding: 10px 16px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px; margin-top: 12px;
+}
+.verdict-banner--green { background: rgba(22,163,74,0.08); color: var(--success); }
+.verdict-banner--amber { background: rgba(217,119,6,0.08); color: var(--warning); }
+.verdict-banner--red { background: rgba(220,38,38,0.08); color: var(--error); }
+
+/* Detector grid */
+.detector-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 16px; }
+.detector-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.detector-name { font-size: 13px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px; }
+.detector-status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.detector-summary { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.detector-footer { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 8px; opacity: 0.6; }
+
+/* Chart container */
+.chart-container { width: 100%; position: relative; }
+.chart-container svg { display: block; width: 100%; }
+
+/* Subsection divider */
+.subsection-label {
+    font-size: 12px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Error/Empty states */
+.insights-error-state, .insights-empty-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 16px; text-align: center; gap: 8px;
+}
+.insights-error-state { color: var(--error); }
+.insights-empty-state { color: var(--text-muted); }
+.insights-empty-state .empty-icon { font-size: 24px; opacity: 0.4; }
+.insights-error-state .error-icon { font-size: 20px; }
+.retry-btn {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim); border: 1px solid transparent;
+    padding: 4px 14px; border-radius: var(--radius-sm); cursor: pointer; margin-top: 4px;
+}
+.retry-btn:hover { border-color: var(--accent); }
+
+/* Tooltip */
+.insights-tooltip {
+    position: fixed; z-index: 1000; pointer-events: none;
+    background: var(--text-primary); color: #fff; font-family: var(--font-mono); font-size: 11px;
+    padding: 6px 10px; border-radius: var(--radius-sm); max-width: 280px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); display: none; line-height: 1.4;
+}
+
+/* Toast container */
+.toast-container {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+    pointer-events: auto; padding: 12px 20px; border-radius: var(--radius-md);
+    font-size: 13px; font-family: var(--font-sans); font-weight: 500;
+    color: var(--text-primary); background: var(--bg-primary);
+    border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    animation: toast-in 0.25s ease;
+}
+.toast.error { border-color: var(--error); background: rgba(220,38,38,0.04); }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Misc utilities */
+.muted { color: var(--text-muted); }
+.mono { font-family: var(--font-mono); }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.gap-row { display: flex; align-items: center; gap: 8px; }
+.text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+    .insights-grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .insights-grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .roi-inputs { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+    .insights-grid-4, .insights-grid-3, .insights-grid-2 { grid-template-columns: 1fr; }
+    .insights-container { padding: 16px 12px 32px; }
+}
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a class="logo" href="/static/index.html">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <div class="workspace-badge" id="workspaceBadge">---</div>
+        <div class="view-tabs">
+            <a class="view-tab" href="/static/index.html" data-view="mission">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
+            </a>
+            <a class="view-tab" href="/static/index.html?view=cost" data-view="cost">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Costs
+            </a>
+            <a class="view-tab" href="/static/index.html?view=pipeline" data-view="pipeline">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                Pipeline
+            </a>
+            <a class="view-tab active" href="/static/insights.html" data-view="insights">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Insights
+            </a>
+        </div>
+    </div>
+    <div class="topbar-right">
+        <div class="status-pill">
+            <div class="status-dot" id="connectionDot"></div>
+            <span id="connectionText">Connected</span>
+        </div>
+        <select class="env-selector" id="envSelector">
+            <option>production</option>
+            <option>staging</option>
+        </select>
+    </div>
+</div>
+
+<!-- ═══════════════ INSIGHTS BODY ═══════════════ -->
+<div class="insights-container" id="insightsContainer">
+
+    <!-- Toolbar -->
+    <div class="insights-toolbar">
+        <label for="rangeSelector">Range</label>
+        <select id="rangeSelector">
+            <option value="1h">1 hour</option>
+            <option value="6h">6 hours</option>
+            <option value="24h" selected>24 hours</option>
+            <option value="7d">7 days</option>
+            <option value="30d">30 days</option>
+        </select>
+
+        <label for="agentSelector" style="margin-left:12px;">Agent</label>
+        <select id="agentSelector">
+            <option value="all">All Agents</option>
+        </select>
+
+        <div class="toolbar-spacer"></div>
+        <span class="last-updated" id="lastUpdated"></span>
+        <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 105.64-11.36L1 10"/></svg>
+            Refresh
+        </button>
+    </div>
+
+    <!-- SECTION 1: THE GLANCE (Q1-Q5) -->
+    <div class="insights-section" id="section0">
+        <div class="insights-section-header expanded" id="header0"
+             role="button" tabindex="0" aria-expanded="true" aria-controls="body0"
+             onclick="toggleSection(0)" onkeydown="sectionKeydown(event, 0)">
+            <div class="section-chevron expanded" id="chevron0">&#9654;</div>
+            <span class="section-title">The Glance</span>
+            <span class="section-subtitle">— Fleet Status at a Glance</span>
+            <span class="section-moment-tag">~2 seconds</span>
+        </div>
+        <div class="insights-section-body expanded" id="body0" role="region" aria-labelledby="header0">
+            <div id="glanceContent"><!-- rendered by JS --></div>
+        </div>
+    </div>
+
+    <!-- SECTION 2: THE INVESTIGATION (Q6-Q16) -->
+    <div class="insights-section" id="section1">
+        <div class="insights-section-header expanded" id="header1"
+             role="button" tabindex="0" aria-expanded="true" aria-controls="body1"
+             onclick="toggleSection(1)" onkeydown="sectionKeydown(event, 1)">
+            <div class="section-chevron expanded" id="chevron1">&#9654;</div>
+            <span class="section-title">The Investigation</span>
+            <span class="section-subtitle">— Agent &amp; Task Deep Dive</span>
+            <span class="section-moment-tag">~2-5 min</span>
+        </div>
+        <div class="insights-section-body expanded" id="body1" role="region" aria-labelledby="header1">
+            <div id="investigationContent"><div class="insights-empty-state"><span class="empty-icon">&#128270;</span><div>Select an agent to investigate</div></div></div>
+        </div>
+    </div>
+
+    <!-- SECTION 3: THE OPTIMIZATION (Q17-Q28) -->
+    <div class="insights-section" id="section2">
+        <div class="insights-section-header expanded" id="header2"
+             role="button" tabindex="0" aria-expanded="true" aria-controls="body2"
+             onclick="toggleSection(2)" onkeydown="sectionKeydown(event, 2)">
+            <div class="section-chevron expanded" id="chevron2">&#9654;</div>
+            <span class="section-title">The Optimization</span>
+            <span class="section-subtitle">— Cost &amp; Reliability</span>
+            <span class="section-moment-tag">~10-15 min</span>
+        </div>
+        <div class="insights-section-body expanded" id="body2" role="region" aria-labelledby="header2">
+            <div id="optimizationContent"><div class="insights-empty-state"><span class="empty-icon">&#9881;</span><div>Loading optimization data...</div></div></div>
+        </div>
+    </div>
+
+    <!-- SECTION 4: THE REVIEW (Q29-Q38) -->
+    <div class="insights-section" id="section3">
+        <div class="insights-section-header expanded" id="header3"
+             role="button" tabindex="0" aria-expanded="true" aria-controls="body3"
+             onclick="toggleSection(3)" onkeydown="sectionKeydown(event, 3)">
+            <div class="section-chevron expanded" id="chevron3">&#9654;</div>
+            <span class="section-title">The Review</span>
+            <span class="section-subtitle">— Trends &amp; Fleet Health</span>
+            <span class="section-moment-tag">~20-30 min</span>
+        </div>
+        <div class="insights-section-body expanded" id="body3" role="region" aria-labelledby="header3">
+            <div id="reviewContent"><div class="insights-empty-state"><span class="empty-icon">&#128200;</span><div>Loading review data...</div></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Tooltip -->
+<div class="insights-tooltip" id="insightsTooltip"></div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Common utilities -->
+<script src="/static/js/common.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  HIVEBOARD INSIGHTS — Production JavaScript
+//  Section 1: The Glance (Q1-Q5) — fully wired
+//  Sections 2-4: coming in subsequent releases
+// ═══════════════════════════════════════════════════════
+
+// ── State ────────────────────────────────────────────
+var insightsRange = '24h';
+var insightsAgent = null;         // selected agent_id for Investigation
+var insightsRefreshTimer = null;
+var lastSlowRefresh = 0;
+var lastRefreshTime = null;
+var lastUpdatedTimer = null;
+
+// Cached data from API
+var insAgents = [];
+var insMetrics = null;
+var insCost = null;
+var insCostTimeseries = [];
+var insCostCalls = [];
+var insFleetPipeline = null;
+var insAgentPipeline = null;
+var insTasks = [];
+var insEvents = [];
+var insHeartbeatEvents = [];
+
+// Error tracking per data source
+var insErrors = {};
+
+// Section collapse state
+var insightsCollapsed = [];
+
+// ── Status color map ─────────────────────────────────
+var STATUS_COLORS = {
+    processing: 'var(--active)',
+    idle: 'var(--idle)',
+    waiting_approval: 'var(--warning)',
+    error: 'var(--error)',
+    stuck: 'var(--stuck)',
+    completed: 'var(--success)',
+    failed: 'var(--error)',
+    escalated: 'var(--warning)'
+};
+
+var SEVERITY_COLORS = {
+    info: 'var(--active)',
+    warn: 'var(--warning)',
+    error: 'var(--error)',
+    debug: 'var(--idle)'
+};
+
+// ── Init ─────────────────────────────────────────────
+
+(function init() {
+    loadCollapsedState();
+    applyCollapsedState();
+    bindToolbarEvents();
+    refreshInsights();
+    startPolling();
+    startLastUpdatedTicker();
+})();
+
+// ── Section Collapse ─────────────────────────────────
+
+function toggleSection(idx) {
+    var chevron = document.getElementById('chevron' + idx);
+    var body = document.getElementById('body' + idx);
+    var header = document.getElementById('header' + idx);
+    var isExpanded = body.classList.contains('expanded');
+
+    if (isExpanded) {
+        body.classList.remove('expanded');
+        chevron.classList.remove('expanded');
+        header.classList.remove('expanded');
+        header.setAttribute('aria-expanded', 'false');
+    } else {
+        body.classList.add('expanded');
+        chevron.classList.add('expanded');
+        header.classList.add('expanded');
+        header.setAttribute('aria-expanded', 'true');
+    }
+    saveCollapsedState();
+}
+
+function sectionKeydown(e, idx) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleSection(idx);
+    }
+}
+
+function loadCollapsedState() {
+    try {
+        var stored = localStorage.getItem('insights_collapsed_sections');
+        insightsCollapsed = stored ? JSON.parse(stored) : [];
+    } catch(e) { insightsCollapsed = []; }
+}
+
+function saveCollapsedState() {
+    var collapsed = [];
+    for (var i = 0; i < 4; i++) {
+        var body = document.getElementById('body' + i);
+        if (body && !body.classList.contains('expanded')) collapsed.push(i);
+    }
+    insightsCollapsed = collapsed;
+    try { localStorage.setItem('insights_collapsed_sections', JSON.stringify(collapsed)); } catch(e) {}
+}
+
+function applyCollapsedState() {
+    insightsCollapsed.forEach(function(idx) {
+        var body = document.getElementById('body' + idx);
+        var chevron = document.getElementById('chevron' + idx);
+        var header = document.getElementById('header' + idx);
+        if (body) {
+            body.classList.remove('expanded');
+            chevron.classList.remove('expanded');
+            header.classList.remove('expanded');
+            header.setAttribute('aria-expanded', 'false');
+        }
+    });
+}
+
+// ── Toolbar ──────────────────────────────────────────
+
+function bindToolbarEvents() {
+    document.getElementById('rangeSelector').addEventListener('change', function() {
+        insightsRange = this.value;
+        lastSlowRefresh = 0; // force slow refresh
+        refreshInsights();
+    });
+    document.getElementById('agentSelector').addEventListener('change', function() {
+        insightsAgent = this.value === 'all' ? null : this.value;
+        refreshAgentSection();
+    });
+}
+
+function manualRefresh() {
+    lastSlowRefresh = 0;
+    var btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+    refreshInsights().then(function() {
+        setTimeout(function() { btn.classList.remove('spinning'); }, 300);
+    });
+}
+
+// ── Last Updated Ticker ──────────────────────────────
+
+function startLastUpdatedTicker() {
+    if (lastUpdatedTimer) clearInterval(lastUpdatedTimer);
+    lastUpdatedTimer = setInterval(updateLastUpdatedText, 1000);
+}
+
+function updateLastUpdatedText() {
+    var el = document.getElementById('lastUpdated');
+    if (!el || !lastRefreshTime) return;
+    var ago = Math.floor((Date.now() - lastRefreshTime) / 1000);
+    el.textContent = 'Updated ' + (ago < 5 ? 'just now' : ago + 's ago');
+}
+
+// ── Polling ──────────────────────────────────────────
+
+function startPolling() {
+    if (insightsRefreshTimer) clearInterval(insightsRefreshTimer);
+    insightsRefreshTimer = setInterval(function() {
+        refreshInsights();
+    }, 15000); // fast tick = 15s
+}
+
+// ── Data Fetching ────────────────────────────────────
+
+async function refreshInsights() {
+    var range = insightsRange;
+    var now = Date.now();
+    var doSlow = (now - lastSlowRefresh) > 60000;
+
+    // Phase 1: Fast endpoints (always)
+    var fastPromises = [
+        apiFetch('/v1/agents'),
+        apiFetch('/v1/pipeline'),
+        apiFetch('/v1/events', { exclude_heartbeats: true, limit: 20 }),
+    ];
+
+    // Phase 1b: Slow endpoints (every 60s or forced)
+    var slowPromises = [];
+    if (doSlow) {
+        slowPromises = [
+            apiFetch('/v1/metrics', { range: range }),
+            apiFetch('/v1/cost', { range: range }),
+            apiFetch('/v1/cost/timeseries', { range: range }),
+            apiFetch('/v1/cost/calls', { limit: 200 }),
+            apiFetch('/v1/tasks', { limit: 100, sort: 'newest' }),
+        ];
+    }
+
+    var results = await Promise.allSettled(fastPromises.concat(slowPromises));
+
+    var val = function(i) { return results[i] && results[i].status === 'fulfilled' ? results[i].value : null; };
+    var err = function(i) { return results[i] && results[i].status === 'rejected' ? results[i].reason : null; };
+
+    // Fast results (always updated)
+    insAgents = (val(0) && val(0).data) || insAgents || [];
+    insFleetPipeline = val(1) || insFleetPipeline || null;
+    insEvents = (val(2) && val(2).data) || insEvents || [];
+
+    insErrors.agents = err(0);
+    insErrors.pipeline = err(1);
+    insErrors.events = err(2);
+
+    // Slow results (when refreshed)
+    if (doSlow) {
+        insMetrics = val(3) || insMetrics || null;
+        insCost = val(4) || insCost || null;
+        insCostTimeseries = (val(5) && val(5).data) || insCostTimeseries || [];
+        insCostCalls = (val(6) && val(6).data) || insCostCalls || [];
+        insTasks = (val(7) && val(7).data) || insTasks || [];
+
+        insErrors.metrics = err(3);
+        insErrors.cost = err(4);
+        insErrors.costTimeseries = err(5);
+        insErrors.costCalls = err(6);
+        insErrors.tasks = err(7);
+
+        lastSlowRefresh = now;
+    }
+
+    // Update agent selector dropdown
+    populateAgentSelector();
+
+    // Update workspace badge
+    updateWorkspaceBadge();
+
+    lastRefreshTime = Date.now();
+    updateLastUpdatedText();
+
+    // Render all sections
+    renderGlance();
+    renderInvestigation();
+    renderOptimization();
+    renderReview();
+}
+
+async function refreshAgentSection() {
+    if (insightsAgent) {
+        var results = await Promise.allSettled([
+            apiFetch('/v1/agents/' + insightsAgent + '/pipeline'),
+            apiFetch('/v1/events', { agent_id: insightsAgent, event_type: 'heartbeat', limit: 50 }),
+        ]);
+        insAgentPipeline = results[0].status === 'fulfilled' ? results[0].value : null;
+        insHeartbeatEvents = results[1].status === 'fulfilled' ? ((results[1].value && results[1].value.data) || []) : [];
+        insErrors.agentPipeline = results[0].status === 'rejected' ? results[0].reason : null;
+        insErrors.heartbeats = results[1].status === 'rejected' ? results[1].reason : null;
+    } else {
+        insAgentPipeline = null;
+        insHeartbeatEvents = [];
+    }
+    renderInvestigation();
+}
+
+// ── Agent Selector ───────────────────────────────────
+
+function populateAgentSelector() {
+    var sel = document.getElementById('agentSelector');
+    var current = sel.value;
+    var opts = '<option value="all">All Agents</option>';
+    // Sort by attention priority: stuck > error > waiting > processing > idle
+    var priorityOrder = { stuck: 0, error: 1, waiting_approval: 2, processing: 3, idle: 4 };
+    var sorted = insAgents.slice().sort(function(a, b) {
+        return (priorityOrder[a.derived_status] || 5) - (priorityOrder[b.derived_status] || 5);
+    });
+    sorted.forEach(function(agent) {
+        opts += '<option value="' + escHtml(agent.agent_id) + '">' + escHtml(agent.agent_id) + '</option>';
+    });
+    sel.innerHTML = opts;
+    // Restore selection
+    if (current && current !== 'all') {
+        sel.value = current;
+        if (sel.value !== current) sel.value = 'all'; // agent no longer exists
+    }
+}
+
+function selectInsightsAgent(agentId) {
+    insightsAgent = agentId;
+    var sel = document.getElementById('agentSelector');
+    sel.value = agentId;
+    refreshAgentSection();
+    // Scroll investigation section into view
+    var section = document.getElementById('section1');
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Ensure section is expanded
+    var body = document.getElementById('body1');
+    if (!body.classList.contains('expanded')) toggleSection(1);
+}
+
+function updateWorkspaceBadge() {
+    var el = document.getElementById('workspaceBadge');
+    if (insAgents.length > 0) {
+        var env = insAgents[0].environment || 'default';
+        el.textContent = env;
+    }
+}
+
+// ── Render Helpers ───────────────────────────────────
+
+function errorCard(title, qid, source) {
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">' + escHtml(title) + '</span>' +
+        '<span class="insights-card-qid">' + escHtml(qid) + '</span></div>' +
+        '<div class="insights-card-body"><div class="insights-error-state">' +
+        '<span class="error-icon">!</span>' +
+        '<div>Failed to load data</div>' +
+        '<button class="retry-btn" onclick="manualRefresh()">Retry</button>' +
+        '</div></div></div>';
+}
+
+function emptyCard(title, qid, msg) {
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">' + escHtml(title) + '</span>' +
+        '<span class="insights-card-qid">' + escHtml(qid) + '</span></div>' +
+        '<div class="insights-card-body"><div class="insights-empty-state">' +
+        '<div>' + escHtml(msg) + '</div>' +
+        '</div></div></div>';
+}
+
+function statusBadgeClass(status) {
+    switch(status) {
+        case 'processing': return 'insights-badge--blue';
+        case 'completed': return 'insights-badge--green';
+        case 'failed': case 'error': return 'insights-badge--red';
+        case 'stuck': return 'insights-badge--red';
+        case 'waiting_approval': case 'waiting': case 'escalated': return 'insights-badge--amber';
+        case 'idle': return 'insights-badge--gray';
+        default: return 'insights-badge--gray';
+    }
+}
+
+function severityBadgeClass(sev) {
+    switch(sev) {
+        case 'critical': return 'insights-badge--red';
+        case 'high': return 'insights-badge--red';
+        case 'medium': return 'insights-badge--amber';
+        case 'low': return 'insights-badge--blue';
+        default: return 'insights-badge--gray';
+    }
+}
+
+// ── SVG Chart Helpers ────────────────────────────────
+
+function buildSparkline(data, color, gradientId, height) {
+    height = height || 50;
+    if (!data || data.length < 2) return '';
+    var w = 200, h = height;
+    var max = Math.max.apply(null, data);
+    var min = Math.min.apply(null, data);
+    var range = max - min || 1;
+    var pad = 4;
+
+    var points = data.map(function(v, i) {
+        var x = (i / (data.length - 1)) * w;
+        var y = pad + ((max - v) / range) * (h - pad * 2);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+
+    var polyPoints = points + ' ' + w + ',' + h + ' 0,' + h;
+
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" height="' + h + '" preserveAspectRatio="none">' +
+        '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.15"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+        '</linearGradient></defs>' +
+        '<polygon points="' + polyPoints + '" fill="url(#' + gradientId + ')"/>' +
+        '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2"/>' +
+        '</svg>';
+}
+
+function computeTrend(data) {
+    if (!data || data.length < 4) return { direction: 'flat', delta: 0 };
+    var mid = Math.floor(data.length / 2);
+    var firstHalf = data.slice(0, mid);
+    var secondHalf = data.slice(mid);
+    var avg = function(arr) { return arr.reduce(function(s,v){return s+v;},0) / arr.length; };
+    var a1 = avg(firstHalf);
+    var a2 = avg(secondHalf);
+    var delta = a1 !== 0 ? ((a2 - a1) / Math.abs(a1)) * 100 : 0;
+    var direction = delta > 2 ? 'up' : delta < -2 ? 'down' : 'flat';
+    return { direction: direction, delta: delta };
+}
+
+function trendHtml(trend, invertGood) {
+    // invertGood: if true, 'down' is good (cost, duration)
+    var cls, arrow;
+    if (trend.direction === 'up') {
+        cls = invertGood ? 'insights-trend--down' : 'insights-trend--up';
+        arrow = '&#8593;';
+    } else if (trend.direction === 'down') {
+        cls = invertGood ? 'insights-trend--good-down' : 'insights-trend--down';
+        arrow = '&#8595;';
+    } else {
+        cls = 'insights-trend--flat';
+        arrow = '&#8596;';
+    }
+    var pct = Math.abs(trend.delta).toFixed(1) + '%';
+    var label = trend.direction === 'up' ? 'up ' + pct : trend.direction === 'down' ? 'down ' + pct : 'flat';
+    return '<span class="insights-trend ' + cls + '" aria-label="Trend: ' + label + '">' + arrow + ' ' + pct + '</span>';
+}
+
+
+// ══════════════════════════════════════════════════════
+//  SECTION 1: THE GLANCE (Q1-Q5)
+// ══════════════════════════════════════════════════════
+
+function renderGlance() {
+    var el = document.getElementById('glanceContent');
+    if (!el) return;
+
+    if (insErrors.agents) {
+        el.innerHTML = '<div class="insights-grid-3 mb-16">' +
+            errorCard('Fleet Status', 'Q1', 'agents') +
+            errorCard('Needs Attention', 'Q2', 'agents') +
+            errorCard('Stuck Agents', 'Q3', 'agents') +
+            '</div>';
+        return;
+    }
+
+    var html = '';
+
+    // Q1-Q3 row
+    html += '<div class="insights-grid-3 mb-16">';
+    html += renderQ1();
+    html += renderQ2();
+    html += renderQ3();
+    html += '</div>';
+
+    // Q4: Mini sparklines
+    html += '<div class="insights-grid-4 mb-16">';
+    html += renderQ4();
+    html += '</div>';
+
+    // Q5: Activity feed
+    html += renderQ5();
+
+    el.innerHTML = html;
+}
+
+// Q1: Are my agents running?
+function renderQ1() {
+    if (insAgents.length === 0) {
+        return emptyCard('Fleet Status', 'Q1', 'No agents registered yet. Connect an agent with the HiveLoop SDK.');
+    }
+
+    var counts = { processing: 0, idle: 0, waiting_approval: 0, error: 0, stuck: 0 };
+    insAgents.forEach(function(a) {
+        var s = a.derived_status || 'idle';
+        if (counts[s] !== undefined) counts[s]++;
+        else counts.idle++;
+    });
+    var total = insAgents.length;
+
+    // Build status bar segments
+    var segments = '';
+    var order = ['processing', 'idle', 'waiting_approval', 'error', 'stuck'];
+    var labels = { processing: 'processing', idle: 'idle', waiting_approval: 'waiting', error: 'error', stuck: 'stuck' };
+    order.forEach(function(s) {
+        if (counts[s] > 0) {
+            var pct = Math.max((counts[s] / total) * 100, 10); // min width for visibility
+            segments += '<div class="segment" style="width:' + pct.toFixed(0) + '%;background:' + STATUS_COLORS[s] + ';" ' +
+                'title="' + counts[s] + ' ' + labels[s] + '">' + counts[s] + '</div>';
+        }
+    });
+
+    // Summary line
+    var parts = [];
+    parts.push(total + ' agents total');
+    order.forEach(function(s) { if (counts[s] > 0) parts.push(counts[s] + ' ' + labels[s]); });
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header">' +
+        '<span class="insights-card-label">Fleet Status</span>' +
+        '<span class="insights-card-qid">Q1</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="fleet-status-bar" role="img" aria-label="Fleet status: ' + escHtml(parts.join(', ')) + '">' + segments + '</div>' +
+        '<div class="text-xs muted">' + escHtml(parts.join(' \u00B7 ')) + '</div>' +
+        '</div></div>';
+}
+
+// Q2: Does anything need my attention?
+function renderQ2() {
+    var stuckCount = 0, errorCount = 0, waitingCount = 0;
+    insAgents.forEach(function(a) {
+        if (a.is_stuck) stuckCount++;
+        if (a.derived_status === 'error') errorCount++;
+        if (a.derived_status === 'waiting_approval') waitingCount++;
+    });
+    var issueCount = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.active_issues : 0;
+    var totalAttention = stuckCount + errorCount + waitingCount + issueCount;
+
+    var pillClass = totalAttention === 0 ? 'insights-pill--green' :
+        (stuckCount > 0 || errorCount > 0) ? 'insights-pill--red' : 'insights-pill--amber';
+
+    var details = [];
+    if (stuckCount > 0) details.push(stuckCount + ' stuck');
+    if (errorCount > 0) details.push(errorCount + ' error');
+    if (issueCount > 0) details.push(issueCount + ' active issues');
+    if (waitingCount > 0) details.push(waitingCount + ' waiting approval');
+
+    var detailHtml = totalAttention === 0
+        ? '<div class="text-sm" style="color:var(--success);font-weight:600;">Nothing needs attention</div>'
+        : '<div>' +
+            ((stuckCount > 0 || errorCount > 0)
+                ? '<div class="text-sm" style="color:var(--error);font-weight:600;">' +
+                    [stuckCount > 0 ? stuckCount + ' stuck' : '', errorCount > 0 ? errorCount + ' error' : ''].filter(Boolean).join(' \u00B7 ') +
+                    '</div>' : '') +
+            '<div class="text-xs muted mt-8">' +
+            [issueCount > 0 ? issueCount + ' active issues' : '', waitingCount > 0 ? waitingCount + ' waiting approval' : ''].filter(Boolean).join(' \u00B7 ') +
+            '</div></div>';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Needs Attention</span>' +
+        '<span class="insights-card-qid">Q2</span></div>' +
+        '<div class="insights-card-body" style="display:flex;align-items:center;gap:16px;">' +
+        '<div class="' + pillClass + '" role="status" aria-label="' + totalAttention + ' items need attention" style="display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-sans);font-size:32px;font-weight:800;width:72px;height:72px;border-radius:50%;">' + totalAttention + '</div>' +
+        detailHtml +
+        '</div></div>';
+}
+
+// Q3: Is anything stuck?
+function renderQ3() {
+    var stuckAgents = insAgents.filter(function(a) { return a.is_stuck; });
+
+    if (stuckAgents.length === 0) {
+        return '<div class="insights-card">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Stuck Agents</span>' +
+            '<span class="insights-card-qid">Q3</span></div>' +
+            '<div class="insights-card-body">' +
+            '<div class="insights-metric-row"><span class="insights-big-number small" style="color:var(--success);">0</span>' +
+            '<span class="insights-badge insights-badge--green">all clear</span></div>' +
+            '</div></div>';
+    }
+
+    var listHtml = stuckAgents.map(function(a) {
+        var overtime = (a.heartbeat_age_seconds || 0) - (a.stuck_threshold_seconds || 120);
+        return '<div class="mt-8 text-xs mono" style="color:var(--text-secondary);">' +
+            '<span style="font-weight:600;">' + escHtml(a.agent_id) + '</span>' +
+            ' \u2014 stuck for ' + fmtDuration((a.heartbeat_age_seconds || 0) * 1000) +
+            ' (threshold: ' + (a.stuck_threshold_seconds || 120) + 's)' +
+            (a.current_task_id ? '<br>Task: <span class="muted">' + escHtml(a.current_task_id) + '</span>' : '') +
+            ' <span class="nav-link" onclick="selectInsightsAgent(\'' + escHtml(a.agent_id) + '\')">Investigate \u2192</span>' +
+            '</div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Stuck Agents</span>' +
+        '<span class="insights-card-qid">Q3</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small" style="color:var(--stuck);">' + stuckAgents.length + '</span>' +
+        '<span class="insights-badge insights-badge--red">stuck</span></div>' +
+        listHtml +
+        '</div></div>';
+}
+
+// Q4: Is work flowing? (4 mini sparklines)
+function renderQ4() {
+    if (insErrors.metrics) {
+        return errorCard('Throughput', 'Q4a', 'metrics') +
+            errorCard('Success Rate', 'Q4b', 'metrics') +
+            errorCard('Errors', 'Q4c', 'metrics') +
+            errorCard('LLM Cost/Task', 'Q4d', 'metrics');
+    }
+
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    if (ts.length < 2) {
+        return emptyCard('Throughput', 'Q4a', 'No task data in this range.') +
+            emptyCard('Success Rate', 'Q4b', 'No task data in this range.') +
+            emptyCard('Errors', 'Q4c', 'No task data in this range.') +
+            emptyCard('LLM Cost/Task', 'Q4d', 'No task data in this range.');
+    }
+
+    // Extract data arrays
+    var throughputData = ts.map(function(b) { return b.throughput || 0; });
+    var successData = ts.map(function(b) {
+        var total = (b.tasks_completed || 0) + (b.tasks_failed || 0);
+        return total > 0 ? (b.tasks_completed / total) * 100 : 100;
+    });
+    var errorData = ts.map(function(b) { return b.tasks_failed || 0; });
+    var costPerTaskData = ts.map(function(b) {
+        return b.tasks_completed > 0 ? (b.cost || 0) / b.tasks_completed : 0;
+    });
+
+    // Current values (last bucket)
+    var lastBucket = ts[ts.length - 1];
+    var currentThroughput = (lastBucket.throughput || 0).toFixed(1);
+    var totalComp = (lastBucket.tasks_completed || 0) + (lastBucket.tasks_failed || 0);
+    var currentSuccess = totalComp > 0 ? ((lastBucket.tasks_completed / totalComp) * 100).toFixed(1) : '100.0';
+    var totalErrors = errorData.reduce(function(s,v){return s+v;}, 0);
+    var currentCpt = costPerTaskData.length > 0 ? costPerTaskData[costPerTaskData.length - 1] : 0;
+
+    // Trends
+    var tThroughput = computeTrend(throughputData);
+    var tSuccess = computeTrend(successData);
+    var tErrors = computeTrend(errorData);
+    var tCpt = computeTrend(costPerTaskData);
+
+    var html = '';
+
+    // Throughput
+    html += '<div class="insights-card"><div class="insights-card-header">' +
+        '<span class="insights-card-label">Throughput</span><span class="insights-card-qid">Q4a</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small">' + currentThroughput + '</span>' +
+        '<span class="text-xs muted">tasks/hr</span>' +
+        trendHtml(tThroughput, false) + '</div>' +
+        '<div class="sparkline-container" aria-label="Throughput sparkline, ' + currentThroughput + ' tasks/hr, trending ' + tThroughput.direction + '">' +
+        buildSparkline(throughputData, 'var(--active)', 'gThroughput') + '</div>' +
+        '</div></div>';
+
+    // Success Rate
+    html += '<div class="insights-card"><div class="insights-card-header">' +
+        '<span class="insights-card-label">Success Rate</span><span class="insights-card-qid">Q4b</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small">' + currentSuccess + '%</span>' +
+        trendHtml(tSuccess, false) + '</div>' +
+        '<div class="sparkline-container">' + buildSparkline(successData, 'var(--success)', 'gSuccess') + '</div>' +
+        '</div></div>';
+
+    // Errors
+    html += '<div class="insights-card"><div class="insights-card-header">' +
+        '<span class="insights-card-label">Errors</span><span class="insights-card-qid">Q4c</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small" style="color:var(--error);">' + totalErrors + '</span>' +
+        '<span class="text-xs muted">in ' + insightsRange + '</span>' +
+        trendHtml(tErrors, true) + '</div>' +
+        '<div class="sparkline-container">' + buildSparkline(errorData, 'var(--error)', 'gErrors') + '</div>' +
+        '</div></div>';
+
+    // LLM Cost/Task
+    html += '<div class="insights-card"><div class="insights-card-header">' +
+        '<span class="insights-card-label">LLM Cost/Task</span><span class="insights-card-qid">Q4d</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small">$' + currentCpt.toFixed(2) + '</span>' +
+        trendHtml(tCpt, true) + '</div>' +
+        '<div class="sparkline-container">' + buildSparkline(costPerTaskData, 'var(--llm)', 'gCostTask') + '</div>' +
+        '</div></div>';
+
+    return html;
+}
+
+// Q5: Is anything happening right now?
+function renderQ5() {
+    if (insErrors.events) {
+        return '<div class="insights-card insights-card--full">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Live Activity</span>' +
+            '<span class="insights-card-qid">Q5</span></div>' +
+            '<div class="insights-card-body"><div class="insights-error-state">' +
+            '<span class="error-icon">!</span><div>Failed to load events</div>' +
+            '<button class="retry-btn" onclick="manualRefresh()">Retry</button></div></div></div>';
+    }
+
+    if (!insEvents || insEvents.length === 0) {
+        return '<div class="insights-card insights-card--full">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Live Activity</span>' +
+            '<span class="insights-card-qid">Q5</span></div>' +
+            '<div class="insights-card-body"><div class="insights-empty-state">' +
+            '<div>No recent activity. Events will appear here as agents run.</div></div></div></div>';
+    }
+
+    // Check if newest event is < 10s old
+    var newestAge = insEvents.length > 0 ? (Date.now() - new Date(insEvents[0].timestamp).getTime()) / 1000 : 999;
+    var liveBadge = newestAge < 10
+        ? '<span class="live-badge-inline"><span class="dot"></span> LIVE</span>'
+        : '';
+
+    var items = insEvents.slice(0, 20).map(function(ev) {
+        var sevColor = SEVERITY_COLORS[ev.severity] || 'var(--idle)';
+        var summary = (ev.payload && ev.payload.summary) || ev.event_type || '';
+        return '<div class="activity-item">' +
+            '<div class="activity-dot" style="background:' + sevColor + ';"></div>' +
+            '<span class="activity-time">' + timeAgo(ev.timestamp) + '</span>' +
+            '<span class="activity-text">' +
+            '<span class="activity-agent">' + escHtml(ev.agent_id) + '</span>: ' +
+            escHtml(summary) +
+            '</span></div>';
+    }).join('');
+
+    return '<div class="insights-card insights-card--full">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Live Activity</span>' +
+        liveBadge +
+        '</div>' +
+        '<div class="insights-card-body"><div class="activity-feed">' + items + '</div></div></div>';
+}
+
+
+// ══════════════════════════════════════════════════════
+//  SECTION 2: THE INVESTIGATION (Q6-Q16)
+// ══════════════════════════════════════════════════════
+
+function renderInvestigation() {
+    var el = document.getElementById('investigationContent');
+    if (!el) return;
+
+    // If no agent selected, pick the first by attention priority
+    if (!insightsAgent && insAgents.length > 0) {
+        var priorityOrder = { stuck: 0, error: 1, waiting_approval: 2, processing: 3, idle: 4 };
+        var sorted = insAgents.slice().sort(function(a, b) {
+            return (priorityOrder[a.derived_status] || 5) - (priorityOrder[b.derived_status] || 5);
+        });
+        insightsAgent = sorted[0].agent_id;
+        var sel = document.getElementById('agentSelector');
+        sel.value = insightsAgent;
+        // Trigger per-agent data fetch (non-blocking)
+        refreshAgentSection();
+        return; // will re-render after agent data loads
+    }
+
+    if (!insightsAgent || insAgents.length === 0) {
+        el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128270;</span>' +
+            '<div>No agents available. Connect an agent to begin investigation.</div></div>';
+        return;
+    }
+
+    var agent = insAgents.find(function(a) { return a.agent_id === insightsAgent; });
+    if (!agent) {
+        el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128270;</span>' +
+            '<div>Agent not found. Select a different agent.</div></div>';
+        return;
+    }
+
+    var html = '';
+
+    // Agent selector bar
+    html += '<div class="investigation-agent-bar">' +
+        '<label>Investigating</label>' +
+        '<select id="investigationAgent" onchange="investigationAgentChange(this.value)">';
+    insAgents.forEach(function(a) {
+        html += '<option value="' + escHtml(a.agent_id) + '"' +
+            (a.agent_id === insightsAgent ? ' selected' : '') + '>' +
+            escHtml(a.agent_id) + '</option>';
+    });
+    html += '</select>' +
+        '<span class="text-xs muted" style="margin-left:auto;">Click any agent name in The Glance to auto-select</span>' +
+        '</div>';
+
+    // Q6-Q9 cards
+    html += '<div class="insights-grid-4 mb-16">';
+    html += renderQ6(agent);
+    html += renderQ7(agent);
+    html += renderQ8();
+    html += renderQ9();
+    html += '</div>';
+
+    // Q10-Q16: Recent Tasks Table
+    html += renderQ10to16(agent);
+
+    el.innerHTML = html;
+}
+
+function investigationAgentChange(agentId) {
+    insightsAgent = agentId;
+    document.getElementById('agentSelector').value = agentId;
+    refreshAgentSection();
+}
+
+// Q6: What is this agent doing right now?
+function renderQ6(agent) {
+    var statusCls = statusBadgeClass(agent.derived_status);
+    var stats = agent.stats_1h || {};
+
+    var taskInfo = '';
+    if (agent.current_task_id) {
+        taskInfo += '<div class="text-xs mono">Task: <strong>' + escHtml(agent.current_task_id) + '</strong></div>';
+        // Find matching task for type/elapsed
+        var matchTask = insTasks.find(function(t) { return t.task_id === agent.current_task_id; });
+        if (matchTask) {
+            if (matchTask.task_type) taskInfo += '<div class="text-xs mono muted">Type: ' + escHtml(matchTask.task_type) + '</div>';
+            if (matchTask.started_at) {
+                var elapsed = Date.now() - new Date(matchTask.started_at).getTime();
+                taskInfo += '<div class="text-xs mono muted">Elapsed: ' + fmtDuration(elapsed) + '</div>';
+            }
+        }
+    }
+
+    var statsLine = 'Last 1h: ' + (stats.tasks_completed || 0) + ' completed, ' + (stats.tasks_failed || 0) + ' failed';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Current Status</span>' +
+        '<span class="insights-card-qid">Q6</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8"><span class="insights-badge ' + statusCls + '">' + escHtml(agent.derived_status) + '</span></div>' +
+        taskInfo +
+        '<div class="mt-8 text-xs muted">' + escHtml(statsLine) + '</div>' +
+        '</div></div>';
+}
+
+// Q7: Is this agent's heartbeat healthy?
+function renderQ7(agent) {
+    var ageSec = agent.heartbeat_age_seconds;
+    var threshold = agent.stuck_threshold_seconds || 120;
+    var cls = hbClass(ageSec);
+    var healthLabel, healthColor;
+    if (cls === 'hb-fresh') { healthLabel = 'Healthy'; healthColor = 'var(--success)'; }
+    else if (cls === 'hb-stale') { healthLabel = 'Stale'; healthColor = 'var(--warning)'; }
+    else { healthLabel = 'Dead'; healthColor = 'var(--error)'; }
+
+    var barPct = ageSec != null ? Math.min((ageSec / threshold) * 100, 100) : 100;
+    var thresholdPct = 100; // threshold is always 100% of the bar
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Heartbeat</span>' +
+        '<span class="insights-card-qid">Q7</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8">' +
+        '<div style="width:10px;height:10px;border-radius:50%;background:' + healthColor + ';"></div>' +
+        '<span class="text-sm" style="font-weight:600;color:' + healthColor + ';">' + healthLabel + '</span></div>' +
+        '<div class="text-xs mono muted">Last beat: ' + (ageSec != null ? hbText(ageSec) : '\u2014') + '</div>' +
+        '<div class="text-xs mono muted">Threshold: ' + threshold + 's</div>' +
+        '<div class="hb-bar-track">' +
+        '<div class="hb-bar-fill" style="width:' + barPct.toFixed(0) + '%;background:' + healthColor + ';"></div>' +
+        '<div class="hb-bar-threshold" style="left:' + thresholdPct + '%;"></div></div>' +
+        '<div class="text-xs muted">' + (ageSec != null ? Math.round(ageSec) : '?') + 's / ' + threshold + 's</div>' +
+        '</div></div>';
+}
+
+// Q8: Does this agent have pending work?
+function renderQ8() {
+    if (insErrors.agentPipeline) {
+        return errorCard('Queue', 'Q8', 'agentPipeline');
+    }
+    if (!insAgentPipeline || !insAgentPipeline.queue) {
+        return '<div class="insights-card">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Queue</span>' +
+            '<span class="insights-card-qid">Q8</span></div>' +
+            '<div class="insights-card-body">' +
+            '<div class="insights-metric-row">' +
+            '<span class="insights-big-number small" style="color:var(--success);">0</span>' +
+            '<span class="insights-badge insights-badge--green">empty</span></div>' +
+            '<div class="text-xs muted mt-8">Queue is empty</div>' +
+            '</div></div>';
+    }
+
+    var q = insAgentPipeline.queue;
+    var depth = q.depth || 0;
+    var badgeCls = depth === 0 ? 'insights-badge--green' : depth <= 5 ? 'insights-badge--amber' : 'insights-badge--red';
+    var badgeText = depth === 0 ? 'empty' : 'pending';
+
+    var tableHtml = '';
+    if (q.items && q.items.length > 0) {
+        tableHtml = '<div class="mt-8"><table class="insights-table">' +
+            '<thead><tr><th>Pri</th><th>Summary</th><th>Age</th></tr></thead><tbody>';
+        q.items.forEach(function(item) {
+            var age = item.queued_at ? timeAgo(item.queued_at) : '\u2014';
+            tableHtml += '<tr><td>' + escHtml(item.priority || 'normal') + '</td>' +
+                '<td>' + escHtml(item.summary || item.id || '\u2014') + '</td>' +
+                '<td>' + age + '</td></tr>';
+        });
+        tableHtml += '</tbody></table></div>';
+    }
+
+    var processingHtml = '';
+    if (q.processing) {
+        processingHtml = '<div class="mt-8 text-xs mono muted">Processing: ' +
+            escHtml(q.processing.summary || q.processing.id || '\u2014') +
+            ' (' + fmtDuration(q.processing.elapsed_ms) + ')</div>';
+    }
+
+    // Warn if idle with queued items
+    var warnHtml = '';
+    var agent = insAgents.find(function(a) { return a.agent_id === insightsAgent; });
+    if (depth > 0 && agent && agent.derived_status === 'idle') {
+        warnHtml = '<div class="mt-8 text-xs" style="color:var(--warning);font-weight:600;">Warning: Agent is idle but has ' + depth + ' queued items</div>';
+    }
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Queue</span>' +
+        '<span class="insights-card-qid">Q8</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small">' + depth + '</span>' +
+        '<span class="insights-badge ' + badgeCls + '">' + badgeText + '</span></div>' +
+        processingHtml + tableHtml + warnHtml +
+        '</div></div>';
+}
+
+// Q9: Has this agent reported its own problems?
+function renderQ9() {
+    if (insErrors.agentPipeline) {
+        return errorCard('Issues', 'Q9', 'agentPipeline');
+    }
+    var issues = (insAgentPipeline && insAgentPipeline.issues) || [];
+    // Filter to active (not resolved)
+    var active = issues.filter(function(iss) { return iss.action !== 'resolved'; });
+    // Sort by severity then occurrence_count
+    var sevOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+    active.sort(function(a, b) {
+        var sa = sevOrder[a.severity] !== undefined ? sevOrder[a.severity] : 4;
+        var sb = sevOrder[b.severity] !== undefined ? sevOrder[b.severity] : 4;
+        if (sa !== sb) return sa - sb;
+        return (b.occurrence_count || 0) - (a.occurrence_count || 0);
+    });
+
+    if (active.length === 0) {
+        return '<div class="insights-card">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Issues</span>' +
+            '<span class="insights-card-qid">Q9</span></div>' +
+            '<div class="insights-card-body">' +
+            '<div class="insights-metric-row">' +
+            '<span class="insights-big-number small" style="color:var(--success);">0</span>' +
+            '<span class="text-xs muted">active issues</span></div>' +
+            '<div class="text-xs muted mt-8">No active issues</div>' +
+            '</div></div>';
+    }
+
+    var issuesList = active.map(function(iss) {
+        var sevCls = severityBadgeClass(iss.severity);
+        var recurring = (iss.occurrence_count || 0) > 5
+            ? ' <span class="insights-badge insights-badge--gray" style="font-size:9px;">Recurring</span>' : '';
+        return '<div class="gap-row mt-8">' +
+            '<span class="insights-badge ' + sevCls + '">' + escHtml(iss.severity || 'unknown') + '</span>' +
+            '<span class="text-xs mono">' + escHtml(iss.category || '') + ': ' +
+            escHtml(iss.context || '') +
+            ' (\u00D7' + (iss.occurrence_count || 1) + ')</span>' +
+            recurring + '</div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Issues</span>' +
+        '<span class="insights-card-qid">Q9</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small" style="color:var(--warning);">' + active.length + '</span>' +
+        '<span class="text-xs muted">active issue' + (active.length !== 1 ? 's' : '') + '</span></div>' +
+        issuesList +
+        '</div></div>';
+}
+
+// Q10-Q16: Recent Tasks Table
+function renderQ10to16(agent) {
+    if (insErrors.tasks) {
+        return '<div class="subsection-label">Recent Tasks (Q10\u2013Q16)</div>' +
+            '<div class="insights-card insights-card--full">' +
+            '<div class="insights-error-state"><span class="error-icon">!</span>' +
+            '<div>Failed to load tasks</div>' +
+            '<button class="retry-btn" onclick="manualRefresh()">Retry</button></div></div>';
+    }
+
+    // Filter tasks for this agent
+    var agentTasks = insTasks.filter(function(t) { return t.agent_id === insightsAgent; }).slice(0, 10);
+
+    if (agentTasks.length === 0) {
+        return '<div class="subsection-label">Recent Tasks (Q10\u2013Q16)</div>' +
+            '<div class="insights-card insights-card--full"><div class="insights-empty-state">' +
+            '<div>No recent tasks for this agent.</div></div></div>';
+    }
+
+    var rows = agentTasks.map(function(t) {
+        var statusCls = statusBadgeClass(t.derived_status);
+        var dur = t.duration_ms != null ? fmtDuration(t.duration_ms) : (t.started_at ? fmtDuration(Date.now() - new Date(t.started_at).getTime()) : '\u2014');
+        var cost = t.total_cost != null ? fmtCost(t.total_cost) : '\u2014';
+        var linkText = t.error_count > 0 ? 'View Errors \u2192' : 'View Timeline \u2192';
+
+        return '<tr>' +
+            '<td>' + escHtml(t.task_id) + '</td>' +
+            '<td>' + escHtml(t.task_type || '\u2014') + '</td>' +
+            '<td><span class="insights-badge ' + statusCls + '">' + escHtml(t.derived_status) + '</span></td>' +
+            '<td>' + dur + '</td>' +
+            '<td>' + cost + '</td>' +
+            '<td>' + (t.error_count || 0) + '</td>' +
+            '<td><a class="nav-link" href="/static/index.html?task=' + encodeURIComponent(t.task_id) + '&agent=' + encodeURIComponent(t.agent_id) + '">' + linkText + '</a></td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="subsection-label">Recent Tasks (Q10\u2013Q16)</div>' +
+        '<div class="insights-card insights-card--full">' +
+        '<table class="insights-table">' +
+        '<thead><tr><th>Task ID</th><th>Type</th><th>Status</th><th>Duration</th><th>Cost</th><th>Errors</th><th>Actions</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div>';
+}
+
+
+// ══════════════════════════════════════════════════════
+//  SECTION 3: THE OPTIMIZATION (Q17-Q28) — placeholder
+// ══════════════════════════════════════════════════════
+
+function renderOptimization() {
+    var el = document.getElementById('optimizationContent');
+    if (!el) return;
+    el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#9881;</span><div>Optimization section coming in next release.</div></div>';
+}
+
+
+// ══════════════════════════════════════════════════════
+//  SECTION 4: THE REVIEW (Q29-Q38) — placeholder
+// ══════════════════════════════════════════════════════
+
+function renderReview() {
+    var el = document.getElementById('reviewContent');
+    if (!el) return;
+    el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128200;</span><div>Review section coming in next release.</div></div>';
+}
+
+</script>
+</body>
+</html>
