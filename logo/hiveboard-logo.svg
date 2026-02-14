@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  
+  <!-- Outer hexagon - burnt orange accent #c2410c -->
+  <polygon 
+    points="256,28 484,160 484,352 256,484 28,352 28,160" 
+    fill="#c2410c" 
+  />
+  
+  <!-- Inner hexagon - white, creating thick ring -->
+  <polygon 
+    points="256,76 440,180 440,332 256,436 72,332 72,180" 
+    fill="#ffffff" 
+  />
+  
+  <!-- Honeycomb grid - 7 hexagons arranged in flower pattern -->
+  
+  <!-- Center hex -->
+  <polygon points="256,216 296,239 296,277 256,300 216,277 216,239" 
+    fill="none" stroke="#c2410c" stroke-width="4" opacity="0.18"/>
+  
+  <!-- Top -->
+  <polygon points="256,152 296,175 296,213 256,236 216,213 216,175" 
+    fill="none" stroke="#c2410c" stroke-width="3.5" opacity="0.12"/>
+  
+  <!-- Top-right -->
+  <polygon points="316,184 356,207 356,245 316,268 276,245 276,207" 
+    fill="none" stroke="#c2410c" stroke-width="3.5" opacity="0.12"/>
+  
+  <!-- Bottom-right -->
+  <polygon points="316,248 356,271 356,309 316,332 276,309 276,271" 
+    fill="none" stroke="#c2410c" stroke-width="3.5" opacity="0.12"/>
+  
+  <!-- Bottom -->
+  <polygon points="256,280 296,303 296,341 256,364 216,341 216,303" 
+    fill="none" stroke="#c2410c" stroke-width="3.5" opacity="0.12"/>
+  
+  <!-- Bottom-left -->
+  <polygon points="196,248 236,271 236,309 196,332 156,309 156,271" 
+    fill="none" stroke="#c2410c" stroke-width="3.5" opacity="0.12"/>
+  
+  <!-- Top-left -->
+  <polygon points="196,184 236,207 236,245 196,268 156,245 156,207" 
+    fill="none" stroke="#c2410c" stroke-width="3.5" opacity="0.12"/>
+  
+  <!-- Heartbeat pulse - center dot with ring -->
+  <circle cx="256" cy="258" r="18" fill="#c2410c" opacity="0.15"/>
+  <circle cx="256" cy="258" r="10" fill="#c2410c" opacity="0.85"/>
+  <circle cx="256" cy="258" r="4.5" fill="#ffffff"/>
+
+</svg>
