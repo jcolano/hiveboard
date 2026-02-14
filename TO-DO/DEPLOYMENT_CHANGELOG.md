@@ -123,14 +123,64 @@ Replaced all environment variables with `config.json` at project root.
 
 ---
 
-## Remaining (Not Yet Deployed)
+## 2026-02-14 — Phases 5-7: Production Deployment Complete
 
-| Phase | Description | Owner |
-|-------|-------------|-------|
-| Phase 5 | AWS API Gateway WebSocket setup | Manual (owner) |
-| Phase 6 | Integration testing (deploy to server + S3) | Joint |
-| Phase 7 | PyPI publish `loophive` v0.1.1 | Owner |
-| — | Replace `CONFIG.wsUrl` placeholder in `common.js` with real AWS URL | After Phase 5 |
-| — | Replace `ws_gateway_endpoint` placeholder in production `config.json` | After Phase 5 |
-| — | IIS URL Rewrite rule for `/loophive/` | Owner |
-| — | IIS CORS configuration for `hiveboard.net` | Owner |
+### Phase 5: AWS API Gateway WebSocket Setup (Owner)
+
+| Item | Value |
+|------|-------|
+| API ID | `85g4pm5cg9` |
+| Stage | `production` |
+| WebSocket URL | `wss://85g4pm5cg9.execute-api.us-east-1.amazonaws.com/production/` |
+| @connections URL | `https://85g4pm5cg9.execute-api.us-east-1.amazonaws.com/production` |
+| Region | `us-east-1` |
+
+- 3 routes: `$connect`, `$disconnect`, `$default`
+- 3 HTTP_PROXY integrations to `https://mlbackend.net/loophive/ws/{connect,disconnect,message}`
+- `connectionId` header mapping on all 3 integrations
+- IIS URL Rewrite: `/loophive/(.*)` -> `http://localhost:8451/{R:1}`
+
+### Phase 6: Integration Testing (Joint)
+
+**Verified working:**
+- Dashboard loads at `hiveboard.net/static/index.html?apiKey=...`
+- API calls route through IIS to backend (all 200 OK)
+- WebSocket connects via API Gateway -> backend bridge (200 OK)
+- Login redirect works when no API key present
+- API key persisted to localStorage from URL param (P3-09-W1 fix)
+
+**Issues found and resolved during testing:**
+- `common.js` script tag missing from `index.html` — added
+- CloudFront caching stale files — added `?v=20260214` cache busters
+- UTF-8 characters in JS comments garbled by S3 — replaced with ASCII
+- API Gateway deployment not propagated — `create-deployment` needed after `update-integration`
+
+### Phase 7: PyPI Publish
+
+- `hiveloop` v0.1.1 published: https://pypi.org/project/hiveloop/0.1.1/
+- Installed on production server
+
+### Post-Phase Fixes
+
+| Commit | Fix |
+|--------|-----|
+| `626b40d` | P3-09-W1: localStorage write for API key from URL param |
+| `6a9689e` | Set real `CONFIG.wsUrl` after API Gateway setup |
+| `da89178` | Add missing `common.js` script tag to dashboard `index.html` |
+
+### Config Templates Added
+
+- `config-dev.json` — local development config template
+- `config-pn.json` — production config template (passwords must be changed)
+
+---
+
+## Production Stack Summary
+
+| Layer | Service | Endpoint |
+|-------|---------|----------|
+| Dashboard | S3 + CloudFront | `hiveboard.net/static/index.html` |
+| Webapp (auth) | S3 + CloudFront | `hiveboard.net/login.html`, etc. |
+| REST API | IIS -> uvicorn | `mlbackend.net/loophive/v1/*` |
+| WebSocket | API Gateway -> IIS -> uvicorn | `wss://85g4pm5cg9.execute-api.us-east-1.amazonaws.com/production/` |
+| SDK | PyPI | `hiveloop` v0.1.1 |

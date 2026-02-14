@@ -1,0 +1,10 @@
+{
+  "dev_key": "hb_live_dev000000000000000000000000000000",
+  "dev_password": "change-me",
+  "jwt_secret": "dev-secret-not-for-production",
+  "jwt_expiry": 3600,
+  "data_dir": "data",
+  "mode": "local",
+  "ws_gateway_endpoint": "",
+  "ws_gateway_region": "us-east-1"
+}
