@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Hive Method — One-Page Summary</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --amber: #F59E0B;
+    --amber-light: #FCD34D;
+    --amber-dim: #92400E;
+    --ink: #1C1917;
+    --stone: #44403C;
+    --stone-light: #78716C;
+    --warm-white: #FAFAF9;
+    --warm-gray: #F5F5F4;
+    --cell-border: #E7E5E4;
+    --red: #DC2626;
+    --green: #16A34A;
+    --blue: #2563EB;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--warm-white);
+    color: var(--ink);
+    padding: 40px 56px;
+    margin: 0;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--ink);
+    padding-bottom: 20px;
+    margin-bottom: 32px;
+  }
+  .header-left h1 {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    line-height: 1;
+  }
+  .header-left h1 .accent { color: var(--amber); }
+  .header-left p {
+    font-size: 17px;
+    color: var(--stone-light);
+    margin-top: 6px;
+    font-family: 'Space Mono', monospace;
+  }
+  .header-right {
+    text-align: right;
+    font-size: 14px;
+    color: var(--stone-light);
+    font-family: 'Space Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* QUOTE BAR */
+  .quote-bar {
+    background: var(--ink);
+    color: var(--amber-light);
+    padding: 16px 28px;
+    font-size: 17px;
+    font-style: italic;
+    letter-spacing: 0.2px;
+    margin-bottom: 32px;
+    border-left: 5px solid var(--amber);
+  }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 28px;
+  }
+
+  /* CARDS */
+  .card {
+    background: white;
+    border: 1px solid var(--cell-border);
+    padding: 24px;
+    position: relative;
+  }
+  .card-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--stone-light);
+    margin-bottom: 14px;
+  }
+  .card h3 {
+    font-size: 19px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+  .card p, .card li {
+    font-size: 15.5px;
+    color: var(--stone);
+    line-height: 1.55;
+  }
+
+  /* NUMBERED PRINCIPLES */
+  .principle-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: var(--amber);
+    color: var(--ink);
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  .principle-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .principle-row .text { font-size: 15.5px; color: var(--stone); line-height: 1.5; }
+  .principle-row .text strong { color: var(--ink); }
+
+  /* WORKFLOW COLUMN */
+  .workflow-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: stretch;
+    min-height: 52px;
+  }
+  .flow-line {
+    width: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .flow-dot {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--amber);
+    border: 2px solid var(--ink);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+  .flow-connector {
+    width: 2px;
+    flex: 1;
+    background: var(--cell-border);
+  }
+  .flow-content {
+    padding: 0 0 14px 10px;
+    flex: 1;
+  }
+  .flow-content .phase-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--amber-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .flow-content .phase-desc {
+    font-size: 15px;
+    color: var(--stone);
+    line-height: 1.5;
+  }
+
+  /* METRICS BAR */
+  .metrics-bar {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1px;
+    background: var(--cell-border);
+    border: 1px solid var(--cell-border);
+    margin-bottom: 28px;
+  }
+  .metric-cell {
+    background: white;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .metric-cell .val {
+    font-family: 'Space Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .metric-cell .val .unit { font-size: 17px; color: var(--stone-light); }
+  .metric-cell .val.green { color: var(--green); }
+  .metric-cell .val.red { color: var(--red); }
+  .metric-cell .val.amber { color: var(--amber-dim); }
+  .metric-cell .label {
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--stone-light);
+    margin-top: 8px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* BOTTOM GRID */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 28px;
+    margin-bottom: 28px;
+  }
+
+  /* TEAM TABLE */
+  .team-table { width: 100%; border-collapse: collapse; }
+  .team-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--stone-light);
+    text-align: left;
+    padding: 0 0 8px 0;
+    border-bottom: 1px solid var(--cell-border);
+  }
+  .team-table td {
+    font-size: 14.5px;
+    padding: 7px 10px 7px 0;
+    color: var(--stone);
+    border-bottom: 1px solid var(--warm-gray);
+    vertical-align: top;
+  }
+  .team-table td:first-child { font-weight: 700; color: var(--ink); white-space: nowrap; }
+
+  /* FAILURE MODES */
+  .failure-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .failure-icon {
+    color: var(--red);
+    font-size: 14px;
+    margin-right: 8px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+  .failure-text {
+    font-size: 15px;
+    color: var(--stone);
+    line-height: 1.5;
+  }
+
+  /* FOOTER */
+  .footer {
+    border-top: 1px solid var(--cell-border);
+    padding-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-left {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--stone-light);
+  }
+  .footer-right {
+    font-size: 15px;
+    color: var(--stone);
+    font-style: italic;
+  }
+
+  @media print {
+    body { padding: 20px; }
+    .card, .metric-cell { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-left">
+      <h1>The <span class="accent">Hive</span> Method</h1>
+      <p>Building software with multi-agent AI teams</p>
+    </div>
+    <div class="header-right">
+      Extracted from the HiveBoard build<br>
+      48 hours · 1 human · 3 Claude instances
+    </div>
+  </div>
+
+  <div class="quote-bar">
+    "The future of software development isn't AI replacing developers. It's one developer orchestrating a team of AI agents — each with a role, each with a perspective — to build what none of them could build alone."
+  </div>
+
+  <div class="main-grid">
+
+    <!-- 5 PRINCIPLES -->
+    <div class="card">
+      <div class="card-label">The Five Principles</div>
+
+      <div class="principle-row">
+        <span class="principle-num">1</span>
+        <div class="text"><strong>Role Specialization</strong> — Cast agents into distinct roles. Same model, different environment = different personality. Observe tendencies, assign to strengths.</div>
+      </div>
+      <div class="principle-row">
+        <span class="principle-num">2</span>
+        <div class="text"><strong>Specs as Coordination Protocol</strong> — The spec replaces meetings, shared memory, and institutional knowledge. If specs are vague, agents fill gaps with conflicting assumptions.</div>
+      </div>
+      <div class="principle-row">
+        <span class="principle-num">3</span>
+        <div class="text"><strong>Adversarial Cross-Auditing</strong> — Team 1 audits Team 2, and vice versa. No ego, no politics. The consumer of an API catches what the producer's tests cannot.</div>
+      </div>
+      <div class="principle-row">
+        <span class="principle-num">4</span>
+        <div class="text"><strong>Divergent Perspectives by Design</strong> — Same prompt to different instances yields complementary outputs. Don't ask one agent twice — ask two agents once.</div>
+      </div>
+      <div class="principle-row">
+        <span class="principle-num">5</span>
+        <div class="text"><strong>Human as Orchestrator</strong> — Vision, taste, decisions, quality gates. The agents amplify the orchestrator's clarity — and also their ambiguity.</div>
+      </div>
+    </div>
+
+    <!-- WORKFLOW -->
+    <div class="card">
+      <div class="card-label">The Workflow</div>
+      <div class="workflow-flow">
+        <div class="flow-step">
+          <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+          <div class="flow-content">
+            <div class="phase-name">Phase 0 · Foundation</div>
+            <div class="phase-desc">Human defines vision & pain. PM agent generates context doc. Ideate → choose or kill fast.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+          <div class="flow-content">
+            <div class="phase-name">Phase 1 · Specification</div>
+            <div class="phase-desc">Human + PM create detailed specs (schemas, API contracts, UI design). Organize into team assignments.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+          <div class="flow-content">
+            <div class="phase-name">Phase 2 · Build + Audit</div>
+            <div class="phase-desc">Teams implement in parallel → sync → cross-audit against spec → fix → human quality gate. Repeat per phase.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line"><div class="flow-dot"></div><div class="flow-connector"></div></div>
+          <div class="flow-content">
+            <div class="phase-name">Phase 3 · Validation</div>
+            <div class="phase-desc">Integrate with real system. Test with real data. Human evaluates with fresh eyes. Redesign if needed.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-line"><div class="flow-dot" style="background: var(--amber-light);"></div></div>
+          <div class="flow-content">
+            <div class="phase-name">Phase 4 · Iterate</div>
+            <div class="phase-desc">Product is live. Return to any phase as needed. The method loops.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- METRICS BAR -->
+  <div class="metrics-bar">
+    <div class="metric-cell">
+      <div class="val amber">450<span class="unit">+</span></div>
+      <div class="label">Audit Checkpoints</div>
+    </div>
+    <div class="metric-cell">
+      <div class="val red">12</div>
+      <div class="label">Contract Mismatches Caught</div>
+    </div>
+    <div class="metric-cell">
+      <div class="val green">100<span class="unit">%</span></div>
+      <div class="label">Issues Resolved</div>
+    </div>
+    <div class="metric-cell">
+      <div class="val">+58<span class="unit">%</span></div>
+      <div class="label">API Test Growth</div>
+    </div>
+    <div class="metric-cell">
+      <div class="val amber">~4<span class="unit">%</span></div>
+      <div class="label">Time Spent Coding</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="bottom-grid">
+
+    <!-- TEAM STRUCTURE -->
+    <div class="card">
+      <div class="card-label">Minimum Team Structure</div>
+      <table class="team-table">
+        <tr><th>Role</th><th>Responsibility</th></tr>
+        <tr><td>PM Agent</td><td>Specs, audits, design, synthesis</td></tr>
+        <tr><td>Dev Team 1</td><td>Implementation (technical orientation)</td></tr>
+        <tr><td>Dev Team 2</td><td>Implementation (functional orientation)</td></tr>
+        <tr><td>Human</td><td>Vision, taste, decisions, quality gates</td></tr>
+      </table>
+    </div>
+
+    <!-- FAILURE MODES -->
+    <div class="card">
+      <div class="card-label">Failure Modes</div>
+      <div class="failure-item">
+        <span class="failure-icon">✕</span>
+        <span class="failure-text"><strong>Weak specs</strong> — Agents fill gaps with conflicting assumptions</span>
+      </div>
+      <div class="failure-item">
+        <span class="failure-icon">✕</span>
+        <span class="failure-text"><strong>Skipped audits</strong> — 72 passing tests hid 12 critical bugs</span>
+      </div>
+      <div class="failure-item">
+        <span class="failure-icon">✕</span>
+        <span class="failure-text"><strong>Rubber-stamped gates</strong> — Bugs compound across phases</span>
+      </div>
+      <div class="failure-item">
+        <span class="failure-icon">✕</span>
+        <span class="failure-text"><strong>Single perspective</strong> — One-dimensional solutions miss entire categories</span>
+      </div>
+      <div class="failure-item">
+        <span class="failure-icon">✕</span>
+        <span class="failure-text"><strong>Weak orchestrator</strong> — Agents amplify ambiguity as much as clarity</span>
+      </div>
+      <div class="failure-item">
+        <span class="failure-icon">✕</span>
+        <span class="failure-text"><strong>Context overload</strong> — Large builds in one pass lose details or break entirely</span>
+      </div>
+    </div>
+
+    <!-- KEY INSIGHT -->
+    <div class="card" style="background: var(--ink); color: var(--warm-white);">
+      <div class="card-label" style="color: var(--amber);">Core Insight</div>
+      <h3 style="color: var(--amber-light); font-size: 18px; margin-bottom: 12px;">A single AI is a tool.<br>Multiple AI agents are a team.</h3>
+      <p style="color: #A8A29E; font-size: 15px; line-height: 1.55;">
+        Specialized roles. Shared specs. Cross-auditing. Divergent perspectives. Human orchestration. Quality emerges from the system, not from any single prompt. Contracts define the boundaries. Audits enforce them.
+      </p>
+      <p style="color: var(--amber); font-size: 14px; margin-top: 16px; font-family: 'Space Mono', monospace; letter-spacing: 0.5px;">
+        The value isn't in any single agent.<br>It's in the orchestration.
+      </p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-left">THE HIVE METHOD · thehivemethod.dev</div>
+    <div class="footer-right">Part of THE JOURNEY — the chronicle of building HiveBoard</div>
+  </div>
+
+</body>
+</html>
