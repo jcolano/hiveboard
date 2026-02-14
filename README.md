@@ -72,6 +72,21 @@ Everything you need to instrument your agents: Quick Start, 3-layer instrumentat
 
 ---
 
+## The Story
+
+Three documents tell the complete story of HiveBoard — why it exists, how it was built, and what it does:
+
+**1️⃣ [THE JOURNEY →](https://hiveboard.net/story/1_the-journey-one-pager.html)**
+The chronicle — from pain to product in 48 hours. 5 ideas, 1 killed, 1 shipped.
+
+**2️⃣ [The Hive Method →](https://hiveboard.net/story/2_the-hive-method-one-pager.html)**
+The development methodology — 1 human orchestrating 3 Claude Opus instances with adversarial cross-auditing.
+
+**3️⃣ [What HiveBoard Sees →](https://hiveboard.net/story/3_what-hiveboard-sees-one-pager.html)**
+The product — 38 questions your agents can finally answer, organized by the moment you're in.
+
+---
+
 ## The Problem
 
 Every team deploying AI agents goes blind the moment they move past demo day.
