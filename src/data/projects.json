@@ -22,5 +22,70 @@
     "is_archived": false,
     "created_at": "2026-02-12T18:06:10.958742Z",
     "updated_at": "2026-02-12T18:06:10.958742Z"
+  },
+  {
+    "project_id": "e9250456-21df-449c-867a-263b31f07029",
+    "tenant_id": "dev",
+    "name": "Lead Generation",
+    "slug": "lead-gen",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T20:14:54.054230Z",
+    "updated_at": "2026-02-14T20:14:54.054230Z"
+  },
+  {
+    "project_id": "9cbfcd85-92d4-417b-8daa-3bffab88f12d",
+    "tenant_id": "dev",
+    "name": "Sales Pipeline",
+    "slug": "sales-pipeline",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T20:14:56.086523Z",
+    "updated_at": "2026-02-14T20:14:56.086523Z"
+  },
+  {
+    "project_id": "1d854b40-3cde-417f-b0b0-a297dae94bb2",
+    "tenant_id": "dev",
+    "name": "Customer Success",
+    "slug": "customer-success",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T20:14:58.125230Z",
+    "updated_at": "2026-02-14T20:14:58.125230Z"
+  },
+  {
+    "project_id": "f1dcefbf-384b-40da-9644-0b7ca6c8b5d6",
+    "tenant_id": "dev",
+    "name": "Marketing Ops",
+    "slug": "marketing-ops",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T20:15:00.147969Z",
+    "updated_at": "2026-02-14T20:15:00.147969Z"
+  },
+  {
+    "project_id": "48e71666-c1de-4677-a6c3-7584ef2c8ee0",
+    "tenant_id": "dev",
+    "name": "Back Office",
+    "slug": "back-office",
+    "description": null,
+    "environment": "production",
+    "settings": {},
+    "is_archived": false,
+    "auto_created": false,
+    "created_at": "2026-02-14T20:15:02.182023Z",
+    "updated_at": "2026-02-14T20:15:02.182023Z"
   }
 ]
