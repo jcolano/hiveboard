@@ -2072,13 +2072,412 @@ function detectModelImbalance() {
 
 
 // ══════════════════════════════════════════════════════
-//  SECTION 4: THE REVIEW (Q29-Q38) — placeholder
+//  SECTION 4: THE REVIEW (Q29-Q38)
 // ══════════════════════════════════════════════════════
 
 function renderReview() {
     var el = document.getElementById('reviewContent');
     if (!el) return;
-    el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128200;</span><div>Review section coming in next release.</div></div>';
+
+    var html = '';
+
+    // Q29-Q32: Summary stats row
+    html += '<div class="subsection-label">Period Summary (Q29\u2013Q32)</div>';
+    html += '<div class="insights-grid-4 mb-16">';
+    html += renderQ29();
+    html += renderQ30();
+    html += renderQ31();
+    html += renderQ32();
+    html += '</div>';
+
+    // Q33-Q34: Agent performance ranking + Fleet utilization
+    html += '<div class="subsection-label mt-16">Fleet Performance (Q33\u2013Q34)</div>';
+    html += '<div class="insights-grid-2 mb-16">';
+    html += renderQ33();
+    html += renderQ34();
+    html += '</div>';
+
+    // Q35: ROI Calculator
+    html += '<div class="subsection-label mt-16">ROI Analysis (Q35)</div>';
+    html += renderQ35();
+
+    // Q36: Trend summary
+    html += '<div class="subsection-label mt-16">Trend Summary (Q36)</div>';
+    html += renderQ36();
+
+    // Q37: Health Gauge + Q38: Scale Readiness
+    html += '<div class="subsection-label mt-16">Fleet Health & Scale Readiness (Q37\u2013Q38)</div>';
+    html += '<div class="insights-grid-2 mb-16">';
+    html += renderQ37();
+    html += renderQ38();
+    html += '</div>';
+
+    el.innerHTML = html;
+
+    // Bind ROI calculator events
+    bindROIEvents();
+}
+
+// Q29: Total tasks completed
+function renderQ29() {
+    if (insErrors.metrics) return errorCard('Tasks Completed', 'Q29', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Tasks Completed', 'Q29', 'No data.');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Tasks Completed</span>' +
+        '<span class="insights-card-qid">Q29</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number">' + (summary.completed || 0) + '</div>' +
+        '<div class="text-xs muted mt-8">of ' + (summary.total_tasks || 0) + ' total (' + insightsRange + ')</div>' +
+        '</div></div>';
+}
+
+// Q30: Overall success rate
+function renderQ30() {
+    if (insErrors.metrics) return errorCard('Success Rate', 'Q30', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Success Rate', 'Q30', 'No data.');
+
+    var rate = summary.success_rate != null ? summary.success_rate : (summary.total_tasks > 0 ? (summary.completed / summary.total_tasks * 100) : 100);
+    var color = rate >= 95 ? 'var(--success)' : rate >= 80 ? 'var(--warning)' : 'var(--error)';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Success Rate</span>' +
+        '<span class="insights-card-qid">Q30</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number" style="color:' + color + ';">' + rate.toFixed(1) + '%</div>' +
+        '<div class="text-xs muted mt-8">' + (summary.failed || 0) + ' failed, ' + (summary.escalated || 0) + ' escalated</div>' +
+        '</div></div>';
+}
+
+// Q31: Average task duration
+function renderQ31() {
+    if (insErrors.metrics) return errorCard('Avg Duration', 'Q31', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Avg Duration', 'Q31', 'No data.');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Avg Duration</span>' +
+        '<span class="insights-card-qid">Q31</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number small">' + fmtDuration(summary.avg_duration_ms) + '</div>' +
+        '<div class="text-xs muted mt-8">across ' + (summary.completed || 0) + ' completed tasks</div>' +
+        '</div></div>';
+}
+
+// Q32: Total cost summary
+function renderQ32() {
+    if (insErrors.metrics) return errorCard('Period Cost', 'Q32', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Period Cost', 'Q32', 'No data.');
+
+    var total = summary.total_cost || 0;
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Period Cost</span>' +
+        '<span class="insights-card-qid">Q32</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number small">$' + total.toFixed(2) + '</div>' +
+        '<div class="text-xs muted mt-8">Avg: $' + (summary.avg_cost_per_task || 0).toFixed(3) + '/task</div>' +
+        '</div></div>';
+}
+
+// Q33: Agent performance ranking
+function renderQ33() {
+    if (!insAgents || insAgents.length === 0) return emptyCard('Agent Ranking', 'Q33', 'No agents.');
+
+    var ranked = insAgents.map(function(a) {
+        var s = a.stats_1h || {};
+        var total = (s.tasks_completed || 0) + (s.tasks_failed || 0);
+        var rate = total > 0 ? (s.tasks_completed / total * 100) : 100;
+        return { agent_id: a.agent_id, completed: s.tasks_completed || 0, failed: s.tasks_failed || 0, rate: rate, cost: s.total_cost || 0, status: a.derived_status };
+    }).sort(function(a, b) {
+        if (b.completed !== a.completed) return b.completed - a.completed;
+        return b.rate - a.rate;
+    });
+
+    var rows = ranked.map(function(r, i) {
+        var statusCls = statusBadgeClass(r.status);
+        var rateColor = r.rate >= 95 ? 'var(--success)' : r.rate >= 80 ? 'var(--warning)' : 'var(--error)';
+        return '<tr>' +
+            '<td style="font-weight:600;">#' + (i + 1) + '</td>' +
+            '<td><span class="nav-link" onclick="selectInsightsAgent(\'' + escHtml(r.agent_id) + '\')">' + escHtml(r.agent_id) + '</span></td>' +
+            '<td><span class="insights-badge ' + statusCls + '">' + escHtml(r.status) + '</span></td>' +
+            '<td>' + r.completed + '</td>' +
+            '<td style="color:' + rateColor + ';font-weight:600;">' + r.rate.toFixed(0) + '%</td>' +
+            '<td>$' + r.cost.toFixed(2) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Agent Ranking (1h)</span>' +
+        '<span class="insights-card-qid">Q33</span></div>' +
+        '<div class="insights-card-body">' +
+        '<table class="insights-table"><thead><tr><th>Rank</th><th>Agent</th><th>Status</th><th>Done</th><th>Rate</th><th>Cost</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div></div>';
+}
+
+// Q34: Fleet utilization
+function renderQ34() {
+    if (!insAgents || insAgents.length === 0) return emptyCard('Fleet Utilization', 'Q34', 'No agents.');
+
+    var processing = insAgents.filter(function(a) { return a.derived_status === 'processing'; }).length;
+    var total = insAgents.length;
+    var utilPct = total > 0 ? (processing / total * 100) : 0;
+
+    var idle = insAgents.filter(function(a) { return a.derived_status === 'idle'; }).length;
+    var waiting = insAgents.filter(function(a) { return a.derived_status === 'waiting_approval'; }).length;
+
+    var totalQueue = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.queue_depth : 0;
+
+    var utilColor = utilPct >= 80 ? 'var(--success)' : utilPct >= 40 ? 'var(--warning)' : 'var(--text-muted)';
+
+    var wasteHtml = '';
+    if (idle > 0 && totalQueue > 0) {
+        wasteHtml = '<div class="mt-8 text-xs" style="color:var(--warning);font-weight:600;">' +
+            idle + ' idle agent' + (idle !== 1 ? 's' : '') + ' with ' + totalQueue + ' queued items</div>';
+    }
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Fleet Utilization</span>' +
+        '<span class="insights-card-qid">Q34</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small" style="color:' + utilColor + ';">' + utilPct.toFixed(0) + '%</span>' +
+        '<span class="text-xs muted">active</span></div>' +
+        '<div class="text-xs muted mt-8">' + processing + ' processing, ' + idle + ' idle, ' + waiting + ' waiting</div>' +
+        '<div class="hb-bar-track mt-8">' +
+        '<div class="hb-bar-fill" style="width:' + utilPct.toFixed(0) + '%;background:' + utilColor + ';"></div></div>' +
+        wasteHtml +
+        '</div></div>';
+}
+
+// Q35: ROI Calculator
+function renderQ35() {
+    var totalCost = (insCost ? insCost.total_cost : 0) || 0;
+    var totalTasks = (insMetrics && insMetrics.summary) ? insMetrics.summary.completed || 0 : 0;
+
+    return '<div class="insights-card insights-card--full mb-16">' +
+        '<div class="insights-card-header"><span class="insights-card-label">ROI Calculator</span>' +
+        '<span class="insights-card-qid">Q35</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="text-xs muted mb-8">Estimate the value your AI fleet delivers compared to manual work.</div>' +
+        '<div class="roi-inputs">' +
+        '<div class="roi-input-group"><label>Hourly Rate ($/hr)</label>' +
+        '<input type="number" id="roiHourlyRate" value="75" min="1" step="5"></div>' +
+        '<div class="roi-input-group"><label>Min/Task Manual</label>' +
+        '<input type="number" id="roiMinPerTask" value="30" min="1" step="5"></div>' +
+        '<div class="roi-input-group"><label>Tasks Completed</label>' +
+        '<input type="number" id="roiTaskCount" value="' + totalTasks + '" min="0" readonly></div>' +
+        '</div>' +
+        '<div class="roi-result" id="roiResult">' +
+        '<div class="roi-result-item"><div class="val" id="roiManualCost">$0</div><div class="lbl">Manual Cost</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiAiCost" style="color:var(--llm);">$' + totalCost.toFixed(2) + '</div><div class="lbl">AI Cost</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiSavings">$0</div><div class="lbl">Savings</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiMultiplier">0x</div><div class="lbl">ROI Multiplier</div></div>' +
+        '</div></div></div>';
+}
+
+function bindROIEvents() {
+    var rateEl = document.getElementById('roiHourlyRate');
+    var minEl = document.getElementById('roiMinPerTask');
+    if (!rateEl || !minEl) return;
+    var calc = function() { calculateROI(); };
+    rateEl.addEventListener('input', calc);
+    minEl.addEventListener('input', calc);
+    calculateROI();
+}
+
+function calculateROI() {
+    var rate = parseFloat(document.getElementById('roiHourlyRate').value) || 75;
+    var minPerTask = parseFloat(document.getElementById('roiMinPerTask').value) || 30;
+    var taskCount = parseInt(document.getElementById('roiTaskCount').value) || 0;
+    var aiCost = (insCost ? insCost.total_cost : 0) || 0;
+
+    var manualCost = (rate / 60) * minPerTask * taskCount;
+    var savings = manualCost - aiCost;
+    var multiplier = aiCost > 0 ? (manualCost / aiCost) : 0;
+
+    var manualEl = document.getElementById('roiManualCost');
+    var savingsEl = document.getElementById('roiSavings');
+    var multiEl = document.getElementById('roiMultiplier');
+
+    if (manualEl) manualEl.textContent = '$' + manualCost.toFixed(2);
+    if (savingsEl) {
+        savingsEl.textContent = '$' + savings.toFixed(2);
+        savingsEl.style.color = savings >= 0 ? 'var(--success)' : 'var(--error)';
+    }
+    if (multiEl) multiEl.textContent = multiplier.toFixed(1) + 'x';
+}
+
+// Q36: Trend summary
+function renderQ36() {
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    if (ts.length < 4) {
+        return '<div class="insights-card insights-card--full mb-16">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Trend Summary</span>' +
+            '<span class="insights-card-qid">Q36</span></div>' +
+            '<div class="insights-card-body"><div class="insights-empty-state">' +
+            '<div>Not enough data points for trend analysis. Keep agents running.</div></div></div></div>';
+    }
+
+    var throughputData = ts.map(function(b) { return b.throughput || 0; });
+    var errorData = ts.map(function(b) { return b.tasks_failed || 0; });
+    var costData = ts.map(function(b) { return b.cost || 0; });
+    var durationData = ts.map(function(b) { return b.avg_duration_ms || 0; });
+
+    var trends = [
+        { label: 'Throughput', trend: computeTrend(throughputData), invertGood: false, unit: 'tasks/hr' },
+        { label: 'Errors', trend: computeTrend(errorData), invertGood: true, unit: 'errors' },
+        { label: 'Cost', trend: computeTrend(costData), invertGood: true, unit: '$' },
+        { label: 'Duration', trend: computeTrend(durationData), invertGood: true, unit: 'ms' },
+    ];
+
+    var rows = trends.map(function(t) {
+        return '<div class="gap-row mb-8">' +
+            '<span class="text-sm" style="width:100px;font-weight:600;">' + t.label + '</span>' +
+            trendHtml(t.trend, t.invertGood) +
+            '<span class="text-xs muted">' + Math.abs(t.trend.delta).toFixed(1) + '% ' + t.trend.direction + '</span>' +
+            '</div>';
+    }).join('');
+
+    var greenCount = trends.filter(function(t) {
+        if (t.invertGood) return t.trend.direction === 'down' || t.trend.direction === 'flat';
+        return t.trend.direction === 'up' || t.trend.direction === 'flat';
+    }).length;
+
+    var verdictCls = greenCount >= 3 ? 'verdict-banner--green' : greenCount >= 2 ? 'verdict-banner--amber' : 'verdict-banner--red';
+    var verdictText = greenCount >= 3 ? 'Trends look healthy. Keep it up.' :
+        greenCount >= 2 ? 'Mixed signals \u2014 some trends need attention.' :
+        'Multiple concerning trends. Review details above.';
+
+    return '<div class="insights-card insights-card--full mb-16">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Trend Summary</span>' +
+        '<span class="insights-card-qid">Q36</span></div>' +
+        '<div class="insights-card-body">' + rows +
+        '<div class="verdict-banner ' + verdictCls + '">' + verdictText + '</div>' +
+        '</div></div>';
+}
+
+// Q37: Health Gauge
+function renderQ37() {
+    var score = 100;
+    var deductions = [];
+
+    var stuckCount = insAgents.filter(function(a) { return a.is_stuck; }).length;
+    if (stuckCount > 0) { score -= stuckCount * 15; deductions.push(stuckCount + ' stuck (-' + (stuckCount * 15) + ')'); }
+
+    var errorAgents = insAgents.filter(function(a) { return a.derived_status === 'error'; }).length;
+    if (errorAgents > 0) { score -= errorAgents * 10; deductions.push(errorAgents + ' error (-' + (errorAgents * 10) + ')'); }
+
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (summary && summary.success_rate != null && summary.success_rate < 90) {
+        var srDeduct = Math.round((90 - summary.success_rate) * 0.5);
+        score -= srDeduct;
+        deductions.push('Success rate ' + summary.success_rate.toFixed(0) + '% (-' + srDeduct + ')');
+    }
+
+    var issueCount = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.active_issues : 0;
+    if (issueCount > 0) { score -= Math.min(issueCount * 5, 20); deductions.push(issueCount + ' issues (-' + Math.min(issueCount * 5, 20) + ')'); }
+
+    if (insAgents.length === 0) { score -= 50; deductions.push('No agents (-50)'); }
+
+    score = Math.max(0, Math.min(100, score));
+
+    var gaugeColor = score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--error)';
+    var gaugeLabel = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs Attention' : 'Critical';
+
+    var gauge = buildGaugeSVG(score, gaugeColor);
+
+    var deductHtml = deductions.length > 0
+        ? '<div class="mt-8 text-xs muted">' + deductions.join(' \u00B7 ') + '</div>'
+        : '<div class="mt-8 text-xs" style="color:var(--success);font-weight:600;">No deductions \u2014 everything looks great!</div>';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Fleet Health</span>' +
+        '<span class="insights-card-qid">Q37</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gauge-container">' + gauge +
+        '<div class="gauge-label" style="color:' + gaugeColor + ';">' + gaugeLabel + '</div></div>' +
+        deductHtml +
+        '</div></div>';
+}
+
+function buildGaugeSVG(score, color) {
+    var size = 140, cx = 70, cy = 80, r = 55;
+    var startAngle = Math.PI * 0.8;
+    var endAngle = Math.PI * 2.2;
+    var totalAngle = endAngle - startAngle;
+    var valueAngle = startAngle + (score / 100) * totalAngle;
+
+    var describeArc = function(startA, endA) {
+        var x1 = cx + r * Math.cos(startA);
+        var y1 = cy + r * Math.sin(startA);
+        var x2 = cx + r * Math.cos(endA);
+        var y2 = cy + r * Math.sin(endA);
+        var largeArc = (endA - startA > Math.PI) ? 1 : 0;
+        return 'M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1);
+    };
+
+    return '<svg class="gauge-svg" viewBox="0 0 ' + size + ' ' + (size - 20) + '">' +
+        '<path d="' + describeArc(startAngle, endAngle) + '" fill="none" stroke="var(--bg-hover)" stroke-width="12" stroke-linecap="round"/>' +
+        '<path d="' + describeArc(startAngle, valueAngle) + '" fill="none" stroke="' + color + '" stroke-width="12" stroke-linecap="round"/>' +
+        '<text x="' + cx + '" y="' + (cy + 5) + '" text-anchor="middle" font-size="28" font-weight="800" font-family="var(--font-sans)" fill="' + color + '">' + score + '</text>' +
+        '<text x="' + cx + '" y="' + (cy + 20) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="var(--font-sans)">/ 100</text>' +
+        '</svg>';
+}
+
+// Q38: Scale Readiness Checklist
+function renderQ38() {
+    var checks = [];
+
+    var allOnline = insAgents.length > 0 && insAgents.every(function(a) { return a.heartbeat_age_seconds != null && a.heartbeat_age_seconds < 300; });
+    checks.push({ label: 'All agents online', pass: allOnline, value: insAgents.length + ' agents' });
+
+    var noStuck = insAgents.every(function(a) { return !a.is_stuck; });
+    checks.push({ label: 'No stuck agents', pass: noStuck, value: insAgents.filter(function(a) { return a.is_stuck; }).length + ' stuck' });
+
+    var summary = insMetrics ? insMetrics.summary : null;
+    var sr = summary ? (summary.success_rate || 0) : 0;
+    checks.push({ label: 'Success rate \u2265 90%', pass: sr >= 90, value: sr.toFixed(1) + '%' });
+
+    var issueCount = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.active_issues : 0;
+    checks.push({ label: 'No active issues', pass: issueCount === 0, value: issueCount + ' issues' });
+
+    var cpt = summary ? (summary.avg_cost_per_task || 0) : 0;
+    checks.push({ label: 'Cost/task < $1.00', pass: cpt < 1.0, value: '$' + cpt.toFixed(3) });
+
+    var multiAgent = insAgents.length >= 2;
+    checks.push({ label: 'Multi-agent fleet', pass: multiAgent, value: insAgents.length + ' agent(s)' });
+
+    var hasRecentActivity = insEvents.length > 0;
+    checks.push({ label: 'Recent activity', pass: hasRecentActivity, value: hasRecentActivity ? timeAgo(insEvents[0].timestamp) : 'none' });
+
+    var passCount = checks.filter(function(c) { return c.pass; }).length;
+    var totalChecks = checks.length;
+
+    var readyColor = passCount === totalChecks ? 'var(--success)' : passCount >= totalChecks - 2 ? 'var(--warning)' : 'var(--error)';
+    var readyLabel = passCount === totalChecks ? 'Ready to scale' : passCount >= totalChecks - 2 ? 'Almost ready' : 'Not ready yet';
+
+    var checklistHtml = checks.map(function(c) {
+        return '<div class="checklist-item">' +
+            '<span class="check-icon ' + (c.pass ? 'check-pass' : 'check-fail') + '">' + (c.pass ? '\u2713' : '\u2717') + '</span>' +
+            '<span class="check-label">' + escHtml(c.label) + '</span>' +
+            '<span class="check-value">' + escHtml(c.value) + '</span>' +
+            '</div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Scale Readiness</span>' +
+        '<span class="insights-card-qid">Q38</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8">' +
+        '<span class="text-sm" style="font-weight:700;color:' + readyColor + ';">' + readyLabel + '</span>' +
+        '<span class="insights-badge insights-badge--' + (passCount === totalChecks ? 'green' : passCount >= totalChecks - 2 ? 'amber' : 'red') + '">' + passCount + '/' + totalChecks + '</span>' +
+        '</div>' +
+        checklistHtml +
+        '</div></div>';
 }
 
 </script>
