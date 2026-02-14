@@ -12,7 +12,6 @@ from backend.auth import (
     decode_token,
     generate_api_key,
     generate_invite_token,
-    generate_login_code,
     hash_password,
     verify_password,
 )
@@ -70,25 +69,6 @@ class TestJWT:
     def test_garbage_token(self):
         claims = decode_token("not-a-valid-jwt")
         assert claims is None
-
-
-class TestGenerateLoginCode:
-    def test_generates_6_digits(self):
-        raw_code, code_hash = generate_login_code()
-        assert len(raw_code) == 6
-        assert raw_code.isdigit()
-
-    def test_hash_is_valid_sha256(self):
-        raw_code, code_hash = generate_login_code()
-        assert len(code_hash) == 64
-        # Verify hash matches
-        expected = hashlib.sha256(raw_code.encode()).hexdigest()
-        assert code_hash == expected
-
-    def test_custom_length(self):
-        raw_code, _ = generate_login_code(length=8)
-        assert len(raw_code) == 8
-        assert raw_code.isdigit()
 
 
 class TestGenerateApiKey:

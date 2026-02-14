@@ -787,6 +787,43 @@ class TestProjectDeleteWithReassignment:
         assert r2.status_code == 200
         assert r2.json()["name"] == "Renamed"
 
+    async def test_create_project_duplicate_slug(self, client: AsyncClient):
+        """Creating two projects with the same slug should fail."""
+        await client.post(
+            "/v1/projects",
+            json={"name": "First", "slug": "dup-slug"},
+            headers=AUTH_HEADERS,
+        )
+        r = await client.post(
+            "/v1/projects",
+            json={"name": "Second", "slug": "dup-slug"},
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 409
+        assert r.json()["error"] == "slug_exists"
+
+    async def test_update_project_duplicate_slug(self, client: AsyncClient):
+        """Renaming a project's slug to an existing slug should fail."""
+        await client.post(
+            "/v1/projects",
+            json={"name": "Alpha", "slug": "alpha-slug"},
+            headers=AUTH_HEADERS,
+        )
+        r = await client.post(
+            "/v1/projects",
+            json={"name": "Beta", "slug": "beta-slug"},
+            headers=AUTH_HEADERS,
+        )
+        beta_id = r.json()["project_id"]
+
+        r2 = await client.put(
+            f"/v1/projects/{beta_id}",
+            json={"slug": "alpha-slug"},
+            headers=AUTH_HEADERS,
+        )
+        assert r2.status_code == 409
+        assert r2.json()["error"] == "slug_exists"
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  USER AUTH TESTS
@@ -1003,6 +1040,7 @@ class TestRegistration:
     async def test_register_happy_path(self, client: AsyncClient):
         r = await client.post("/v1/auth/register", json={
             "email": "founder@newco.com",
+            "password": "securepass1",
             "name": "Jane Founder",
             "tenant_name": "NewCo",
         })
@@ -1017,11 +1055,13 @@ class TestRegistration:
     async def test_register_duplicate_email(self, client: AsyncClient):
         await client.post("/v1/auth/register", json={
             "email": "dup@newco.com",
+            "password": "securepass1",
             "name": "First",
             "tenant_name": "First Co",
         })
         r = await client.post("/v1/auth/register", json={
             "email": "dup@newco.com",
+            "password": "securepass2",
             "name": "Second",
             "tenant_name": "Second Co",
         })
@@ -1031,6 +1071,7 @@ class TestRegistration:
     async def test_register_creates_default_project(self, client: AsyncClient):
         r = await client.post("/v1/auth/register", json={
             "email": "proj@newco.com",
+            "password": "securepass1",
             "name": "Proj User",
             "tenant_name": "ProjCo",
         })
@@ -1051,6 +1092,7 @@ class TestRegistration:
     async def test_register_returns_working_api_key(self, client: AsyncClient):
         r = await client.post("/v1/auth/register", json={
             "email": "apitest@newco.com",
+            "password": "securepass1",
             "name": "API Tester",
             "tenant_name": "API Co",
         })
@@ -1061,77 +1103,59 @@ class TestRegistration:
         )
         assert r2.status_code == 200
 
-
-# ═══════════════════════════════════════════════════════════════════════════
-#  EMAIL CODE LOGIN TESTS
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-class TestEmailCodeLogin:
-    async def test_send_and_verify_code(self, client: AsyncClient):
-        """Full flow: send code → verify → get JWT."""
-        # Send code for the dev admin user
-        r = await client.post("/v1/auth/send-code", json={
-            "email": "admin@hiveboard.dev",
+    async def test_register_duplicate_slug(self, client: AsyncClient):
+        await client.post("/v1/auth/register", json={
+            "email": "first@slugtest.com",
+            "password": "securepass1",
+            "name": "First",
+            "tenant_name": "Slug Corp",
         })
+        r = await client.post("/v1/auth/register", json={
+            "email": "second@slugtest.com",
+            "password": "securepass2",
+            "name": "Second",
+            "tenant_name": "Slug Corp",
+        })
+        assert r.status_code == 409
+        assert r.json()["error"] == "slug_exists"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  CHECK-SLUG TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestCheckSlug:
+    async def test_slug_available(self, client: AsyncClient):
+        r = await client.get("/v1/auth/check-slug", params={"slug": "brand-new"})
         assert r.status_code == 200
         body = r.json()
-        assert "code" in body  # MVP returns code in response
-        code = body["code"]
-        assert len(code) == 6
+        assert body["slug"] == "brand-new"
+        assert body["available"] is True
 
-        # Verify code
-        r2 = await client.post("/v1/auth/verify-code", json={
-            "email": "admin@hiveboard.dev",
-            "code": code,
+    async def test_slug_taken(self, client: AsyncClient):
+        await client.post("/v1/auth/register", json={
+            "email": "slugowner@test.com",
+            "password": "securepass1",
+            "name": "Owner",
+            "tenant_name": "Taken Co",
         })
-        assert r2.status_code == 200
-        body2 = r2.json()
-        assert "token" in body2
-        assert body2["token_type"] == "bearer"
-        assert body2["user"]["email"] == "admin@hiveboard.dev"
-
-    async def test_wrong_code(self, client: AsyncClient):
-        # Send valid code
-        r = await client.post("/v1/auth/send-code", json={
-            "email": "admin@hiveboard.dev",
-        })
+        r = await client.get("/v1/auth/check-slug", params={"slug": "taken-co"})
         assert r.status_code == 200
+        body = r.json()
+        assert body["slug"] == "taken-co"
+        assert body["available"] is False
 
-        # Verify with wrong code
-        r2 = await client.post("/v1/auth/verify-code", json={
-            "email": "admin@hiveboard.dev",
-            "code": "000000",
-        })
-        assert r2.status_code == 401
-
-    async def test_nonexistent_email_send_code_200(self, client: AsyncClient):
-        """No email enumeration — send-code returns 200 even for unknown emails."""
-        r = await client.post("/v1/auth/send-code", json={
-            "email": "nobody@nowhere.com",
-        })
+    async def test_slug_normalized(self, client: AsyncClient):
+        r = await client.get("/v1/auth/check-slug", params={"slug": "My Company"})
         assert r.status_code == 200
-        # No code returned for unknown email
-        assert "code" not in r.json()
+        assert r.json()["slug"] == "my-company"
 
-    async def test_expired_code_not_valid(self, client: AsyncClient):
-        """Verify fails when no active code exists."""
-        r = await client.post("/v1/auth/verify-code", json={
-            "email": "admin@hiveboard.dev",
-            "code": "123456",
-        })
-        assert r.status_code == 401
-
-    async def test_rate_limit(self, client: AsyncClient):
-        """Sending too many codes triggers 429."""
-        for _ in range(3):
-            await client.post("/v1/auth/send-code", json={
-                "email": "admin@hiveboard.dev",
-            })
-        r = await client.post("/v1/auth/send-code", json={
-            "email": "admin@hiveboard.dev",
-        })
-        assert r.status_code == 429
+    async def test_dev_tenant_slug_taken(self, client: AsyncClient):
+        """The bootstrapped dev tenant slug should already be taken."""
+        r = await client.get("/v1/auth/check-slug", params={"slug": "dev"})
+        assert r.status_code == 200
+        assert r.json()["available"] is False
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1164,6 +1188,7 @@ class TestInviteFlow:
         r2 = await client.post("/v1/auth/accept-invite", json={
             "invite_token": invite_token,
             "name": "New Guy",
+            "password": "newguypass",
         })
         assert r2.status_code == 200
         body = r2.json()
@@ -1201,6 +1226,7 @@ class TestInviteFlow:
         r = await client.post("/v1/auth/accept-invite", json={
             "invite_token": "00000000-0000-0000-0000-000000000000",
             "name": "Ghost",
+            "password": "ghostpass",
         })
         assert r.status_code == 404
 
@@ -1220,6 +1246,7 @@ class TestInviteFlow:
         r2 = await client.post("/v1/auth/accept-invite", json={
             "invite_token": invite_token,
             "name": "First Accept",
+            "password": "acceptpass",
         })
         assert r2.status_code == 200
 
@@ -1236,6 +1263,7 @@ class TestInviteFlow:
         # registering with a pending-invite email is blocked.
         r4 = await client.post("/v1/auth/register", json={
             "email": "second@example.com",
+            "password": "blockedpass",
             "name": "Blocked",
             "tenant_name": "Blocked Co",
         })

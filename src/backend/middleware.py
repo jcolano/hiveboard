@@ -19,8 +19,7 @@ PUBLIC_PATHS = {
     "/health", "/docs", "/openapi.json", "/dashboard",
     "/v1/auth/login",
     "/v1/auth/register",
-    "/v1/auth/send-code",
-    "/v1/auth/verify-code",
+    "/v1/auth/check-slug",
     "/v1/auth/accept-invite",
 }
 PUBLIC_PREFIXES = ("/v1/stream", "/static")

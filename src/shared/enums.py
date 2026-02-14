@@ -209,10 +209,6 @@ PRUNE_INTERVAL_SECONDS = 300  # 5 minutes — background prune cycle
 # Auth Code & Invite Constants
 # ---------------------------------------------------------------------------
 
-AUTH_CODE_EXPIRY_SECONDS = 600       # 10 minutes
-AUTH_CODE_MAX_ATTEMPTS = 5
-AUTH_CODE_RATE_LIMIT = 3             # max codes per email per window
-AUTH_CODE_RATE_WINDOW = 300          # 5 minutes
 INVITE_EXPIRY_SECONDS = 604800      # 7 days
 
 COLD_EVENT_RETENTION: dict[str, int] = {

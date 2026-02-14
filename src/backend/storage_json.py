@@ -45,7 +45,7 @@ from shared.models import (
     AlertRuleUpdate,
     ApiKeyInfo,
     ApiKeyRecord,
-    AuthCodeRecord,
+
     CostSummary,
     CostTimeBucket,
     AgentPipelineSummary,
@@ -179,7 +179,6 @@ TABLE_FILES = [
     "events",
     "alert_rules",
     "alert_history",
-    "auth_codes",
     "invites",
 ]
 
@@ -261,6 +260,12 @@ class JsonStorageBackend:
     async def get_tenant(self, tenant_id: str) -> TenantRecord | None:
         for row in self._tables["tenants"]:
             if row["tenant_id"] == tenant_id:
+                return TenantRecord(**row)
+        return None
+
+    async def get_tenant_by_slug(self, slug: str) -> TenantRecord | None:
+        for row in self._tables["tenants"]:
+            if row["slug"] == slug:
                 return TenantRecord(**row)
         return None
 
@@ -500,6 +505,13 @@ class JsonStorageBackend:
             updated_at=now,
         )
         async with self._locks["projects"]:
+            for row in self._tables["projects"]:
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row.get("slug") == project.slug
+                    and not row.get("is_archived", False)
+                ):
+                    raise ValueError(f"Project slug '{project.slug}' already exists in this tenant")
             self._tables["projects"].append(rec.model_dump(mode="json"))
             self._persist("projects")
         return rec
@@ -541,6 +553,15 @@ class JsonStorageBackend:
                     and row["project_id"] == project_id
                 ):
                     patch = updates.model_dump(exclude_none=True)
+                    if "slug" in patch and patch["slug"] != row.get("slug"):
+                        for other in self._tables["projects"]:
+                            if (
+                                other["tenant_id"] == tenant_id
+                                and other.get("slug") == patch["slug"]
+                                and other["project_id"] != project_id
+                                and not other.get("is_archived", False)
+                            ):
+                                raise ValueError(f"Project slug '{patch['slug']}' already exists in this tenant")
                     row.update(patch)
                     row["updated_at"] = _now_utc().isoformat()
                     self._persist("projects")
@@ -1966,77 +1987,6 @@ class JsonStorageBackend:
             return True
         age = (now - ts).total_seconds()
         return age <= max_age_seconds
-
-    # ───────────────────────────────────────────────────────────────────
-    #  AUTH CODES
-    # ───────────────────────────────────────────────────────────────────
-
-    async def create_auth_code(
-        self,
-        code_id: str,
-        email: str,
-        code_hash: str,
-        expires_at: datetime,
-    ) -> AuthCodeRecord:
-        now = _now_utc()
-        rec = AuthCodeRecord(
-            code_id=code_id,
-            email=email,
-            code_hash=code_hash,
-            created_at=now,
-            expires_at=expires_at,
-        )
-        async with self._locks["auth_codes"]:
-            self._tables["auth_codes"].append(rec.model_dump(mode="json"))
-            self._persist("auth_codes")
-        return rec
-
-    async def get_active_auth_code(
-        self, email: str
-    ) -> AuthCodeRecord | None:
-        now = _now_utc()
-        candidates = []
-        for row in self._tables["auth_codes"]:
-            if (
-                row["email"].lower() == email.lower()
-                and not row.get("used", False)
-            ):
-                exp = _parse_dt(row["expires_at"])
-                if exp and exp > now:
-                    candidates.append(row)
-        if not candidates:
-            return None
-        candidates.sort(key=lambda r: r["created_at"], reverse=True)
-        return AuthCodeRecord(**candidates[0])
-
-    async def mark_auth_code_used(self, code_id: str) -> bool:
-        async with self._locks["auth_codes"]:
-            for row in self._tables["auth_codes"]:
-                if row["code_id"] == code_id:
-                    row["used"] = True
-                    self._persist("auth_codes")
-                    return True
-        return False
-
-    async def increment_auth_code_attempts(self, code_id: str) -> int:
-        async with self._locks["auth_codes"]:
-            for row in self._tables["auth_codes"]:
-                if row["code_id"] == code_id:
-                    row["attempts"] = row.get("attempts", 0) + 1
-                    self._persist("auth_codes")
-                    return row["attempts"]
-        return 0
-
-    async def count_recent_codes(
-        self, email: str, since: datetime
-    ) -> int:
-        count = 0
-        for row in self._tables["auth_codes"]:
-            if row["email"].lower() == email.lower():
-                created = _parse_dt(row["created_at"])
-                if created and created >= since:
-                    count += 1
-        return count
 
     # ───────────────────────────────────────────────────────────────────
     #  GLOBAL EMAIL LOOKUP

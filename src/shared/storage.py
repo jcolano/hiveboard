@@ -40,7 +40,6 @@ from .models import (
     AlertRuleUpdate,
     ApiKeyInfo,
     ApiKeyRecord,
-    AuthCodeRecord,
     CostSummary,
     CostTimeBucket,
     Event,
@@ -96,6 +95,9 @@ class StorageBackend(Protocol):
         ...
 
     async def get_tenant(self, tenant_id: str) -> TenantRecord | None:
+        ...
+
+    async def get_tenant_by_slug(self, slug: str) -> TenantRecord | None:
         ...
 
     # ───────────────────────────────────────────────────────────────────
@@ -615,59 +617,6 @@ class StorageBackend(Protocol):
 
         Maps to: SELECT ... FROM alert_history
                  WHERE rule_id = ? ORDER BY fired_at DESC LIMIT 1
-        """
-        ...
-
-    # ───────────────────────────────────────────────────────────────────
-    #  AUTH CODES (email-code login)
-    # ───────────────────────────────────────────────────────────────────
-
-    async def create_auth_code(
-        self,
-        code_id: str,
-        email: str,
-        code_hash: str,
-        expires_at: datetime,
-    ) -> AuthCodeRecord:
-        """Store a login code.
-
-        Maps to: INSERT INTO auth_codes (code_id, email, code_hash, ...)
-        """
-        ...
-
-    async def get_active_auth_code(
-        self, email: str
-    ) -> AuthCodeRecord | None:
-        """Get latest unused + unexpired code for an email.
-
-        Maps to: SELECT ... FROM auth_codes
-                 WHERE email = ? AND used = 0 AND expires_at > NOW()
-                 ORDER BY created_at DESC LIMIT 1
-        """
-        ...
-
-    async def mark_auth_code_used(self, code_id: str) -> bool:
-        """Mark code as used after successful verification.
-
-        Maps to: UPDATE auth_codes SET used = 1 WHERE code_id = ?
-        """
-        ...
-
-    async def increment_auth_code_attempts(self, code_id: str) -> int:
-        """Increment failed attempt counter. Returns new count.
-
-        Maps to: UPDATE auth_codes SET attempts = attempts + 1
-                 WHERE code_id = ? RETURNING attempts
-        """
-        ...
-
-    async def count_recent_codes(
-        self, email: str, since: datetime
-    ) -> int:
-        """Count codes sent to this email since a given time.
-
-        Maps to: SELECT COUNT(*) FROM auth_codes
-                 WHERE email = ? AND created_at >= ?
         """
         ...
 

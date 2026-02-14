@@ -64,11 +64,9 @@ from shared.models import (
     ProjectMergeRequest,
     ProjectUpdate,
     RegisterRequest,
-    SendCodeRequest,
     UserCreate,
     UserSafe,
     UserUpdate,
-    VerifyCodeRequest,
 )
 
 
@@ -1133,7 +1131,14 @@ async def create_project(
 ):
     storage = request.app.state.storage
     tenant_id = request.state.tenant_id
-    project = await storage.create_project(tenant_id, body)
+    try:
+        project = await storage.create_project(tenant_id, body)
+    except ValueError:
+        raise HTTPException(409, {
+            "error": "slug_exists",
+            "message": f"A project with slug '{body.slug}' already exists",
+            "status": 409,
+        })
     return JSONResponse(
         content=project.model_dump(mode="json"), status_code=201,
     )
@@ -1160,7 +1165,14 @@ async def update_project(
 ):
     storage = request.app.state.storage
     tenant_id = request.state.tenant_id
-    project = await storage.update_project(tenant_id, project_id, body)
+    try:
+        project = await storage.update_project(tenant_id, project_id, body)
+    except ValueError:
+        raise HTTPException(409, {
+            "error": "slug_exists",
+            "message": f"A project with slug '{body.slug}' already exists",
+            "status": 409,
+        })
     if project is None:
         raise HTTPException(404, {"error": "not_found", "message": "Project not found", "status": 404})
     return project.model_dump(mode="json")
@@ -1459,7 +1471,7 @@ async def login(body: LoginRequest, request: Request, tenant_id: str = Query(...
 @app.post("/v1/auth/register", status_code=201)
 async def register(body: RegisterRequest, request: Request):
     """Register a new tenant + owner user + default project + API key."""
-    from backend.auth import generate_api_key
+    from backend.auth import generate_api_key, hash_password
     storage = request.app.state.storage
     logger = logging.getLogger("hiveboard.auth")
 
@@ -1487,8 +1499,16 @@ async def register(body: RegisterRequest, request: Request):
                     "status": 409,
                 })
 
-    # Generate slug from tenant_name
+    # Generate slug from tenant_name and check uniqueness
     slug = body.tenant_name.lower().replace(" ", "-")
+    existing_tenant = await storage.get_tenant_by_slug(slug)
+    if existing_tenant:
+        raise HTTPException(409, {
+            "error": "slug_exists",
+            "message": f"A workspace with this name already exists (slug: {slug})",
+            "status": 409,
+        })
+
     tenant_id = str(uuid4())
     user_id = str(uuid4())
 
@@ -1500,7 +1520,7 @@ async def register(body: RegisterRequest, request: Request):
         user_id=user_id,
         tenant_id=tenant_id,
         email=body.email,
-        password_hash="",
+        password_hash=hash_password(body.password),
         name=body.name,
         role="owner",
     )
@@ -1530,114 +1550,19 @@ async def register(body: RegisterRequest, request: Request):
     )
 
 
-@app.post("/v1/auth/send-code")
-async def send_code(body: SendCodeRequest, request: Request):
-    """Send a login code to an email address."""
-    from backend.auth import generate_login_code
-    from shared.enums import AUTH_CODE_EXPIRY_SECONDS, AUTH_CODE_RATE_LIMIT, AUTH_CODE_RATE_WINDOW
+@app.get("/v1/auth/check-slug")
+async def check_slug(slug: str, request: Request):
+    """Check if a tenant slug is available. Public endpoint for registration form validation."""
     storage = request.app.state.storage
-    logger = logging.getLogger("hiveboard.auth")
-
-    # Rate limit
-    now = datetime.now(timezone.utc)
-    since = now - timedelta(seconds=AUTH_CODE_RATE_WINDOW)
-    recent = await storage.count_recent_codes(body.email, since)
-    if recent >= AUTH_CODE_RATE_LIMIT:
-        raise HTTPException(429, {
-            "error": "rate_limit_exceeded",
-            "message": "Too many login codes requested. Try again later.",
-            "status": 429,
-        })
-
-    # Lookup user (but don't reveal if they exist)
-    user = await storage.get_user_by_email_global(body.email)
-
-    raw_code = None
-    if user:
-        raw_code_val, code_hash = generate_login_code()
-        raw_code = raw_code_val
-        code_id = str(uuid4())
-        expires_at = now + timedelta(seconds=AUTH_CODE_EXPIRY_SECONDS)
-        await storage.create_auth_code(code_id, body.email, code_hash, expires_at)
-        logger.info("Login code for %s: %s", body.email, raw_code)
-
-    response = {
-        "message": "If registered, a code has been sent.",
-        "expires_in": AUTH_CODE_EXPIRY_SECONDS,
-    }
-    # MVP: return code in response (no real email service)
-    if raw_code:
-        response["code"] = raw_code
-
-    return response
-
-
-@app.post("/v1/auth/verify-code")
-async def verify_code(body: VerifyCodeRequest, request: Request):
-    """Verify a login code and return a JWT."""
-    from backend.auth import create_token
-    from shared.enums import AUTH_CODE_MAX_ATTEMPTS
-    storage = request.app.state.storage
-
-    # Lookup user
-    user = await storage.get_user_by_email_global(body.email)
-    if user is None:
-        raise HTTPException(401, {
-            "error": "authentication_failed",
-            "message": "Invalid email or code",
-            "status": 401,
-        })
-
-    # Get active code
-    code_rec = await storage.get_active_auth_code(body.email)
-    if code_rec is None:
-        raise HTTPException(401, {
-            "error": "authentication_failed",
-            "message": "No active code. Request a new one.",
-            "status": 401,
-        })
-
-    # Check attempts
-    if code_rec.attempts >= AUTH_CODE_MAX_ATTEMPTS:
-        raise HTTPException(401, {
-            "error": "code_expired",
-            "message": "Too many attempts. Request a new code.",
-            "status": 401,
-        })
-
-    # Compare hashes
-    provided_hash = hashlib.sha256(body.code.encode()).hexdigest()
-    if provided_hash != code_rec.code_hash:
-        await storage.increment_auth_code_attempts(code_rec.code_id)
-        raise HTTPException(401, {
-            "error": "authentication_failed",
-            "message": "Invalid code",
-            "status": 401,
-        })
-
-    # Success
-    await storage.mark_auth_code_used(code_rec.code_id)
-    await storage.update_user(
-        user.tenant_id, user.user_id,
-        last_login_at=datetime.now(timezone.utc),
-    )
-    token, expires_in = create_token(user.user_id, user.tenant_id, user.role)
-    safe = UserSafe(
-        user_id=user.user_id, tenant_id=user.tenant_id,
-        email=user.email, name=user.name, role=user.role,
-        is_active=user.is_active, created_at=user.created_at,
-        updated_at=user.updated_at, last_login_at=user.last_login_at,
-        settings=user.settings,
-    )
-    return LoginResponse(
-        token=token, expires_in=expires_in, user=safe,
-    ).model_dump(mode="json")
+    normalized = slug.lower().replace(" ", "-")
+    existing = await storage.get_tenant_by_slug(normalized)
+    return {"slug": normalized, "available": existing is None}
 
 
 @app.post("/v1/auth/accept-invite")
 async def accept_invite(body: AcceptInviteRequest, request: Request):
     """Accept an invite and join a tenant."""
-    from backend.auth import create_token
+    from backend.auth import create_token, hash_password
     storage = request.app.state.storage
 
     # Hash token and lookup invite
@@ -1665,7 +1590,7 @@ async def accept_invite(body: AcceptInviteRequest, request: Request):
         user_id=user_id,
         tenant_id=invite.tenant_id,
         email=invite.email,
-        password_hash="",
+        password_hash=hash_password(body.password),
         name=body.name,
         role=invite.role,
     )
@@ -1982,7 +1907,7 @@ async def create_user(body: UserCreate, request: Request):
             })
 
     user_id = str(uuid4())
-    pw_hash = hash_password(body.password) if body.password else ""
+    pw_hash = hash_password(body.password)
     try:
         user = await storage.create_user(
             user_id=user_id,
