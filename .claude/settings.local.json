@@ -14,7 +14,10 @@
       "Bash(node -c:*)",
       "Bash(powershell -Command \"\\(Get-Content ''C:\\\\code\\\\hiveBoard\\\\src\\\\static\\\\js\\\\hiveboard.js'' | Measure-Object -Line\\).Lines\")",
       "Bash(find:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(echo:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }
