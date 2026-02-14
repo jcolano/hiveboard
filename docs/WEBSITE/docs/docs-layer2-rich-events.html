@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layer 2 — Rich Events — HiveBoard Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (HiveBoard system)
+   ═══════════════════════════════════════ */
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --accent-light: rgba(194, 65, 12, 0.1);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --success-dim: rgba(22, 163, 74, 0.08);
+    --error: #dc2626;
+    --error-dim: rgba(220, 38, 38, 0.06);
+    --warning: #d97706;
+    --warning-dim: rgba(217, 119, 6, 0.08);
+    --info: #2563eb;
+    --info-dim: rgba(37, 99, 235, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.docs-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 3px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 1px solid rgba(194, 65, 12, 0.12);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.topbar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-link.primary {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+}
+.topbar-link.primary:hover { background: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.docs-layout {
+    display: flex; min-height: 100vh; padding-top: 56px;
+}
+
+/* ─── LEFT SIDEBAR ─── */
+.docs-sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: fixed; top: 56px; bottom: 0; left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.docs-nav-section {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding: 16px 12px 6px;
+}
+.docs-nav-section:first-child { padding-top: 0; }
+
+.docs-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    transition: all 0.12s; border: 1px solid transparent;
+}
+.docs-nav-item:hover {
+    background: var(--bg-hover); color: var(--text-primary);
+}
+.docs-nav-item.active {
+    background: var(--accent-dim); color: var(--accent);
+    font-weight: 600; border-color: rgba(194, 65, 12, 0.1);
+}
+.docs-nav-icon {
+    width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5;
+    display: flex; align-items: center;
+}
+.docs-nav-icon svg { width: 18px; height: 18px; }
+.docs-nav-item.active .docs-nav-icon { opacity: 1; color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.docs-main {
+    flex: 1; margin-left: 260px; margin-right: 220px;
+    padding: 40px 48px 80px;
+    max-width: 820px;
+    animation: fade-in 0.3s ease;
+}
+
+/* ─── RIGHT TOC ─── */
+.page-toc {
+    position: fixed; top: 96px; right: 24px;
+    width: 196px; max-height: calc(100vh - 120px);
+    overflow-y: auto; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.page-toc::-webkit-scrollbar { width: 3px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.page-toc-title {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+}
+.toc-link {
+    display: block; padding: 4px 0;
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s;
+    line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -1px;
+}
+.toc-link:hover { color: var(--text-primary); }
+.toc-link.toc-h3 { padding-left: 22px; font-size: 12px; }
+.toc-link.active {
+    color: var(--accent); font-weight: 600;
+    border-left-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   CONTENT TYPOGRAPHY
+   ═══════════════════════════════════════ */
+.doc-content h1 {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    letter-spacing: -0.7px; line-height: 1.2;
+    margin-bottom: 8px; color: var(--text-primary);
+}
+.doc-content h2 {
+    font-family: var(--font-sans); font-size: 21px; font-weight: 700;
+    letter-spacing: -0.3px; line-height: 1.3;
+    margin-top: 48px; margin-bottom: 16px;
+    padding-top: 24px; border-top: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+.doc-content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+
+.doc-content h3 {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    margin-top: 32px; margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.doc-content h4 {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    margin-top: 24px; margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.heading-anchor {
+    color: var(--accent); text-decoration: none;
+    opacity: 0; font-weight: 400; margin-left: 6px;
+    transition: opacity 0.15s;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor { opacity: 0.5; }
+.heading-anchor:hover { opacity: 1 !important; }
+
+.doc-content p {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 16px;
+}
+.doc-content strong { color: var(--text-primary); font-weight: 600; }
+
+.doc-content a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(194, 65, 12, 0.2);
+    transition: border-color 0.15s;
+}
+.doc-content a:hover { border-bottom-color: var(--accent); }
+
+.doc-content ul, .doc-content ol {
+    margin-bottom: 16px; padding-left: 24px;
+}
+.doc-content li {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.doc-content li strong { color: var(--text-primary); }
+
+/* Inline code */
+.doc-content code {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(194, 65, 12, 0.08);
+}
+
+/* Code blocks */
+.code-block {
+    position: relative; margin-bottom: 20px;
+    background: #1e1e2e; border-radius: var(--radius-md);
+    border: 1px solid #2a2a3e;
+    overflow: hidden;
+}
+.code-block .code-lang {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8888aa; background: rgba(255,255,255,0.05);
+    padding: 4px 12px; border-radius: 0 var(--radius-md) 0 6px;
+}
+.code-block pre {
+    margin: 0; padding: 20px 24px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.code-block pre::-webkit-scrollbar { height: 4px; }
+.code-block pre::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.code-block pre code {
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    color: #cdd6f4; background: none; padding: 0; border: none; border-radius: 0;
+}
+
+/* Tables */
+.table-wrapper {
+    margin-bottom: 20px; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    scrollbar-width: thin;
+}
+.table-wrapper table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px;
+}
+.table-wrapper th {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); background: var(--bg-elevated);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.table-wrapper td {
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+    color: var(--text-secondary); padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+}
+.table-wrapper tr:last-child td { border-bottom: none; }
+.table-wrapper tr:hover td { background: var(--bg-elevated); }
+.table-wrapper td code {
+    font-size: 12px;
+}
+
+/* Blockquotes / Callouts */
+.callout {
+    margin-bottom: 20px; padding: 16px 20px;
+    border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--bg-elevated);
+}
+.callout p { margin-bottom: 8px; font-size: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.callout em { color: var(--text-muted); }
+
+.callout-warning {
+    border-left-color: var(--warning);
+    background: var(--warning-dim);
+}
+.callout-tip {
+    border-left-color: var(--success);
+    background: var(--success-dim);
+}
+.callout-info {
+    border-left-color: var(--info);
+    background: var(--info-dim);
+}
+.callout-danger {
+    border-left-color: var(--error);
+    background: var(--error-dim);
+}
+
+/* HR */
+.doc-content hr {
+    border: none; height: 1px;
+    background: var(--border); margin: 32px 0;
+}
+
+/* ─── VERSION BADGE ─── */
+.doc-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.doc-meta-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); background: var(--bg-elevated);
+    padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ─── PREV / NEXT NAV ─── */
+.prev-next {
+    display: flex; gap: 16px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+}
+.prev-next-link {
+    flex: 1; display: block; padding: 16px 20px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); text-decoration: none;
+    transition: all 0.15s;
+}
+.prev-next-link:hover {
+    border-color: var(--accent); background: var(--accent-dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.06);
+}
+.prev-next-link.next { text-align: right; }
+.prev-next-label {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--text-muted); display: block; margin-bottom: 4px;
+}
+.prev-next-title {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    color: var(--text-primary);
+}
+.prev-next-link:hover .prev-next-title { color: var(--accent); }
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+    cursor: pointer; color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 1200px) {
+    .page-toc { display: none; }
+    .docs-main { margin-right: 0; }
+}
+
+@media (max-width: 860px) {
+    .mobile-menu-toggle { display: flex; }
+    .docs-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 50;
+        box-shadow: none;
+    }
+    .docs-sidebar.open {
+        transform: translateX(0);
+        box-shadow: 8px 0 30px rgba(0,0,0,0.1);
+    }
+    .docs-main {
+        margin-left: 0; padding: 28px 20px 60px;
+    }
+    .doc-content h1 { font-size: 24px; }
+    .doc-content h2 { font-size: 19px; }
+    .prev-next { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════
+   PRISM THEME OVERRIDES (dark code blocks)
+   ═══════════════════════════════════════ */
+.code-block .token.comment,
+.code-block .token.prolog,
+.code-block .token.doctype { color: #6c7086; }
+.code-block .token.punctuation { color: #a6adc8; }
+.code-block .token.property,
+.code-block .token.tag,
+.code-block .token.boolean,
+.code-block .token.number { color: #fab387; }
+.code-block .token.string,
+.code-block .token.attr-value { color: #a6e3a1; }
+.code-block .token.selector,
+.code-block .token.attr-name,
+.code-block .token.builtin { color: #89b4fa; }
+.code-block .token.keyword { color: #cba6f7; }
+.code-block .token.function { color: #89b4fa; }
+.code-block .token.operator { color: #89dceb; }
+.code-block .token.class-name { color: #f9e2af; }
+.code-block .token.decorator { color: #f38ba8; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="home.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <span class="docs-badge">Docs</span>
+    </div>
+    <div class="topbar-right">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <a href="https://github.com/hiveboard/hiveloop" class="topbar-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="home.html" class="topbar-link primary">Open Dashboard</a>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="docs-layout">
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar" id="docsSidebar">
+<div class="docs-nav-section">Getting Started</div>
+<a class="docs-nav-item" href="user-manual.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7a2 2 0 012 2v12.5l-.5-.5-3-3H3.5A1.5 1.5 0 012 11.5v-8z" stroke="currentColor" stroke-width="1.3"/><path d="M16 3.5A1.5 1.5 0 0014.5 2H11a2 2 0 00-2 2v12.5l.5-.5 3-3h2A1.5 1.5 0 0016 11.5v-8z" stroke="currentColor" stroke-width="1.3"/></svg></span><span>SDK Manual</span></a>
+<a class="docs-nav-item" href="integration-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M6 2v4M12 2v4M4 6h10v3a5 5 0 01-5 5 5 5 0 01-5-5V6zM9 14v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Integration Guide</span></a>
+<div class="docs-nav-section">Dashboard</div>
+<a class="docs-nav-item" href="docs-dashboard-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 7h14M7 7v9" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Dashboard Guide</span></a>
+<div class="docs-nav-section">Instrumentation</div>
+<a class="docs-nav-item" href="docs-instrumentation-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Instrumentation</span></a>
+<a class="docs-nav-item" href="docs-layer1-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6l7 4 7-4-7-4zM2 12l7 4 7-4M2 9l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Layer 1 Guide</span></a>
+<div class="docs-nav-section">Rich Events</div>
+<a class="docs-nav-item active" href="docs-layer2-rich-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M10 2L3 10h5l-1 6 7-8h-5l1-6z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Rich Events</span></a>
+<a class="docs-nav-item" href="docs-layer2-llm-tracking.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="7" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2v2M11 2v2M7 14v2M11 14v2M2 7h2M2 11h2M14 7h2M14 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>LLM Tracking</span></a>
+<a class="docs-nav-item" href="docs-operational-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M16 9h-3l-2 7L7 2 5 9H2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Operational Events</span></a>
+<a class="docs-nav-item" href="docs-track-context.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7v4M13 7c0 3-2 4-8 4" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Track Context</span></a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+        <div class="doc-meta">
+            <span class="doc-meta-badge">v0.1.0</span>
+            <span class="doc-meta-badge">Updated Feb 2026</span>
+        </div>
+        <article class="doc-content">
+<h1 id="hiveboard-user-manual-part-5-layer-2-integration-rich-events">HiveBoard — User Manual Part 5: Layer 2 Integration — Rich Events <a class="heading-anchor" href="#hiveboard-user-manual-part-5-layer-2-integration-rich-events" aria-label="Link to this section">#</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Last updated:</strong> 2026-02-12</p>
+<blockquote class="callout"><p><em>LLM costs, plans, escalations, approvals, retries, issues — the full narrative of what your agents are thinking and why.</em></p></blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents <a class="heading-anchor" href="#table-of-contents" aria-label="Link to this section">#</a></h2>
+<ol>
+<li><a href="#1-what-layer-2-gives-you">What Layer 2 Gives You</a></li>
+<li><a href="#2-llm-call-tracking">LLM Call Tracking</a></li>
+<li><a href="#3-plans-and-plan-steps">Plans and Plan Steps</a></li>
+<li><a href="#4-escalations">Escalations</a></li>
+<li><a href="#5-approvals">Approvals</a></li>
+<li><a href="#6-retries">Retries</a></li>
+<li><a href="#7-issue-reporting">Issue Reporting</a></li>
+<li><a href="#8-pipeline-enrichment">Pipeline Enrichment</a></li>
+<li><a href="#9-agent-level-events-outside-task-context">Agent-Level Events (Outside Task Context)</a></li>
+<li><a href="#10-cost-estimation">Cost Estimation</a></li>
+<li><a href="#11-what-to-expect-on-the-dashboard">What to Expect on the Dashboard</a></li>
+<li><a href="#12-incremental-adoption-strategy">Incremental Adoption Strategy</a></li>
+<li><a href="#13-troubleshooting-layer-2">Troubleshooting Layer 2</a></li>
+</ol>
+<hr />
+<h2 id="1-what-layer-2-gives-you">1. What Layer 2 Gives You <a class="heading-anchor" href="#1-what-layer-2-gives-you" aria-label="Link to this section">#</a></h2>
+<p>Layer 1 told you what your agents are doing — tasks started, actions tracked, durations measured. Layer 2 tells you <strong>why they're doing it, how much it costs, and what went wrong in their reasoning.</strong></p>
+<p>Layer 2 is a collection of typed events that add narrative depth to the timeline. Each event type is independent — adopt them in any order, in any combination. There is no &quot;all or nothing.&quot;</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Layer 2 event</th>
+  <th>What it answers</th>
+  <th>Dashboard impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task.llm_call()</code></td>
+  <td>How much is each LLM call costing? What model was used? How many tokens?</td>
+  <td>Cost Explorer, purple timeline nodes, LLM/COST columns in Task Table</td>
+</tr>
+<tr>
+  <td><code>task.plan()</code></td>
+  <td>What plan did the agent create?</td>
+  <td>Plan progress bar above Timeline</td>
+</tr>
+<tr>
+  <td><code>task.plan_step()</code></td>
+  <td>Which step is it on? Which step failed?</td>
+  <td>Plan bar step indicators (green/blue/red/gray)</td>
+</tr>
+<tr>
+  <td><code>task.escalate()</code></td>
+  <td>When did the agent ask for help?</td>
+  <td>Amber nodes in Timeline, &quot;human&quot; filter in Activity Stream</td>
+</tr>
+<tr>
+  <td><code>task.request_approval()</code></td>
+  <td>What's waiting for human approval?</td>
+  <td>Agent WAITING badge, amber nodes</td>
+</tr>
+<tr>
+  <td><code>task.approval_received()</code></td>
+  <td>Was it approved or rejected? Who decided?</td>
+  <td>Green/red approval nodes in Timeline</td>
+</tr>
+<tr>
+  <td><code>task.retry()</code></td>
+  <td>How many times did it retry? Why?</td>
+  <td>Timeline branching, retry pattern visibility</td>
+</tr>
+<tr>
+  <td><code>agent.report_issue()</code></td>
+  <td>What persistent problems has the agent found?</td>
+  <td>Pipeline tab, issue badges on agent cards</td>
+</tr>
+<tr>
+  <td><code>agent.queue_snapshot()</code></td>
+  <td>How deep is the work queue?</td>
+  <td>Queue badges on agent cards, Pipeline tab</td>
+</tr>
+<tr>
+  <td><code>agent.todo()</code></td>
+  <td>What work items is the agent tracking?</td>
+  <td>Pipeline tab</td>
+</tr>
+<tr>
+  <td><code>agent.scheduled()</code></td>
+  <td>What recurring work is configured?</td>
+  <td>Pipeline tab</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="the-progression">The progression <a class="heading-anchor" href="#the-progression" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>Layer 0:  &quot;Agent is alive&quot;
+Layer 1:  &quot;Agent is working on task X, step Y, for Z seconds&quot;
+Layer 2:  &quot;Agent called claude-sonnet with 1,500 tokens ($0.008), created a 4-step plan,
+           completed steps 1-3, failed on step 4 with a CRM permission error,
+           escalated to the sales team, and is now waiting for approval&quot;
+</code></pre></div>
+<p>That's the difference. Layer 2 turns a timeline into a story.</p>
+<hr />
+<h2 id="2-llm-call-tracking">2. LLM Call Tracking <a class="heading-anchor" href="#2-llm-call-tracking" aria-label="Link to this section">#</a></h2>
+<p><strong>Priority:</strong> Highest. This is the single most valuable Layer 2 addition.</p>
+<h3 id="21-what-it-does">2.1 What it does <a class="heading-anchor" href="#21-what-it-does" aria-label="Link to this section">#</a></h3>
+<p><code>task.llm_call()</code> records a structured event for each LLM API call: which model, how many tokens, how much it cost, and how long it took. This data feeds the Cost Explorer, adds purple nodes to the Timeline, and fills in the LLM and COST columns in the Task Table.</p>
+<h3 id="22-finding-where-in-your-code-the-catalog-first-approach">2.2 Finding WHERE in your code — the catalog-first approach <a class="heading-anchor" href="#22-finding-where-in-your-code-the-catalog-first-approach" aria-label="Link to this section">#</a></h3>
+<p>Before writing any instrumentation code, build a catalog of every LLM call site. This step saves significant time because — as real-world integration has shown — <strong>token extraction varies between call sites, even within the same codebase.</strong> You need to know what each site exposes before you can write correct instrumentation.</p>
+<p><strong>Step 1: Search for LLM client calls.</strong> Common patterns across frameworks:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># OpenAI / Azure OpenAI
+response = client.chat.completions.create(model=..., messages=...)
+
+# Anthropic
+response = client.messages.create(model=..., messages=...)
+
+# LiteLLM
+response = litellm.completion(model=..., messages=...)
+
+# LangChain
+response = llm.invoke(prompt)
+
+# Custom wrapper
+response = my_llm_client.call(model=..., prompt=...)
+</code></pre></div>
+<p><strong>Step 2: For each site, inspect the response and client objects.</strong> Add a temporary debug line after each call:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">response = client.complete(...)
+print(f&quot;Response attrs: {[a for a in dir(response) if 'token' in a.lower() or 'usage' in a.lower()]}&quot;)
+print(f&quot;Client attrs: {[a for a in dir(client) if 'token' in a.lower() or 'usage' in a.lower()]}&quot;)
+</code></pre></div>
+<p>This reveals where each site stores token counts and model information.</p>
+<p><strong>Step 3: Build a table.</strong> Before writing any <code>task.llm_call()</code> code, document what you found:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Site</th>
+  <th>File:line</th>
+  <th>Client method</th>
+  <th>Token source</th>
+  <th>Model source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td><code>loop.py:1275</code></td>
+  <td><code>client.complete_json()</code></td>
+  <td><code>client._last_input_tokens</code></td>
+  <td><code>client.model</code></td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>loop.py:1432</code></td>
+  <td><code>client.complete_with_tools()</code></td>
+  <td><code>response.usage.input_tokens</code></td>
+  <td><code>response.model</code></td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>reflection.py:367</code></td>
+  <td><code>client.complete_json()</code></td>
+  <td><code>client._last_input_tokens</code></td>
+  <td><code>client.model</code></td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>planning.py:567</code></td>
+  <td><code>client.complete_json()</code></td>
+  <td><code>client._last_input_tokens</code></td>
+  <td><code>client.model</code></td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>agent.py:199</code></td>
+  <td><code>haiku_client.complete()</code></td>
+  <td><code>client._last_input_tokens</code></td>
+  <td><code>client.model</code></td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>context.py:319</code></td>
+  <td><code>client.complete()</code></td>
+  <td><code>client._last_input_tokens</code></td>
+  <td><code>client.model</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Notice the pattern: Sites 1, 3-6 all use the same <code>complete_json()</code> / <code>complete()</code> method family, which stores tokens on the <strong>client object</strong> (<code>client._last_input_tokens</code>). Site 2 uses <code>complete_with_tools()</code>, which returns tokens on the <strong>response object</strong> (<code>response.usage.input_tokens</code>). Same codebase, two different extraction patterns.</p>
+<p><strong>Step 4: Implement from the table.</strong> Now each <code>task.llm_call()</code> addition is mechanical — you know exactly where the tokens and model name come from.</p>
+<p>This catalog-first approach typically takes 15-30 minutes and prevents the frustrating cycle of adding instrumentation, discovering it doesn't extract tokens correctly, debugging, fixing, and repeating for each site.</p>
+<h3 id="23-adding-taskllm_call">2.3 Adding <code>task.llm_call()</code> <a class="heading-anchor" href="#23-adding-taskllm_call" aria-label="Link to this section">#</a></h3>
+<p>The structure is the same at every site — but the field extraction varies (see Section 2.6). Here's the general shape:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">import time
+from myproject.observability import get_current_task
+
+# Measure timing
+_llm_start = time.perf_counter()
+
+# Existing LLM call (don't change this):
+response = client.messages.create(model=&quot;claude-sonnet-4-5-20250929&quot;, messages=messages)
+
+# After the call — add this:
+_llm_elapsed = (time.perf_counter() - _llm_start) * 1000
+_task = get_current_task()
+if _task:
+    try:
+        _task.llm_call(
+            &quot;descriptive_name&quot;,                        # what this call does
+            model=response.model,                      # or client.model — see Section 2.6
+            tokens_in=response.usage.input_tokens,     # or client._last_input_tokens — see Section 2.6
+            tokens_out=response.usage.output_tokens,   # or client._last_output_tokens — see Section 2.6
+            cost=0.008,                                # optional, USD
+            duration_ms=round(_llm_elapsed),           # optional
+            prompt_preview=str(messages)[:500],         # optional, for debugging
+            response_preview=str(response.content)[:500],  # optional
+            metadata={&quot;temperature&quot;: 0.7},             # optional
+        )
+    except Exception:
+        pass  # never break agent for observability
+</code></pre></div>
+<p><strong>Important:</strong> The <code>tokens_in</code>, <code>tokens_out</code>, and <code>model</code> fields above show one extraction pattern (<code>response.usage.*</code>). Your call site may use a different pattern (<code>client._last_*</code>, a config variable, etc.). Refer to your catalog (Section 2.2) and the extraction guide (Section 2.6) for the correct source at each site.</p>
+<h3 id="24-parameter-reference">2.4 Parameter reference <a class="heading-anchor" href="#24-parameter-reference" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>name</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Label for the Timeline node. Use descriptive names: <code>&quot;phase1_reasoning&quot;</code>, <code>&quot;score_lead&quot;</code>, <code>&quot;generate_email&quot;</code>. Not the model name.</td>
+</tr>
+<tr>
+  <td><code>model</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Model identifier (e.g. <code>&quot;claude-sonnet-4-5-20250929&quot;</code>). Used for Cost Explorer grouping.</td>
+</tr>
+<tr>
+  <td><code>tokens_in</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Input token count. Feeds Cost Explorer aggregation.</td>
+</tr>
+<tr>
+  <td><code>tokens_out</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Output token count. Feeds Cost Explorer aggregation.</td>
+</tr>
+<tr>
+  <td><code>cost</code></td>
+  <td>float</td>
+  <td>No</td>
+  <td>Pre-calculated cost in USD. If absent, the call appears in timelines but is excluded from cost totals.</td>
+</tr>
+<tr>
+  <td><code>duration_ms</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>LLM API latency in milliseconds. Shown on the timeline connector.</td>
+</tr>
+<tr>
+  <td><code>prompt_preview</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td>First ~500 chars of the prompt. For debugging in the detail panel.</td>
+</tr>
+<tr>
+  <td><code>response_preview</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td>First ~500 chars of the response. For debugging in the detail panel.</td>
+</tr>
+<tr>
+  <td><code>metadata</code></td>
+  <td>dict</td>
+  <td>No</td>
+  <td>Arbitrary key-value pairs (temperature, top_p, caller info, etc.).</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Start minimal, add fields later.</strong> The only required fields are <code>name</code> and <code>model</code>. Everything else is optional and can be added incrementally:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Minimum viable (still useful):
+_task.llm_call(&quot;reasoning&quot;, model=&quot;claude-sonnet-4-5-20250929&quot;)
+
+# Add tokens when you figure out the response shape:
+_task.llm_call(&quot;reasoning&quot;, model=&quot;...&quot;, tokens_in=1500, tokens_out=200)
+
+# Add cost when you build the cost helper:
+_task.llm_call(&quot;reasoning&quot;, model=&quot;...&quot;, tokens_in=1500, tokens_out=200, cost=0.008)
+
+# Add previews when you need to debug LLM behavior:
+_task.llm_call(&quot;reasoning&quot;, model=&quot;...&quot;, prompt_preview=prompt[:500], response_preview=resp[:500])
+</code></pre></div>
+<h3 id="25-naming-conventions">2.5 Naming conventions <a class="heading-anchor" href="#25-naming-conventions" aria-label="Link to this section">#</a></h3>
+<p>Choose names that describe <strong>what the call does</strong>, not which model or API it uses:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>✅ Good name</th>
+  <th>❌ Bad name</th>
+  <th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>&quot;score_lead&quot;</code></td>
+  <td><code>&quot;claude_call&quot;</code></td>
+  <td>Multiple calls may use Claude — the name should distinguish them</td>
+</tr>
+<tr>
+  <td><code>&quot;phase1_reasoning&quot;</code></td>
+  <td><code>&quot;llm_call_1&quot;</code></td>
+  <td>Numbers don't tell you anything in the timeline</td>
+</tr>
+<tr>
+  <td><code>&quot;generate_email_draft&quot;</code></td>
+  <td><code>&quot;anthropic_api&quot;</code></td>
+  <td>The model is already in the <code>model</code> field</td>
+</tr>
+<tr>
+  <td><code>&quot;context_compaction&quot;</code></td>
+  <td><code>&quot;call&quot;</code></td>
+  <td>Too generic</td>
+</tr>
+<tr>
+  <td><code>&quot;reflection&quot;</code></td>
+  <td><code>&quot;messages.create&quot;</code></td>
+  <td>The API method is implementation detail</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="26-extracting-token-usage-its-messier-than-you-expect">2.6 Extracting token usage — it's messier than you expect <a class="heading-anchor" href="#26-extracting-token-usage-its-messier-than-you-expect" aria-label="Link to this section">#</a></h3>
+<p>This is the step where most people lose time. <strong>Token extraction varies not just between SDKs, but between methods within the same SDK, and between the SDK and the wrapper your codebase uses on top of it.</strong> The catalog-first approach (Section 2.2) exists specifically to prevent this from becoming a per-site debugging session.</p>
+<h4 id="pattern-a-tokens-on-the-response-object">Pattern A: Tokens on the response object <a class="heading-anchor" href="#pattern-a-tokens-on-the-response-object" aria-label="Link to this section">#</a></h4>
+<p>The cleanest pattern. The LLM SDK returns a response with usage data attached:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Anthropic SDK (direct)
+response.usage.input_tokens     # int
+response.usage.output_tokens    # int
+response.model                  # str
+
+# OpenAI SDK (direct)
+response.usage.prompt_tokens    # int (note: different field name)
+response.usage.completion_tokens # int
+response.model                  # str
+
+# LiteLLM
+response.usage.prompt_tokens    # int (follows OpenAI naming)
+response.usage.completion_tokens # int
+response.model                  # str
+</code></pre></div>
+<p>This works when you're calling the SDK directly. But most production codebases don't — they use a wrapper.</p>
+<h4 id="pattern-b-tokens-on-the-client-object">Pattern B: Tokens on the client object <a class="heading-anchor" href="#pattern-b-tokens-on-the-client-object" aria-label="Link to this section">#</a></h4>
+<p>Many wrapper libraries store usage on the client instance after a call, not on the response:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Common in custom wrappers:
+response = client.complete_json(model=&quot;...&quot;, messages=...)
+tokens_in = client._last_input_tokens     # stored after the call
+tokens_out = client._last_output_tokens   # stored after the call
+model_name = client.model                 # configured at init time
+</code></pre></div>
+<p>The underscore prefix (<code>_last_input_tokens</code>) means it's a private attribute — the wrapper author didn't consider it part of the public API. This is common. It works fine, but it may change without notice in wrapper updates.</p>
+<p><strong>Real-world example:</strong> In a 6-site integration, 5 out of 6 sites used <code>client._last_input_tokens</code> (Pattern B), while 1 site used <code>response.usage.input_tokens</code> (Pattern A) — because that particular client method (<code>complete_with_tools()</code>) had a different return type than the others (<code>complete_json()</code>). Same project, same LLM wrapper library, two extraction patterns.</p>
+<h4 id="pattern-c-tokens-in-a-callback-or-event">Pattern C: Tokens in a callback or event <a class="heading-anchor" href="#pattern-c-tokens-in-a-callback-or-event" aria-label="Link to this section">#</a></h4>
+<p>Framework-level integrations (LangChain, CrewAI) often deliver token counts through callbacks rather than return values:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># LangChain
+# Token counts come through the callback handler, not the response object.
+# Use the HiveLoop framework integration instead of manual task.llm_call().
+
+# CrewAI
+# Similar — token tracking happens in the agent execution callback.
+</code></pre></div>
+<p>If you're using a framework integration, prefer the HiveLoop callback adapter over manual <code>task.llm_call()</code> — it handles extraction automatically.</p>
+<h4 id="pattern-d-tokens-not-available">Pattern D: Tokens not available <a class="heading-anchor" href="#pattern-d-tokens-not-available" aria-label="Link to this section">#</a></h4>
+<p>Some wrappers don't expose usage at all. You have three options:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Option 1: Send without tokens (the call still appears on Timeline)
+_task.llm_call(&quot;reasoning&quot;, model=&quot;claude-sonnet-4-5-20250929&quot;)
+
+# Option 2: Dig into the wrapper's internals
+print(dir(response))   # look for usage, tokens, meta, _raw, etc.
+print(dir(client))     # look for _last_*, _usage, _tokens, etc.
+
+# Option 3: Estimate tokens from input/output length
+# Rough heuristic: ~4 chars per token for English text
+estimated_in = len(prompt_text) // 4
+estimated_out = len(response_text) // 4
+</code></pre></div>
+<p>Option 1 is always safe. Option 2 usually finds something — most wrappers store usage somewhere, even if it's not documented. Option 3 is a last resort and only useful for rough cost estimation.</p>
+<h4 id="finding-where-model-name-lives">Finding where model name lives <a class="heading-anchor" href="#finding-where-model-name-lives" aria-label="Link to this section">#</a></h4>
+<p>The model name also varies by pattern:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># On the response (Pattern A):
+model_name = response.model
+
+# On the client (Pattern B):
+model_name = client.model           # configured at client initialization
+
+# Hardcoded (when you know the model won't change):
+model_name = &quot;claude-sonnet-4-5-20250929&quot;
+
+# From a config variable:
+model_name = settings.LLM_MODEL
+</code></pre></div>
+<p>If different call sites use different models (e.g. Sonnet for reasoning, Haiku for summarization), the model name must come from the correct source at each site. Don't assume one model across all sites — this is exactly what the Cost Explorer's &quot;by model&quot; breakdown is designed to reveal.</p>
+<h4 id="quick-discovery-recipe">Quick discovery recipe <a class="heading-anchor" href="#quick-discovery-recipe" aria-label="Link to this section">#</a></h4>
+<p>When you're not sure where tokens live for a given call site, run this once:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">response = client.some_method(...)
+
+# Check response:
+for attr in dir(response):
+    if any(k in attr.lower() for k in ['token', 'usage', 'cost', 'model']):
+        print(f&quot;response.{attr} = {getattr(response, attr, '?')}&quot;)
+
+# Check client:
+for attr in dir(client):
+    if any(k in attr.lower() for k in ['token', 'usage', 'cost', 'model', 'last']):
+        print(f&quot;client.{attr} = {getattr(client, attr, '?')}&quot;)
+</code></pre></div>
+<p>Run this for each unique client method in your catalog (Section 2.2). Methods that share the same return type will have the same extraction pattern.</p>
+<h3 id="27-llm-calls-outside-a-task-context">2.7 LLM calls outside a task context <a class="heading-anchor" href="#27-llm-calls-outside-a-task-context" aria-label="Link to this section">#</a></h3>
+<p>Some LLM calls happen outside of any task — startup routines, background maintenance, heartbeat summaries. For these, <code>get_current_task()</code> returns <code>None</code>, so <code>task.llm_call()</code> is skipped.</p>
+<p>If you want to track these costs anyway, use the agent-level method:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task = get_current_task()
+if _task:
+    _task.llm_call(&quot;heartbeat_summary&quot;, model=model_name, ...)
+elif hiveloop_agent:
+    hiveloop_agent.llm_call(&quot;heartbeat_summary&quot;, model=model_name, ...)
+</code></pre></div>
+<p>Agent-level LLM calls appear in the Cost Explorer (aggregated under the agent) but not on any task timeline.</p>
+<hr />
+<h2 id="3-plans-and-plan-steps">3. Plans and Plan Steps <a class="heading-anchor" href="#3-plans-and-plan-steps" aria-label="Link to this section">#</a></h2>
+<h3 id="31-what-it-does">3.1 What it does <a class="heading-anchor" href="#31-what-it-does" aria-label="Link to this section">#</a></h3>
+<p>If your agent creates execution plans (multi-step strategies), <code>task.plan()</code> and <code>task.plan_step()</code> make those plans visible on the dashboard. A progress bar appears above the Timeline showing each step's status.</p>
+<h3 id="32-finding-where-in-your-code">3.2 Finding WHERE in your code <a class="heading-anchor" href="#32-finding-where-in-your-code" aria-label="Link to this section">#</a></h3>
+<p>Look for code that:</p>
+<ul>
+<li>Creates a list of steps, phases, or stages</li>
+<li>Iterates through a strategy</li>
+<li>Tracks progress through sequential operations</li>
+<li>Uses words like &quot;plan&quot;, &quot;strategy&quot;, &quot;pipeline&quot;, &quot;workflow&quot;, &quot;steps&quot;</li>
+</ul>
+<h3 id="33-adding-plan-tracking">3.3 Adding plan tracking <a class="heading-anchor" href="#33-adding-plan-tracking" aria-label="Link to this section">#</a></h3>
+<p><strong>At plan creation:</strong></p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task = get_current_task()
+if _task:
+    try:
+        _task.plan(
+            &quot;Process and route incoming lead&quot;,     # goal — what the plan aims to achieve
+            [                                       # steps — ordered list of descriptions
+                &quot;Search CRM for existing record&quot;,
+                &quot;Score lead based on criteria&quot;,
+                &quot;Generate follow-up email&quot;,
+                &quot;Update CRM with outcome&quot;,
+            ],
+        )
+    except Exception:
+        pass
+</code></pre></div>
+<p><strong>As each step progresses:</strong></p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># When step starts:
+if _task:
+    try:
+        _task.plan_step(step_index=0, action=&quot;started&quot;, summary=&quot;Searching CRM&quot;)
+    except Exception:
+        pass
+
+# ... step executes ...
+
+# When step completes:
+if _task:
+    try:
+        _task.plan_step(
+            step_index=0,
+            action=&quot;completed&quot;,
+            summary=&quot;Found existing CRM record&quot;,
+            turns=2,              # optional — LLM turns spent
+            tokens=3200,          # optional — tokens spent
+        )
+    except Exception:
+        pass
+
+# If step fails:
+if _task:
+    try:
+        _task.plan_step(step_index=2, action=&quot;failed&quot;, summary=&quot;Email API returned 403&quot;)
+    except Exception:
+        pass
+</code></pre></div>
+<h3 id="34-parameter-reference">3.4 Parameter reference <a class="heading-anchor" href="#34-parameter-reference" aria-label="Link to this section">#</a></h3>
+<p><strong><code>task.plan()</code>:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>goal</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>What the plan aims to achieve</td>
+</tr>
+<tr>
+  <td><code>steps</code></td>
+  <td>list[str]</td>
+  <td><strong>Yes</strong></td>
+  <td>Ordered step descriptions</td>
+</tr>
+<tr>
+  <td><code>revision</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Plan revision number. Default: <code>0</code>. Increment on replan</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong><code>task.plan_step()</code>:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>step_index</code></td>
+  <td>int</td>
+  <td><strong>Yes</strong></td>
+  <td>Zero-based step position</td>
+</tr>
+<tr>
+  <td><code>action</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td><code>&quot;started&quot;</code>, <code>&quot;completed&quot;</code>, <code>&quot;failed&quot;</code>, <code>&quot;skipped&quot;</code></td>
+</tr>
+<tr>
+  <td><code>summary</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Description or outcome note</td>
+</tr>
+<tr>
+  <td><code>total_steps</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Auto-inferred from <code>task.plan()</code> if previously called</td>
+</tr>
+<tr>
+  <td><code>turns</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>LLM turns spent (on completion/failure)</td>
+</tr>
+<tr>
+  <td><code>tokens</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Tokens spent (on completion/failure)</td>
+</tr>
+<tr>
+  <td><code>plan_revision</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Correlates with <code>task.plan()</code> revision</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="35-replanning">3.5 Replanning <a class="heading-anchor" href="#35-replanning" aria-label="Link to this section">#</a></h3>
+<p>If the agent changes its plan mid-task, call <code>task.plan()</code> again with an incremented <code>revision</code>:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task.plan(&quot;Revised: Route to manual review&quot;, [&quot;Notify manager&quot;, &quot;Queue for review&quot;], revision=1)
+</code></pre></div>
+<p>The dashboard shows the latest plan. Previous plan events remain in the timeline for the full history.</p>
+<hr />
+<h2 id="4-escalations">4. Escalations <a class="heading-anchor" href="#4-escalations" aria-label="Link to this section">#</a></h2>
+<h3 id="41-what-it-does">4.1 What it does <a class="heading-anchor" href="#41-what-it-does" aria-label="Link to this section">#</a></h3>
+<p><code>task.escalate()</code> records when an agent decides it cannot handle something alone and hands it off — to a human, another team, or another agent.</p>
+<h3 id="42-finding-where-in-your-code">4.2 Finding WHERE in your code <a class="heading-anchor" href="#42-finding-where-in-your-code" aria-label="Link to this section">#</a></h3>
+<p>Look for code that:</p>
+<ul>
+<li>Sends alerts or notifications to humans</li>
+<li>Transfers work to another agent or queue</li>
+<li>Decides &quot;I can't handle this&quot; and routes elsewhere</li>
+<li>Logs a warning that requires human attention</li>
+</ul>
+<h3 id="43-adding-escalation-tracking">4.3 Adding escalation tracking <a class="heading-anchor" href="#43-adding-escalation-tracking" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task = get_current_task()
+if _task:
+    try:
+        _task.escalate(
+            reason=&quot;Lead score below threshold (0.2) — needs manual review&quot;,
+            assigned_to=&quot;sales-team&quot;,          # optional — who receives the escalation
+        )
+    except Exception:
+        pass
+</code></pre></div>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>reason</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Why the agent escalated</td>
+</tr>
+<tr>
+  <td><code>assigned_to</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td>Who or what receives the escalation</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="44-dashboard-impact">4.4 Dashboard impact <a class="heading-anchor" href="#44-dashboard-impact" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>Amber node in the Timeline labeled with the reason</li>
+<li><code>escalated</code> event in the Activity Stream</li>
+<li>Visible under the &quot;human&quot; stream filter</li>
+</ul>
+<hr />
+<h2 id="5-approvals">5. Approvals <a class="heading-anchor" href="#5-approvals" aria-label="Link to this section">#</a></h2>
+<h3 id="51-what-it-does">5.1 What it does <a class="heading-anchor" href="#51-what-it-does" aria-label="Link to this section">#</a></h3>
+<p><code>task.request_approval()</code> and <code>task.approval_received()</code> track the human-in-the-loop approval workflow. The agent asks for permission, waits, and records the decision.</p>
+<h3 id="52-finding-where-in-your-code">5.2 Finding WHERE in your code <a class="heading-anchor" href="#52-finding-where-in-your-code" aria-label="Link to this section">#</a></h3>
+<p>Look for code that:</p>
+<ul>
+<li>Pauses execution waiting for human input</li>
+<li>Sends approval requests to a queue, Slack, email, or UI</li>
+<li>Checks for approval status in a loop or callback</li>
+<li>Has &quot;pending&quot;, &quot;approved&quot;, &quot;rejected&quot; states</li>
+</ul>
+<h3 id="53-adding-approval-tracking">5.3 Adding approval tracking <a class="heading-anchor" href="#53-adding-approval-tracking" aria-label="Link to this section">#</a></h3>
+<p><strong>When requesting approval:</strong></p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task = get_current_task()
+if _task:
+    try:
+        _task.request_approval(
+            approver=&quot;ops-queue&quot;,                          # who should approve
+            reason=&quot;Contract emails require human review&quot;, # why
+        )
+    except Exception:
+        pass
+
+# Agent enters waiting state...
+</code></pre></div>
+<p><strong>When approval is received:</strong></p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">if _task:
+    try:
+        _task.approval_received(
+            approved_by=&quot;jane@acme.com&quot;,    # who approved/rejected
+            decision=&quot;approved&quot;,             # &quot;approved&quot; or &quot;rejected&quot;
+        )
+    except Exception:
+        pass
+
+# Agent continues (or handles rejection)...
+</code></pre></div>
+<h3 id="54-parameter-reference">5.4 Parameter reference <a class="heading-anchor" href="#54-parameter-reference" aria-label="Link to this section">#</a></h3>
+<p><strong><code>task.request_approval()</code>:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>approver</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Who should approve (person, queue, team)</td>
+</tr>
+<tr>
+  <td><code>reason</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td>What needs approval and why</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong><code>task.approval_received()</code>:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>approved_by</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Who made the decision</td>
+</tr>
+<tr>
+  <td><code>decision</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td><code>&quot;approved&quot;</code> or <code>&quot;rejected&quot;</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="55-dashboard-impact">5.5 Dashboard impact <a class="heading-anchor" href="#55-dashboard-impact" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>Agent badge changes to <strong>WAITING</strong> (amber) after <code>request_approval()</code></li>
+<li>Agent badge returns to <strong>PROCESSING</strong> after <code>approval_received()</code></li>
+<li><strong>Waiting</strong> count in Stats Ribbon increments/decrements</li>
+<li>Amber (request) and green/red (decision) nodes in Timeline</li>
+<li>Visible under the &quot;human&quot; stream filter</li>
+<li>If approvals pile up (Waiting count stays high), your review process is a bottleneck</li>
+</ul>
+<hr />
+<h2 id="6-retries">6. Retries <a class="heading-anchor" href="#6-retries" aria-label="Link to this section">#</a></h2>
+<h3 id="61-what-it-does">6.1 What it does <a class="heading-anchor" href="#61-what-it-does" aria-label="Link to this section">#</a></h3>
+<p><code>task.retry()</code> records when an agent retries a failed operation — rate limits, transient errors, timeouts. This makes retry patterns visible on the timeline.</p>
+<h3 id="62-finding-where-in-your-code">6.2 Finding WHERE in your code <a class="heading-anchor" href="#62-finding-where-in-your-code" aria-label="Link to this section">#</a></h3>
+<p>Look for code that:</p>
+<ul>
+<li>Catches exceptions and retries</li>
+<li>Has <code>for attempt in range(max_retries):</code> loops</li>
+<li>Uses backoff libraries (<code>tenacity</code>, <code>backoff</code>)</li>
+<li>Has retry counters or sleep-between-attempts patterns</li>
+</ul>
+<h3 id="63-adding-retry-tracking">6.3 Adding retry tracking <a class="heading-anchor" href="#63-adding-retry-tracking" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">for attempt in range(max_retries):
+    try:
+        result = call_external_api()
+        break
+    except RateLimitError as e:
+        _task = get_current_task()
+        if _task:
+            try:
+                _task.retry(
+                    attempt=attempt + 1,
+                    reason=f&quot;Rate limited: {e}&quot;,
+                    backoff_seconds=2 ** attempt,     # optional
+                )
+            except Exception:
+                pass
+        time.sleep(2 ** attempt)
+</code></pre></div>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>attempt</code></td>
+  <td>int</td>
+  <td><strong>Yes</strong></td>
+  <td>Attempt number (1-based)</td>
+</tr>
+<tr>
+  <td><code>reason</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Why the retry happened</td>
+</tr>
+<tr>
+  <td><code>backoff_seconds</code></td>
+  <td>float</td>
+  <td>No</td>
+  <td>How long before the next attempt</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="64-dashboard-impact">6.4 Dashboard impact <a class="heading-anchor" href="#64-dashboard-impact" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>Retry nodes appear in the Timeline, showing how many attempts were needed</li>
+<li>Timeline branching shows the retry path</li>
+<li>Helps identify: Are retries common? Which operations trigger them? How much time is lost to retries?</li>
+</ul>
+<hr />
+<h2 id="7-issue-reporting">7. Issue Reporting <a class="heading-anchor" href="#7-issue-reporting" aria-label="Link to this section">#</a></h2>
+<h3 id="71-what-it-does">7.1 What it does <a class="heading-anchor" href="#71-what-it-does" aria-label="Link to this section">#</a></h3>
+<p><code>agent.report_issue()</code> lets agents self-report persistent problems — not task failures (those are tracked automatically), but ongoing issues like API permission errors, data quality degradation, or connectivity problems.</p>
+<h3 id="72-finding-where-in-your-code">7.2 Finding WHERE in your code <a class="heading-anchor" href="#72-finding-where-in-your-code" aria-label="Link to this section">#</a></h3>
+<p>Look for code that:</p>
+<ul>
+<li>Logs warnings about external service problems</li>
+<li>Detects degraded conditions (slow responses, partial failures)</li>
+<li>Catches errors that don't fail the task but indicate a problem</li>
+<li>Has &quot;circuit breaker&quot; or &quot;health check&quot; patterns</li>
+</ul>
+<h3 id="73-adding-issue-reporting">7.3 Adding issue reporting <a class="heading-anchor" href="#73-adding-issue-reporting" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># When the agent detects a persistent problem:
+try:
+    hiveloop_agent.report_issue(
+        summary=&quot;CRM API returning 403 for workspace queries&quot;,
+        severity=&quot;high&quot;,                       # &quot;critical&quot;, &quot;high&quot;, &quot;medium&quot;, &quot;low&quot;
+        category=&quot;permissions&quot;,                 # optional classification
+        context={                               # optional debugging info
+            &quot;tool&quot;: &quot;crm_search&quot;,
+            &quot;error_code&quot;: 403,
+            &quot;last_seen&quot;: &quot;2026-02-11T14:30:00Z&quot;,
+        },
+        issue_id=&quot;issue_crm_403&quot;,              # optional — enables explicit tracking
+        occurrence_count=3,                     # optional — how many times so far
+    )
+except Exception:
+    pass
+
+# When the issue is resolved:
+try:
+    hiveloop_agent.resolve_issue(
+        summary=&quot;CRM API returning 403 for workspace queries&quot;,
+        issue_id=&quot;issue_crm_403&quot;,
+    )
+except Exception:
+    pass
+</code></pre></div>
+<h3 id="74-parameter-reference">7.4 Parameter reference <a class="heading-anchor" href="#74-parameter-reference" aria-label="Link to this section">#</a></h3>
+<p><strong><code>agent.report_issue()</code>:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>summary</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Issue title. Used for deduplication if no <code>issue_id</code></td>
+</tr>
+<tr>
+  <td><code>severity</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td><code>&quot;critical&quot;</code>, <code>&quot;high&quot;</code>, <code>&quot;medium&quot;</code>, <code>&quot;low&quot;</code></td>
+</tr>
+<tr>
+  <td><code>category</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td><code>&quot;permissions&quot;</code>, <code>&quot;connectivity&quot;</code>, <code>&quot;configuration&quot;</code>, <code>&quot;data_quality&quot;</code>, <code>&quot;rate_limit&quot;</code>, <code>&quot;other&quot;</code></td>
+</tr>
+<tr>
+  <td><code>context</code></td>
+  <td>dict</td>
+  <td>No</td>
+  <td>Arbitrary debugging context</td>
+</tr>
+<tr>
+  <td><code>issue_id</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td>Stable identifier for lifecycle tracking. If omitted, server deduplicates by summary hash</td>
+</tr>
+<tr>
+  <td><code>occurrence_count</code></td>
+  <td>int</td>
+  <td>No</td>
+  <td>Agent-tracked count of occurrences</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong><code>agent.resolve_issue()</code>:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Parameter</th>
+  <th>Type</th>
+  <th>Required</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>summary</code></td>
+  <td>str</td>
+  <td><strong>Yes</strong></td>
+  <td>Must match the original report (or use <code>issue_id</code>)</td>
+</tr>
+<tr>
+  <td><code>issue_id</code></td>
+  <td>str</td>
+  <td>No</td>
+  <td>If provided on report, use the same ID</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="75-dashboard-impact">7.5 Dashboard impact <a class="heading-anchor" href="#75-dashboard-impact" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>Red issue badge on the agent card in The Hive (e.g. &quot;● 1 issue&quot;)</li>
+<li>Issues table in the Agent Detail → Pipeline tab with severity, category, and occurrence count</li>
+<li><code>issue</code> events in the Activity Stream</li>
+<li>Issues persist until explicitly resolved — they don't auto-clear</li>
+</ul>
+<h3 id="76-issues-vs-task-failures">7.6 Issues vs. task failures <a class="heading-anchor" href="#76-issues-vs-task-failures" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Concept</th>
+  <th>Example</th>
+  <th>HiveLoop feature</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Task failure</strong></td>
+  <td>&quot;This specific task threw an exception&quot;</td>
+  <td>Automatic — <code>agent.task()</code> catches it</td>
+</tr>
+<tr>
+  <td><strong>Issue</strong></td>
+  <td>&quot;CRM API has been returning 403 for the last hour&quot;</td>
+  <td>Manual — <code>agent.report_issue()</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Task failures are per-task and transient. Issues are per-agent and persistent. A task can fail without an issue (transient error), and an issue can exist without any task failing (degraded performance).</p>
+<hr />
+<h2 id="8-pipeline-enrichment">8. Pipeline Enrichment <a class="heading-anchor" href="#8-pipeline-enrichment" aria-label="Link to this section">#</a></h2>
+<p>Pipeline events give the dashboard visibility into the agent's operational context beyond individual tasks — its work queue, tracked work items, and scheduled recurring work.</p>
+<h3 id="81-queue-snapshots">8.1 Queue snapshots <a class="heading-anchor" href="#81-queue-snapshots" aria-label="Link to this section">#</a></h3>
+<p>Report the current state of the agent's work queue:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">hiveloop_agent.queue_snapshot(
+    depth=4,                          # items currently queued
+    oldest_age_seconds=120,           # how old the oldest item is
+    items=[                           # optional — individual items
+        {&quot;id&quot;: &quot;evt_001&quot;, &quot;priority&quot;: &quot;high&quot;, &quot;source&quot;: &quot;human&quot;,
+         &quot;summary&quot;: &quot;Review contract draft&quot;, &quot;queued_at&quot;: &quot;2026-02-11T14:28:00Z&quot;},
+        {&quot;id&quot;: &quot;evt_002&quot;, &quot;priority&quot;: &quot;normal&quot;, &quot;source&quot;: &quot;webhook&quot;,
+         &quot;summary&quot;: &quot;Process CRM update&quot;, &quot;queued_at&quot;: &quot;2026-02-11T14:29:00Z&quot;},
+    ],
+    processing={&quot;id&quot;: &quot;evt_003&quot;, &quot;summary&quot;: &quot;Sending email&quot;,   # optional — what's being processed now
+                &quot;started_at&quot;: &quot;2026-02-11T14:29:30Z&quot;, &quot;elapsed_ms&quot;: 4500},
+)
+</code></pre></div>
+<p><strong>Dashboard impact:</strong> Queue depth badge on the agent card (e.g. &quot;Q:4&quot;), Queue section in Pipeline tab.</p>
+<p><strong>Best practice:</strong> Call <code>queue_snapshot()</code> on a periodic schedule (e.g. every heartbeat) rather than on every queue change. The <code>queue_provider</code> callback on <code>hb.agent()</code> automates this — it's called every heartbeat cycle:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">def my_queue_provider():
+    return {&quot;depth&quot;: len(my_queue), &quot;items&quot;: [...]}
+
+agent = hb.agent(&quot;my-agent&quot;, queue_provider=my_queue_provider)
+</code></pre></div>
+<h3 id="82-todos">8.2 TODOs <a class="heading-anchor" href="#82-todos" aria-label="Link to this section">#</a></h3>
+<p>Track work items the agent is managing:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Created
+hiveloop_agent.todo(&quot;todo_001&quot;, action=&quot;created&quot;, summary=&quot;Follow up with client&quot;, priority=&quot;high&quot;)
+
+# Completed
+hiveloop_agent.todo(&quot;todo_001&quot;, action=&quot;completed&quot;, summary=&quot;Follow up with client&quot;)
+
+# Other actions: &quot;failed&quot;, &quot;dismissed&quot;, &quot;deferred&quot;
+</code></pre></div>
+<p><strong>Dashboard impact:</strong> Active TODOs table in Pipeline tab.</p>
+<h3 id="83-scheduled-work">8.3 Scheduled work <a class="heading-anchor" href="#83-scheduled-work" aria-label="Link to this section">#</a></h3>
+<p>Report recurring work the agent is configured to perform:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">hiveloop_agent.scheduled(items=[
+    {&quot;name&quot;: &quot;CRM sync&quot;, &quot;next_run&quot;: &quot;2026-02-12T15:00:00Z&quot;, &quot;interval&quot;: &quot;1h&quot;, &quot;status&quot;: &quot;active&quot;},
+    {&quot;name&quot;: &quot;Report generation&quot;, &quot;next_run&quot;: &quot;2026-02-13T09:00:00Z&quot;, &quot;interval&quot;: &quot;daily&quot;, &quot;status&quot;: &quot;active&quot;},
+])
+</code></pre></div>
+<p><strong>Dashboard impact:</strong> Scheduled work table in Pipeline tab.</p>
+<hr />
+<h2 id="9-agent-level-events-outside-task-context">9. Agent-Level Events (Outside Task Context) <a class="heading-anchor" href="#9-agent-level-events-outside-task-context" aria-label="Link to this section">#</a></h2>
+<p>Most Layer 2 events happen inside a task (<code>task.llm_call()</code>, <code>task.plan()</code>, etc.). But some events are agent-level — they happen independently of any task.</p>
+<h3 id="91-agent-level-methods">9.1 Agent-level methods <a class="heading-anchor" href="#91-agent-level-methods" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Method</th>
+  <th>When to use</th>
+  <th>Requires task context?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>agent.llm_call()</code></td>
+  <td>LLM calls during startup, background maintenance, heartbeat generation</td>
+  <td>No</td>
+</tr>
+<tr>
+  <td><code>agent.report_issue()</code></td>
+  <td>Persistent problems detected outside task execution</td>
+  <td>No</td>
+</tr>
+<tr>
+  <td><code>agent.resolve_issue()</code></td>
+  <td>Previously reported issue resolved</td>
+  <td>No</td>
+</tr>
+<tr>
+  <td><code>agent.queue_snapshot()</code></td>
+  <td>Queue state reporting (typically on heartbeat)</td>
+  <td>No</td>
+</tr>
+<tr>
+  <td><code>agent.todo()</code></td>
+  <td>Work item lifecycle</td>
+  <td>No</td>
+</tr>
+<tr>
+  <td><code>agent.scheduled()</code></td>
+  <td>Recurring work configuration</td>
+  <td>No</td>
+</tr>
+<tr>
+  <td><code>agent.event()</code></td>
+  <td>Any custom agent-level event</td>
+  <td>No</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="92-the-pattern-task-level-with-agent-level-fallback">9.2 The pattern: task-level with agent-level fallback <a class="heading-anchor" href="#92-the-pattern-task-level-with-agent-level-fallback" aria-label="Link to this section">#</a></h3>
+<p>For events that might happen either inside or outside a task:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task = get_current_task()
+if _task:
+    # Preferred — event is attributed to the task and its project
+    _task.llm_call(&quot;reasoning&quot;, model=model_name, tokens_in=N, tokens_out=N)
+elif hiveloop_agent:
+    # Fallback — event is agent-level, no task/project attribution
+    hiveloop_agent.llm_call(&quot;reasoning&quot;, model=model_name, tokens_in=N, tokens_out=N)
+</code></pre></div>
+<p>Agent-level events appear in the Cost Explorer and Activity Stream but not on any task timeline.</p>
+<hr />
+<h2 id="10-cost-estimation">10. Cost Estimation <a class="heading-anchor" href="#10-cost-estimation" aria-label="Link to this section">#</a></h2>
+<h3 id="101-why-cost-matters">10.1 Why cost matters <a class="heading-anchor" href="#101-why-cost-matters" aria-label="Link to this section">#</a></h3>
+<p>LLM costs can be invisible and explosive. An agent that runs smoothly can quietly spend $40/hour if it's using an expensive model with large prompts. <code>task.llm_call()</code> with cost tracking surfaces this — per call, per task, per agent, per model.</p>
+<h3 id="102-three-approaches-to-cost">10.2 Three approaches to cost <a class="heading-anchor" href="#102-three-approaches-to-cost" aria-label="Link to this section">#</a></h3>
+<p><strong>Approach A — Don't calculate cost (simplest):</strong></p>
+<p>Just send <code>model</code>, <code>tokens_in</code>, <code>tokens_out</code>. The dashboard shows token counts and groups by model. You can calculate cost yourself from the model tables.</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task.llm_call(&quot;reasoning&quot;, model=&quot;claude-sonnet-4-5-20250929&quot;, tokens_in=1500, tokens_out=200)
+</code></pre></div>
+<p><strong>Approach B — Cost helper function:</strong></p>
+<p>Build a lookup table and calculate cost locally:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">COST_PER_MILLION = {
+    &quot;claude-sonnet-4-5-20250929&quot;:  {&quot;input&quot;: 3.00, &quot;output&quot;: 15.00},
+    &quot;claude-haiku-4-5-20251001&quot;:   {&quot;input&quot;: 0.80, &quot;output&quot;: 4.00},
+    &quot;claude-3-haiku-20240307&quot;:     {&quot;input&quot;: 0.25, &quot;output&quot;: 1.25},
+    &quot;gpt-4o&quot;:                      {&quot;input&quot;: 2.50, &quot;output&quot;: 10.00},
+    &quot;gpt-4o-mini&quot;:                 {&quot;input&quot;: 0.15, &quot;output&quot;: 0.60},
+}
+
+def estimate_cost(model: str, tokens_in: int, tokens_out: int) -&gt; float | None:
+    rates = COST_PER_MILLION.get(model)
+    if not rates:
+        return None
+    return (tokens_in * rates[&quot;input&quot;] / 1_000_000) + (tokens_out * rates[&quot;output&quot;] / 1_000_000)
+</code></pre></div>
+<p>Usage:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_task.llm_call(
+    &quot;reasoning&quot;,
+    model=model_name,
+    tokens_in=tokens_in,
+    tokens_out=tokens_out,
+    cost=estimate_cost(model_name, tokens_in, tokens_out),
+)
+</code></pre></div>
+<p><strong>Approach C — Use LLM client's cost reporting:</strong></p>
+<p>Some LLM clients report cost directly:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># LiteLLM
+response._hidden_params.get(&quot;response_cost&quot;)
+
+# Custom wrappers may expose .cost or .total_cost
+</code></pre></div>
+<p>If your client reports cost, use it directly — it's more accurate than a lookup table.</p>
+<h3 id="103-keeping-the-cost-table-updated">10.3 Keeping the cost table updated <a class="heading-anchor" href="#103-keeping-the-cost-table-updated" aria-label="Link to this section">#</a></h3>
+<p>LLM pricing changes. When it does, update your <code>COST_PER_MILLION</code> table. Old events keep their recorded cost (it's stored per-event, not recalculated). New events use the updated rates.</p>
+<p>If you don't want to maintain a cost table, Approach A (tokens only, no cost) is perfectly fine. The Cost Explorer still shows token counts and call counts grouped by model — you can calculate spend externally.</p>
+<hr />
+<h2 id="11-what-to-expect-on-the-dashboard">11. What to Expect on the Dashboard <a class="heading-anchor" href="#11-what-to-expect-on-the-dashboard" aria-label="Link to this section">#</a></h2>
+<h3 id="111-after-adding-taskllm_call">11.1 After adding <code>task.llm_call()</code> <a class="heading-anchor" href="#111-after-adding-taskllm_call" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard element</th>
+  <th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Task Table</strong></td>
+  <td>LLM column shows call count (e.g. &quot;◆ 3&quot;). COST column shows dollar amount</td>
+</tr>
+<tr>
+  <td><strong>Timeline</strong></td>
+  <td>Purple nodes appear for each LLM call, with model badge above the node</td>
+</tr>
+<tr>
+  <td><strong>Timeline detail</strong></td>
+  <td>Click an LLM node → shows model, tokens, cost, duration, and previews (if sent)</td>
+</tr>
+<tr>
+  <td><strong>Cost Explorer</strong></td>
+  <td>Fully functional — Cost by Model table, Cost by Agent table, Cost Ribbon totals</td>
+</tr>
+<tr>
+  <td><strong>Stats Ribbon</strong></td>
+  <td>Cost (1h) shows dollar amount</td>
+</tr>
+<tr>
+  <td><strong>Mini-Charts</strong></td>
+  <td>LLM Cost/Task chart populates</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>&quot;llm&quot; filter shows every LLM call</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="112-after-adding-taskplan-taskplan_step">11.2 After adding <code>task.plan()</code> + <code>task.plan_step()</code> <a class="heading-anchor" href="#112-after-adding-taskplan-taskplan_step" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard element</th>
+  <th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Timeline</strong></td>
+  <td>Plan progress bar appears above the timeline track</td>
+</tr>
+<tr>
+  <td><strong>Plan bar</strong></td>
+  <td>Each step is a segment: gray (not started), blue (in progress), green (completed), red (failed)</td>
+</tr>
+<tr>
+  <td><strong>Plan bar hover</strong></td>
+  <td>Hover a segment to see the step description</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="113-after-adding-escalations-and-approvals">11.3 After adding escalations and approvals <a class="heading-anchor" href="#113-after-adding-escalations-and-approvals" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard element</th>
+  <th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Agent card</strong></td>
+  <td>WAITING badge when approval is pending</td>
+</tr>
+<tr>
+  <td><strong>Stats Ribbon</strong></td>
+  <td>Waiting count increments</td>
+</tr>
+<tr>
+  <td><strong>Timeline</strong></td>
+  <td>Amber escalation nodes, approval request/decision nodes</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>&quot;human&quot; filter shows escalations and approvals</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="114-after-adding-issue-reporting">11.4 After adding issue reporting <a class="heading-anchor" href="#114-after-adding-issue-reporting" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard element</th>
+  <th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Agent card</strong></td>
+  <td>Red issue badge (e.g. &quot;● 1 issue&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Pipeline tab</strong></td>
+  <td>Active Issues table with severity, category, occurrences</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>Issue events appear with warning icons</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="115-after-adding-pipeline-enrichment">11.5 After adding pipeline enrichment <a class="heading-anchor" href="#115-after-adding-pipeline-enrichment" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard element</th>
+  <th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Agent card</strong></td>
+  <td>Queue depth badge (e.g. &quot;Q:4&quot;, amber if &gt;5)</td>
+</tr>
+<tr>
+  <td><strong>Pipeline tab</strong></td>
+  <td>Queue, TODOs, and Scheduled sections populate</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="12-incremental-adoption-strategy">12. Incremental Adoption Strategy <a class="heading-anchor" href="#12-incremental-adoption-strategy" aria-label="Link to this section">#</a></h2>
+<p>You don't need to implement all of Layer 2 at once. Here's the recommended order, based on value per effort:</p>
+<h3 id="tier-1-high-value-low-effort-do-these-first">Tier 1 — High value, low effort (do these first) <a class="heading-anchor" href="#tier-1-high-value-low-effort-do-these-first" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event</th>
+  <th>Effort</th>
+  <th>Why it's high value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task.llm_call()</code></td>
+  <td>2-5 lines per LLM call site</td>
+  <td>Unlocks the entire Cost Explorer. Answers &quot;how much is this costing me?&quot;</td>
+</tr>
+<tr>
+  <td><code>agent.report_issue()</code></td>
+  <td>1-3 lines per detection point</td>
+  <td>Surfaces persistent problems that silent monitoring would miss</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="tier-2-high-value-medium-effort">Tier 2 — High value, medium effort <a class="heading-anchor" href="#tier-2-high-value-medium-effort" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event</th>
+  <th>Effort</th>
+  <th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task.plan()</code> + <code>task.plan_step()</code></td>
+  <td>5-10 lines at plan creation + 2 lines per step transition</td>
+  <td>Visual progress tracking. Answers &quot;where in the plan did it fail?&quot;</td>
+</tr>
+<tr>
+  <td><code>task.escalate()</code></td>
+  <td>1-2 lines per escalation point</td>
+  <td>Answers &quot;when does the agent need human help?&quot;</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="tier-3-medium-value-depends-on-architecture">Tier 3 — Medium value, depends on architecture <a class="heading-anchor" href="#tier-3-medium-value-depends-on-architecture" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event</th>
+  <th>Effort</th>
+  <th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task.request_approval()</code> + <code>task.approval_received()</code></td>
+  <td>2-4 lines per approval workflow</td>
+  <td>Only valuable if you have human-in-the-loop approval flows</td>
+</tr>
+<tr>
+  <td><code>task.retry()</code></td>
+  <td>2-3 lines per retry loop</td>
+  <td>Only valuable if retries are common and you need to diagnose patterns</td>
+</tr>
+<tr>
+  <td><code>agent.queue_snapshot()</code></td>
+  <td>5-10 lines + queue access</td>
+  <td>Only valuable if your agent has a work queue</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="tier-4-nice-to-have">Tier 4 — Nice to have <a class="heading-anchor" href="#tier-4-nice-to-have" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event</th>
+  <th>Effort</th>
+  <th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>agent.todo()</code></td>
+  <td>1-2 lines per todo lifecycle event</td>
+  <td>Work item tracking — useful for complex agents</td>
+</tr>
+<tr>
+  <td><code>agent.scheduled()</code></td>
+  <td>1-2 lines at configuration time</td>
+  <td>Scheduled work visibility — useful for cron-based agents</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="the-practical-path">The practical path <a class="heading-anchor" href="#the-practical-path" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Add <code>task.llm_call()</code> to your 2-3 most important LLM call sites → validate on Cost Explorer</li>
+<li>Add <code>agent.report_issue()</code> where you have error handling → check Pipeline tab</li>
+<li>Add plans if your agent creates them → watch the plan progress bar</li>
+<li>Add escalation/approval tracking if you have human-in-the-loop → monitor the Waiting count</li>
+<li>Add pipeline enrichment last → agent cards get richer</li>
+</ol>
+<p>At each step, check the dashboard to confirm the new data appears before moving on.</p>
+<hr />
+<h2 id="13-troubleshooting-layer-2">13. Troubleshooting Layer 2 <a class="heading-anchor" href="#13-troubleshooting-layer-2" aria-label="Link to this section">#</a></h2>
+<h3 id="131-llm-calls-not-appearing-on-timeline">13.1 LLM calls not appearing on Timeline <a class="heading-anchor" href="#131-llm-calls-not-appearing-on-timeline" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> You added <code>task.llm_call()</code> but no purple nodes appear.</p>
+<p><strong>Possible causes:</strong></p>
+<ol>
+<li><code>get_current_task()</code> returns <code>None</code> — the LLM call is happening outside a task context. Check that <code>agent.task()</code> wraps the call site and <code>set_current_task()</code> has been called.</li>
+<li>The <code>try/except</code> is swallowing an error. Temporarily remove the <code>try/except</code>, trigger a task, and check for exceptions.</li>
+<li>Token fields are wrong type. <code>tokens_in</code> and <code>tokens_out</code> must be integers, not strings. <code>cost</code> must be a float.</li>
+</ol>
+<h3 id="132-cost-explorer-shows-zero-despite-llm-calls-appearing">13.2 Cost Explorer shows zero despite LLM calls appearing <a class="heading-anchor" href="#132-cost-explorer-shows-zero-despite-llm-calls-appearing" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> Purple nodes appear in Timeline, but Cost Explorer shows $0.00.</p>
+<p><strong>Cause:</strong> You're sending <code>model</code> and <code>name</code> but not <code>tokens_in</code>, <code>tokens_out</code>, or <code>cost</code>. The Cost Explorer aggregates cost and token data — if those fields are <code>None</code>, the call appears in the timeline (which only needs name + model) but has nothing to aggregate for cost.</p>
+<p><strong>Fix:</strong> Add token counts. Even without cost, <code>tokens_in</code> and <code>tokens_out</code> populate the &quot;Tokens In&quot; and &quot;Tokens Out&quot; columns in the Cost Explorer.</p>
+<h3 id="133-token-counts-are-always-zero-or-none-despite-sending-them">13.3 Token counts are always zero or None despite sending them <a class="heading-anchor" href="#133-token-counts-are-always-zero-or-none-despite-sending-them" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> You're passing <code>tokens_in</code> and <code>tokens_out</code> but the values are always 0 or None on the dashboard.</p>
+<p><strong>Cause:</strong> You're extracting tokens from the wrong place. This is the most common integration mistake. Different client methods in the same codebase often expose tokens differently:</p>
+<ul>
+<li>Method A might put tokens on the <strong>response</strong>: <code>response.usage.input_tokens</code></li>
+<li>Method B might put tokens on the <strong>client</strong>: <code>client._last_input_tokens</code></li>
+<li>Method C might not expose tokens at all</li>
+</ul>
+<p>If you're using the Pattern A extraction (<code>response.usage.*</code>) on a call site that uses Pattern B (<code>client._last_*</code>), you'll get <code>AttributeError</code> (caught by your <code>try/except</code>, so the call silently sends without tokens) or <code>None</code>.</p>
+<p><strong>Fix:</strong> Go back to the catalog (Section 2.2) and verify the token source for the specific call site. Use the discovery recipe in Section 2.6 to inspect what each response and client object actually exposes.</p>
+<h3 id="134-plan-progress-bar-not-visible">13.4 Plan progress bar not visible <a class="heading-anchor" href="#134-plan-progress-bar-not-visible" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> You called <code>task.plan()</code> but no progress bar appears above the Timeline.</p>
+<p><strong>Possible causes:</strong></p>
+<ol>
+<li>The plan event was emitted but the Timeline is showing a different task. Click the task that has the plan in the Task Table.</li>
+<li>The plan event was emitted outside the task context (<code>get_current_task()</code> was <code>None</code>).</li>
+<li><code>steps</code> parameter was empty. The plan needs at least one step to render.</li>
+</ol>
+<h3 id="135-issues-not-clearing-from-pipeline-tab">13.5 Issues not clearing from Pipeline tab <a class="heading-anchor" href="#135-issues-not-clearing-from-pipeline-tab" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> You called <code>agent.resolve_issue()</code> but the issue still appears.</p>
+<p><strong>Cause:</strong> The <code>summary</code> or <code>issue_id</code> in <code>resolve_issue()</code> doesn't match the original <code>report_issue()</code> call. Deduplication is hash-based — the strings must match exactly.</p>
+<p><strong>Fix:</strong> Use <code>issue_id</code> for explicit lifecycle tracking. It's more reliable than matching summary strings.</p>
+<h3 id="136-agent-card-shows-queue-badge-but-pipeline-tab-queue-is-empty">13.6 Agent card shows queue badge but Pipeline tab queue is empty <a class="heading-anchor" href="#136-agent-card-shows-queue-badge-but-pipeline-tab-queue-is-empty" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> Agent card shows &quot;Q:4&quot; but the Pipeline → Queue section says empty.</p>
+<p><strong>Cause:</strong> The <code>queue_snapshot()</code> sent <code>depth=4</code> but no <code>items</code> array. The badge uses <code>depth</code> (just a number), but the Pipeline table needs <code>items</code> (the actual queue entries).</p>
+<p><strong>Fix:</strong> Include the <code>items</code> array in your <code>queue_snapshot()</code> call for full Pipeline tab rendering.</p>
+<h3 id="137-events-not-appearing-in-activity-stream-filters">13.7 Events not appearing in Activity Stream filters <a class="heading-anchor" href="#137-events-not-appearing-in-activity-stream-filters" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> LLM calls exist but the &quot;llm&quot; filter shows nothing. Or escalations exist but &quot;human&quot; filter is empty.</p>
+<p><strong>Cause:</strong> The stream filter maps event types to categories. Custom events (which is what <code>task.llm_call()</code> emits internally — <code>event_type: &quot;custom&quot;</code> with <code>payload.kind: &quot;llm_call&quot;</code>) need the dashboard to map the <code>kind</code> field to the correct filter.</p>
+<p><strong>Fix:</strong> Verify the dashboard version supports kind-based filtering. If the &quot;llm&quot; filter expects a specific event structure, check that <code>task.llm_call()</code> is producing the expected payload shape.</p>
+
+        </article>
+        <div class="prev-next"><a class="prev-next-link prev" href="docs-layer1-guide.html"><span class="prev-next-label">← Previous</span><span class="prev-next-title">Layer 1 Guide</span></a><a class="prev-next-link next" href="docs-layer2-llm-tracking.html"><span class="prev-next-label">Next →</span><span class="prev-next-title">LLM Tracking</span></a></div>
+    </main>
+
+    <!-- RIGHT TOC -->
+<nav class="page-toc"><div class="page-toc-title">On this page</div>
+<a class="toc-link" href="#table-of-contents">Table of Contents</a>
+<a class="toc-link" href="#1-what-layer-2-gives-you">1. What Layer 2 Gives You</a>
+<a class="toc-link toc-h3" href="#the-progression">The progression</a>
+<a class="toc-link" href="#2-llm-call-tracking">2. LLM Call Tracking</a>
+<a class="toc-link toc-h3" href="#21-what-it-does">2.1 What it does</a>
+<a class="toc-link toc-h3" href="#22-finding-where-in-your-code-the-catalog-first-approach">2.2 Finding WHERE in your code — the catalog-first approach</a>
+<a class="toc-link toc-h3" href="#23-adding-taskllm_call">2.3 Adding task.llm_call()</a>
+<a class="toc-link toc-h3" href="#24-parameter-reference">2.4 Parameter reference</a>
+<a class="toc-link toc-h3" href="#25-naming-conventions">2.5 Naming conventions</a>
+<a class="toc-link toc-h3" href="#26-extracting-token-usage-its-messier-than-you-expect">2.6 Extracting token usage — it's messier than you expect</a>
+<a class="toc-link toc-h3" href="#27-llm-calls-outside-a-task-context">2.7 LLM calls outside a task context</a>
+<a class="toc-link" href="#3-plans-and-plan-steps">3. Plans and Plan Steps</a>
+<a class="toc-link toc-h3" href="#31-what-it-does">3.1 What it does</a>
+<a class="toc-link toc-h3" href="#32-finding-where-in-your-code">3.2 Finding WHERE in your code</a>
+<a class="toc-link toc-h3" href="#33-adding-plan-tracking">3.3 Adding plan tracking</a>
+<a class="toc-link toc-h3" href="#34-parameter-reference">3.4 Parameter reference</a>
+<a class="toc-link toc-h3" href="#35-replanning">3.5 Replanning</a>
+<a class="toc-link" href="#4-escalations">4. Escalations</a>
+<a class="toc-link toc-h3" href="#41-what-it-does">4.1 What it does</a>
+<a class="toc-link toc-h3" href="#42-finding-where-in-your-code">4.2 Finding WHERE in your code</a>
+<a class="toc-link toc-h3" href="#43-adding-escalation-tracking">4.3 Adding escalation tracking</a>
+<a class="toc-link toc-h3" href="#44-dashboard-impact">4.4 Dashboard impact</a>
+<a class="toc-link" href="#5-approvals">5. Approvals</a>
+<a class="toc-link toc-h3" href="#51-what-it-does">5.1 What it does</a>
+<a class="toc-link toc-h3" href="#52-finding-where-in-your-code">5.2 Finding WHERE in your code</a>
+<a class="toc-link toc-h3" href="#53-adding-approval-tracking">5.3 Adding approval tracking</a>
+<a class="toc-link toc-h3" href="#54-parameter-reference">5.4 Parameter reference</a>
+<a class="toc-link toc-h3" href="#55-dashboard-impact">5.5 Dashboard impact</a>
+<a class="toc-link" href="#6-retries">6. Retries</a>
+<a class="toc-link toc-h3" href="#61-what-it-does">6.1 What it does</a>
+<a class="toc-link toc-h3" href="#62-finding-where-in-your-code">6.2 Finding WHERE in your code</a>
+<a class="toc-link toc-h3" href="#63-adding-retry-tracking">6.3 Adding retry tracking</a>
+<a class="toc-link toc-h3" href="#64-dashboard-impact">6.4 Dashboard impact</a>
+<a class="toc-link" href="#7-issue-reporting">7. Issue Reporting</a>
+<a class="toc-link toc-h3" href="#71-what-it-does">7.1 What it does</a>
+<a class="toc-link toc-h3" href="#72-finding-where-in-your-code">7.2 Finding WHERE in your code</a>
+<a class="toc-link toc-h3" href="#73-adding-issue-reporting">7.3 Adding issue reporting</a>
+<a class="toc-link toc-h3" href="#74-parameter-reference">7.4 Parameter reference</a>
+<a class="toc-link toc-h3" href="#75-dashboard-impact">7.5 Dashboard impact</a>
+<a class="toc-link toc-h3" href="#76-issues-vs-task-failures">7.6 Issues vs. task failures</a>
+<a class="toc-link" href="#8-pipeline-enrichment">8. Pipeline Enrichment</a>
+<a class="toc-link toc-h3" href="#81-queue-snapshots">8.1 Queue snapshots</a>
+<a class="toc-link toc-h3" href="#82-todos">8.2 TODOs</a>
+<a class="toc-link toc-h3" href="#83-scheduled-work">8.3 Scheduled work</a>
+<a class="toc-link" href="#9-agent-level-events-outside-task-context">9. Agent-Level Events (Outside Task Context)</a>
+<a class="toc-link toc-h3" href="#91-agent-level-methods">9.1 Agent-level methods</a>
+<a class="toc-link toc-h3" href="#92-the-pattern-task-level-with-agent-level-fallback">9.2 The pattern: task-level with agent-level fallback</a>
+<a class="toc-link" href="#10-cost-estimation">10. Cost Estimation</a>
+<a class="toc-link toc-h3" href="#101-why-cost-matters">10.1 Why cost matters</a>
+<a class="toc-link toc-h3" href="#102-three-approaches-to-cost">10.2 Three approaches to cost</a>
+<a class="toc-link toc-h3" href="#103-keeping-the-cost-table-updated">10.3 Keeping the cost table updated</a>
+<a class="toc-link" href="#11-what-to-expect-on-the-dashboard">11. What to Expect on the Dashboard</a>
+<a class="toc-link toc-h3" href="#111-after-adding-taskllm_call">11.1 After adding task.llm_call()</a>
+<a class="toc-link toc-h3" href="#112-after-adding-taskplan-taskplan_step">11.2 After adding task.plan() + task.plan_step()</a>
+<a class="toc-link toc-h3" href="#113-after-adding-escalations-and-approvals">11.3 After adding escalations and approvals</a>
+<a class="toc-link toc-h3" href="#114-after-adding-issue-reporting">11.4 After adding issue reporting</a>
+<a class="toc-link toc-h3" href="#115-after-adding-pipeline-enrichment">11.5 After adding pipeline enrichment</a>
+<a class="toc-link" href="#12-incremental-adoption-strategy">12. Incremental Adoption Strategy</a>
+<a class="toc-link toc-h3" href="#tier-1-high-value-low-effort-do-these-first">Tier 1 — High value, low effort (do these first)</a>
+<a class="toc-link toc-h3" href="#tier-2-high-value-medium-effort">Tier 2 — High value, medium effort</a>
+<a class="toc-link toc-h3" href="#tier-3-medium-value-depends-on-architecture">Tier 3 — Medium value, depends on architecture</a>
+<a class="toc-link toc-h3" href="#tier-4-nice-to-have">Tier 4 — Nice to have</a>
+<a class="toc-link toc-h3" href="#the-practical-path">The practical path</a>
+<a class="toc-link" href="#13-troubleshooting-layer-2">13. Troubleshooting Layer 2</a>
+<a class="toc-link toc-h3" href="#131-llm-calls-not-appearing-on-timeline">13.1 LLM calls not appearing on Timeline</a>
+<a class="toc-link toc-h3" href="#132-cost-explorer-shows-zero-despite-llm-calls-appearing">13.2 Cost Explorer shows zero despite LLM calls appearing</a>
+<a class="toc-link toc-h3" href="#133-token-counts-are-always-zero-or-none-despite-sending-them">13.3 Token counts are always zero or None despite sending them</a>
+<a class="toc-link toc-h3" href="#134-plan-progress-bar-not-visible">13.4 Plan progress bar not visible</a>
+<a class="toc-link toc-h3" href="#135-issues-not-clearing-from-pipeline-tab">13.5 Issues not clearing from Pipeline tab</a>
+<a class="toc-link toc-h3" href="#136-agent-card-shows-queue-badge-but-pipeline-tab-queue-is-empty">13.6 Agent card shows queue badge but Pipeline tab queue is empty</a>
+<a class="toc-link toc-h3" href="#137-events-not-appearing-in-activity-stream-filters">13.7 Events not appearing in Activity Stream filters</a>
+</nav>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script>
+// Re-highlight after load
+Prism.highlightAll();
+
+// Mobile menu toggle
+document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.toggle('open');
+});
+
+// Close sidebar on content click (mobile)
+document.querySelector('.docs-main')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.remove('open');
+});
+
+// Active TOC tracking
+(function() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    if (!tocLinks.length) return;
+    
+    const headings = [];
+    tocLinks.forEach(link => {
+        const id = link.getAttribute('href')?.slice(1);
+        const el = id && document.getElementById(id);
+        if (el) headings.push({ el, link });
+    });
+    
+    function updateActive() {
+        let current = headings[0];
+        for (const h of headings) {
+            if (h.el.getBoundingClientRect().top <= 100) current = h;
+        }
+        tocLinks.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+    
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', a.getAttribute('href'));
+        }
+    });
+});
+</script>
+</body>
+</html>

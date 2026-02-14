@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Context Guide — HiveBoard Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (HiveBoard system)
+   ═══════════════════════════════════════ */
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --accent-light: rgba(194, 65, 12, 0.1);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --success-dim: rgba(22, 163, 74, 0.08);
+    --error: #dc2626;
+    --error-dim: rgba(220, 38, 38, 0.06);
+    --warning: #d97706;
+    --warning-dim: rgba(217, 119, 6, 0.08);
+    --info: #2563eb;
+    --info-dim: rgba(37, 99, 235, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.docs-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 3px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 1px solid rgba(194, 65, 12, 0.12);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.topbar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-link.primary {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+}
+.topbar-link.primary:hover { background: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.docs-layout {
+    display: flex; min-height: 100vh; padding-top: 56px;
+}
+
+/* ─── LEFT SIDEBAR ─── */
+.docs-sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: fixed; top: 56px; bottom: 0; left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.docs-nav-section {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding: 16px 12px 6px;
+}
+.docs-nav-section:first-child { padding-top: 0; }
+
+.docs-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    transition: all 0.12s; border: 1px solid transparent;
+}
+.docs-nav-item:hover {
+    background: var(--bg-hover); color: var(--text-primary);
+}
+.docs-nav-item.active {
+    background: var(--accent-dim); color: var(--accent);
+    font-weight: 600; border-color: rgba(194, 65, 12, 0.1);
+}
+.docs-nav-icon {
+    width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5;
+    display: flex; align-items: center;
+}
+.docs-nav-icon svg { width: 18px; height: 18px; }
+.docs-nav-item.active .docs-nav-icon { opacity: 1; color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.docs-main {
+    flex: 1; margin-left: 260px; margin-right: 220px;
+    padding: 40px 48px 80px;
+    max-width: 820px;
+    animation: fade-in 0.3s ease;
+}
+
+/* ─── RIGHT TOC ─── */
+.page-toc {
+    position: fixed; top: 96px; right: 24px;
+    width: 196px; max-height: calc(100vh - 120px);
+    overflow-y: auto; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.page-toc::-webkit-scrollbar { width: 3px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.page-toc-title {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+}
+.toc-link {
+    display: block; padding: 4px 0;
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s;
+    line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -1px;
+}
+.toc-link:hover { color: var(--text-primary); }
+.toc-link.toc-h3 { padding-left: 22px; font-size: 12px; }
+.toc-link.active {
+    color: var(--accent); font-weight: 600;
+    border-left-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   CONTENT TYPOGRAPHY
+   ═══════════════════════════════════════ */
+.doc-content h1 {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    letter-spacing: -0.7px; line-height: 1.2;
+    margin-bottom: 8px; color: var(--text-primary);
+}
+.doc-content h2 {
+    font-family: var(--font-sans); font-size: 21px; font-weight: 700;
+    letter-spacing: -0.3px; line-height: 1.3;
+    margin-top: 48px; margin-bottom: 16px;
+    padding-top: 24px; border-top: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+.doc-content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+
+.doc-content h3 {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    margin-top: 32px; margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.doc-content h4 {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    margin-top: 24px; margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.heading-anchor {
+    color: var(--accent); text-decoration: none;
+    opacity: 0; font-weight: 400; margin-left: 6px;
+    transition: opacity 0.15s;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor { opacity: 0.5; }
+.heading-anchor:hover { opacity: 1 !important; }
+
+.doc-content p {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 16px;
+}
+.doc-content strong { color: var(--text-primary); font-weight: 600; }
+
+.doc-content a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(194, 65, 12, 0.2);
+    transition: border-color 0.15s;
+}
+.doc-content a:hover { border-bottom-color: var(--accent); }
+
+.doc-content ul, .doc-content ol {
+    margin-bottom: 16px; padding-left: 24px;
+}
+.doc-content li {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.doc-content li strong { color: var(--text-primary); }
+
+/* Inline code */
+.doc-content code {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(194, 65, 12, 0.08);
+}
+
+/* Code blocks */
+.code-block {
+    position: relative; margin-bottom: 20px;
+    background: #1e1e2e; border-radius: var(--radius-md);
+    border: 1px solid #2a2a3e;
+    overflow: hidden;
+}
+.code-block .code-lang {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8888aa; background: rgba(255,255,255,0.05);
+    padding: 4px 12px; border-radius: 0 var(--radius-md) 0 6px;
+}
+.code-block pre {
+    margin: 0; padding: 20px 24px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.code-block pre::-webkit-scrollbar { height: 4px; }
+.code-block pre::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.code-block pre code {
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    color: #cdd6f4; background: none; padding: 0; border: none; border-radius: 0;
+}
+
+/* Tables */
+.table-wrapper {
+    margin-bottom: 20px; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    scrollbar-width: thin;
+}
+.table-wrapper table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px;
+}
+.table-wrapper th {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); background: var(--bg-elevated);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.table-wrapper td {
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+    color: var(--text-secondary); padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+}
+.table-wrapper tr:last-child td { border-bottom: none; }
+.table-wrapper tr:hover td { background: var(--bg-elevated); }
+.table-wrapper td code {
+    font-size: 12px;
+}
+
+/* Blockquotes / Callouts */
+.callout {
+    margin-bottom: 20px; padding: 16px 20px;
+    border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--bg-elevated);
+}
+.callout p { margin-bottom: 8px; font-size: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.callout em { color: var(--text-muted); }
+
+.callout-warning {
+    border-left-color: var(--warning);
+    background: var(--warning-dim);
+}
+.callout-tip {
+    border-left-color: var(--success);
+    background: var(--success-dim);
+}
+.callout-info {
+    border-left-color: var(--info);
+    background: var(--info-dim);
+}
+.callout-danger {
+    border-left-color: var(--error);
+    background: var(--error-dim);
+}
+
+/* HR */
+.doc-content hr {
+    border: none; height: 1px;
+    background: var(--border); margin: 32px 0;
+}
+
+/* ─── VERSION BADGE ─── */
+.doc-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.doc-meta-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); background: var(--bg-elevated);
+    padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ─── PREV / NEXT NAV ─── */
+.prev-next {
+    display: flex; gap: 16px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+}
+.prev-next-link {
+    flex: 1; display: block; padding: 16px 20px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); text-decoration: none;
+    transition: all 0.15s;
+}
+.prev-next-link:hover {
+    border-color: var(--accent); background: var(--accent-dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.06);
+}
+.prev-next-link.next { text-align: right; }
+.prev-next-label {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--text-muted); display: block; margin-bottom: 4px;
+}
+.prev-next-title {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    color: var(--text-primary);
+}
+.prev-next-link:hover .prev-next-title { color: var(--accent); }
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+    cursor: pointer; color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 1200px) {
+    .page-toc { display: none; }
+    .docs-main { margin-right: 0; }
+}
+
+@media (max-width: 860px) {
+    .mobile-menu-toggle { display: flex; }
+    .docs-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 50;
+        box-shadow: none;
+    }
+    .docs-sidebar.open {
+        transform: translateX(0);
+        box-shadow: 8px 0 30px rgba(0,0,0,0.1);
+    }
+    .docs-main {
+        margin-left: 0; padding: 28px 20px 60px;
+    }
+    .doc-content h1 { font-size: 24px; }
+    .doc-content h2 { font-size: 19px; }
+    .prev-next { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════
+   PRISM THEME OVERRIDES (dark code blocks)
+   ═══════════════════════════════════════ */
+.code-block .token.comment,
+.code-block .token.prolog,
+.code-block .token.doctype { color: #6c7086; }
+.code-block .token.punctuation { color: #a6adc8; }
+.code-block .token.property,
+.code-block .token.tag,
+.code-block .token.boolean,
+.code-block .token.number { color: #fab387; }
+.code-block .token.string,
+.code-block .token.attr-value { color: #a6e3a1; }
+.code-block .token.selector,
+.code-block .token.attr-name,
+.code-block .token.builtin { color: #89b4fa; }
+.code-block .token.keyword { color: #cba6f7; }
+.code-block .token.function { color: #89b4fa; }
+.code-block .token.operator { color: #89dceb; }
+.code-block .token.class-name { color: #f9e2af; }
+.code-block .token.decorator { color: #f38ba8; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="home.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <span class="docs-badge">Docs</span>
+    </div>
+    <div class="topbar-right">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <a href="https://github.com/hiveboard/hiveloop" class="topbar-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="home.html" class="topbar-link primary">Open Dashboard</a>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="docs-layout">
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar" id="docsSidebar">
+<div class="docs-nav-section">Getting Started</div>
+<a class="docs-nav-item" href="user-manual.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7a2 2 0 012 2v12.5l-.5-.5-3-3H3.5A1.5 1.5 0 012 11.5v-8z" stroke="currentColor" stroke-width="1.3"/><path d="M16 3.5A1.5 1.5 0 0014.5 2H11a2 2 0 00-2 2v12.5l.5-.5 3-3h2A1.5 1.5 0 0016 11.5v-8z" stroke="currentColor" stroke-width="1.3"/></svg></span><span>SDK Manual</span></a>
+<a class="docs-nav-item" href="integration-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M6 2v4M12 2v4M4 6h10v3a5 5 0 01-5 5 5 5 0 01-5-5V6zM9 14v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Integration Guide</span></a>
+<div class="docs-nav-section">Dashboard</div>
+<a class="docs-nav-item" href="docs-dashboard-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 7h14M7 7v9" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Dashboard Guide</span></a>
+<div class="docs-nav-section">Instrumentation</div>
+<a class="docs-nav-item" href="docs-instrumentation-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Instrumentation</span></a>
+<a class="docs-nav-item" href="docs-layer1-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6l7 4 7-4-7-4zM2 12l7 4 7-4M2 9l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Layer 1 Guide</span></a>
+<div class="docs-nav-section">Rich Events</div>
+<a class="docs-nav-item" href="docs-layer2-rich-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M10 2L3 10h5l-1 6 7-8h-5l1-6z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Rich Events</span></a>
+<a class="docs-nav-item" href="docs-layer2-llm-tracking.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="7" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2v2M11 2v2M7 14v2M11 14v2M2 7h2M2 11h2M14 7h2M14 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>LLM Tracking</span></a>
+<a class="docs-nav-item" href="docs-operational-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M16 9h-3l-2 7L7 2 5 9H2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Operational Events</span></a>
+<a class="docs-nav-item active" href="docs-track-context.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7v4M13 7c0 3-2 4-8 4" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Track Context</span></a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+        <div class="doc-meta">
+            <span class="doc-meta-badge">v0.1.0</span>
+            <span class="doc-meta-badge">Updated Feb 2026</span>
+        </div>
+        <article class="doc-content">
+<h1 id="hiveboard-user-manual-part-8-tracking-tool-execution-with-track_context">HiveBoard — User Manual Part 8: Tracking Tool Execution with <code>track_context()</code> <a class="heading-anchor" href="#hiveboard-user-manual-part-8-tracking-tool-execution-with-track_context" aria-label="Link to this section">#</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Last updated:</strong> 2026-02-12</p>
+<blockquote class="callout"><p><em>Your agent picks tools at runtime. The decorator needs the name at definition time. <code>track_context()</code> bridges that gap.</em></p></blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents <a class="heading-anchor" href="#table-of-contents" aria-label="Link to this section">#</a></h2>
+<ol>
+<li><a href="#1-the-problem-dynamic-tool-dispatch">The Problem: Dynamic Tool Dispatch</a></li>
+<li><a href="#2-what-track_context-does">What <code>track_context()</code> Does</a></li>
+<li><a href="#3-the-minimal-pattern--two-lines">The Minimal Pattern — Two Lines</a></li>
+<li><a href="#4-the-full-turn-pattern--llm--tools-together">The Full Turn Pattern — LLM + Tools Together</a></li>
+<li><a href="#5-what-to-expect-on-the-dashboard">What to Expect on the Dashboard</a></li>
+<li><a href="#6-how-it-works-inside">How It Works Inside</a></li>
+<li><a href="#7-attaching-data-with-set_payload">Attaching Data with <code>set_payload()</code></a></li>
+<li><a href="#8-nesting--actions-inside-actions">Nesting — Actions Inside Actions</a></li>
+<li><a href="#9-when-to-use-track_context-vs-agenttrack">When to Use <code>track_context()</code> vs <code>@agent.track()</code></a></li>
+<li><a href="#10-plumbing-the-agent-handle">Plumbing the Agent Handle</a></li>
+<li><a href="#11-real-world-case-study--loopcore">Real-World Case Study — loopCore</a></li>
+<li><a href="#12-usage-patterns">Usage Patterns</a></li>
+<li><a href="#13-troubleshooting">Troubleshooting</a></li>
+</ol>
+<hr />
+<h2 id="1-the-problem-dynamic-tool-dispatch">1. The Problem: Dynamic Tool Dispatch <a class="heading-anchor" href="#1-the-problem-dynamic-tool-dispatch" aria-label="Link to this section">#</a></h2>
+<p>In agentic systems, the LLM decides which tools to use at runtime. A typical agentic loop looks like this:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">while not done:
+    response = llm.chat(messages, tools=tool_definitions)   # LLM picks tools
+    for tool_call in response.tool_calls:                    # zero or more
+        result = execute_tool(tool_call.name, tool_call.args)
+</code></pre></div>
+<p>The tool name — <code>crm_search</code>, <code>send_email</code>, <code>score_lead</code> — isn't known until the LLM returns its response. This creates a problem for observability: the <code>@agent.track()</code> decorator needs the action name at function definition time.</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">@agent.track(&quot;???&quot;)      # ← what goes here? The tool name isn't known yet.
+def execute_tool(name, args):
+    ...
+</code></pre></div>
+<p>If you decorate <code>execute_tool()</code> with a fixed name like <code>&quot;tool_execution&quot;</code>, every tool call shows up as the same node on the timeline — you can't tell <code>crm_search</code> from <code>send_email</code>. You lose the narrative.</p>
+<p>This is the gap <code>track_context()</code> fills.</p>
+<hr />
+<h2 id="2-what-track_context-does">2. What <code>track_context()</code> Does <a class="heading-anchor" href="#2-what-track_context-does" aria-label="Link to this section">#</a></h2>
+<p><code>track_context()</code> is a context manager that does exactly what <code>@agent.track()</code> does — but the name is passed at runtime instead of decoration time.</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with agent.track_context(&quot;crm_search&quot;) as ctx:
+    result = execute_tool(&quot;crm_search&quot;, args)
+</code></pre></div>
+<p>That block produces the same three events as the decorator:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event</th>
+  <th>When</th>
+  <th>Key fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>action_started</code></td>
+  <td>On <code>with</code> entry</td>
+  <td><code>action_id</code>, <code>parent_action_id</code>, <code>action_name</code></td>
+</tr>
+<tr>
+  <td><code>action_completed</code></td>
+  <td>On clean exit</td>
+  <td><code>duration_ms</code>, <code>status=&quot;success&quot;</code>, payload</td>
+</tr>
+<tr>
+  <td><code>action_failed</code></td>
+  <td>On exception</td>
+  <td><code>exception_type</code>, <code>exception_message</code>, <code>duration_ms</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Same timeline nodes. Same blue color. Same duration tracking. Same nesting. Same exception capture with re-raise. The only difference is how the name gets there — runtime string instead of decoration-time string.</p>
+<hr />
+<h2 id="3-the-minimal-pattern-two-lines">3. The Minimal Pattern — Two Lines <a class="heading-anchor" href="#3-the-minimal-pattern-two-lines" aria-label="Link to this section">#</a></h2>
+<p>Inside your agentic loop, wherever tools are executed:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">for tool_call in response.tool_calls:
+    with hiveloop_agent.track_context(tool_call.name) as ctx:
+        result = execute_tool(tool_call.name, tool_call.args)
+</code></pre></div>
+<p>That's it. Each tool execution becomes a blue action node on the timeline with:</p>
+<ul>
+<li><strong>Tool name</strong> — from the string you pass (<code>tool_call.name</code>)</li>
+<li><strong>Duration</strong> — automatic (start-to-end timing)</li>
+<li><strong>Success/failure</strong> — automatic (exceptions propagate but get recorded)</li>
+<li><strong>Nesting</strong> — automatic (if you're already inside a tracked action, tool calls become children)</li>
+</ul>
+<p>If <code>execute_tool()</code> raises, the exception is recorded as an <code>action_failed</code> event (red node on the timeline) and then re-raised. Your error handling continues to work normally.</p>
+<p>If no tools are called on a turn (<code>response.tool_calls</code> is empty), no events are emitted. Zero overhead for zero-tool turns.</p>
+<hr />
+<h2 id="4-the-full-turn-pattern-llm-tools-together">4. The Full Turn Pattern — LLM + Tools Together <a class="heading-anchor" href="#4-the-full-turn-pattern-llm-tools-together" aria-label="Link to this section">#</a></h2>
+<p>A single turn in an agentic loop has two phases: the LLM decides what to do, then tools execute. Instrumenting both gives the complete picture.</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">import time
+from myproject.observability import get_current_task, get_hiveloop_agent
+
+def run_turn(messages, tool_definitions):
+    # ── Phase 1: LLM call — the agent reasons ──────────────────────
+    _llm_start = time.perf_counter()
+    response = llm.chat(messages, tools=tool_definitions)
+    _llm_elapsed = (time.perf_counter() - _llm_start) * 1000
+
+    _task = get_current_task()
+    if _task:
+        _task.llm_call(
+            &quot;agent_turn&quot;,
+            model=response.model,
+            tokens_in=response.usage.input_tokens,
+            tokens_out=response.usage.output_tokens,
+            duration_ms=round(_llm_elapsed),
+        )
+
+    # ── Phase 2: Tool execution — zero or more per turn ────────────
+    _agent = get_hiveloop_agent()
+    for tool_call in response.tool_calls:
+        if _agent:
+            with _agent.track_context(tool_call.name) as ctx:
+                result = tool_registry.execute(tool_call.name, tool_call.arguments)
+                ctx.set_payload({&quot;result_preview&quot;: str(result)[:200]})
+        else:
+            result = tool_registry.execute(tool_call.name, tool_call.arguments)
+
+    return response
+</code></pre></div>
+<p>Phase 1 uses <code>task.llm_call()</code> — this creates a purple LLM node with model, tokens, and cost data.</p>
+<p>Phase 2 uses <code>agent.track_context()</code> — this creates a blue action node for each tool, with the tool name and execution duration.</p>
+<p>On the dashboard timeline, a multi-turn task produces:</p>
+<div class="code-block"><pre><code>[■ agent_turn LLM] → [● crm_search] → [● score_lead] → [■ agent_turn LLM] → [● send_email]
+    claude-sonnet       0.8s              0.2s              claude-sonnet        1.1s
+</code></pre></div>
+<p>Purple LLM nodes for the reasoning, blue action nodes for each tool, all in sequence with durations. The alternating pattern — reason, act, reason, act — is the heartbeat of an agentic system, and now it's visible.</p>
+<hr />
+<h2 id="5-what-to-expect-on-the-dashboard">5. What to Expect on the Dashboard <a class="heading-anchor" href="#5-what-to-expect-on-the-dashboard" aria-label="Link to this section">#</a></h2>
+<h3 id="51-timeline-before-and-after">5.1 Timeline — before and after <a class="heading-anchor" href="#51-timeline-before-and-after" aria-label="Link to this section">#</a></h3>
+<p><strong>Before (Layer 1 only, no tool tracking):</strong></p>
+<div class="code-block"><pre><code>TIMELINE  task-lead-4801  ⏱ 12.4s  🤖 lead-qualifier  ✔ completed  ◆ 3 LLM
+
+  [■ phase1 LLM]  [■ phase2 LLM]  [■ phase1 LLM]
+       3.1s             4.2s            2.8s
+</code></pre></div>
+<p>You see the LLM calls, but between them — nothing. The 4.2 seconds of <code>phase2</code> included tool execution, but you don't know which tools ran or how long each one took. The tool execution time is hidden inside the LLM turn duration.</p>
+<p><strong>After (with <code>track_context()</code>):</strong></p>
+<div class="code-block"><pre><code>TIMELINE  task-lead-4801  ⏱ 12.4s  🤖 lead-qualifier  ✔ completed  ◆ 3 LLM
+
+  [■ phase1 LLM] → [● crm_search] → [● score_lead] → [■ phase2 LLM] → [● send_email] → [■ phase1 LLM]
+       3.1s            0.8s              0.2s              2.1s             1.1s             2.8s
+</code></pre></div>
+<p>Now you can see:</p>
+<ul>
+<li>Which tools ran and in what order</li>
+<li>How long each tool took (the 4.2-second phase2 was actually 0.8s CRM + 0.2s scoring + 2.1s LLM + 1.1s email)</li>
+<li>Whether a tool is a bottleneck (1.1s for <code>send_email</code> — is that normal?)</li>
+<li>The complete reason → act → reason → act rhythm</li>
+</ul>
+<h3 id="52-timeline-node-types">5.2 Timeline node types <a class="heading-anchor" href="#52-timeline-node-types" aria-label="Link to this section">#</a></h3>
+<p>The timeline now has three node types, each with a distinct visual:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Node</th>
+  <th>Shape</th>
+  <th>Color</th>
+  <th>Source</th>
+  <th>What it represents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Task events</td>
+  <td>Circle (●)</td>
+  <td>Green</td>
+  <td><code>agent.task()</code></td>
+  <td>Task started/completed/failed</td>
+</tr>
+<tr>
+  <td>Action events</td>
+  <td>Circle (●)</td>
+  <td>Blue</td>
+  <td><code>@agent.track()</code> or <code>track_context()</code></td>
+  <td>Function or tool execution</td>
+</tr>
+<tr>
+  <td>LLM events</td>
+  <td>Square (■)</td>
+  <td>Purple</td>
+  <td><code>task.llm_call()</code></td>
+  <td>LLM API call</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>track_context()</code> produces the same blue action nodes as <code>@agent.track()</code>. The dashboard doesn't distinguish between them — a tool tracked with <code>track_context(&quot;crm_search&quot;)</code> looks identical to a function decorated with <code>@agent.track(&quot;crm_search&quot;)</code>.</p>
+<h3 id="53-clicking-a-tool-node">5.3 Clicking a tool node <a class="heading-anchor" href="#53-clicking-a-tool-node" aria-label="Link to this section">#</a></h3>
+<p>Click any blue action node to see the detail panel:</p>
+<div class="code-block"><pre><code>● crm_search  20:13:14.892
+  event         action_completed
+  action_name   crm_search
+  duration      0.8s
+  status        success
+</code></pre></div>
+<p>If you used <code>ctx.set_payload()</code> (Section 7), the payload fields also appear:</p>
+<div class="code-block"><pre><code>● crm_search  20:13:14.892
+  event            action_completed
+  action_name      crm_search
+  duration         0.8s
+  status           success
+  args             {&quot;query&quot;: &quot;Acme Corp&quot;, &quot;fields&quot;: &quot;name,email,phone&quot;}
+  result_preview   {&quot;name&quot;: &quot;Acme Corp&quot;, &quot;email&quot;: &quot;jane@acme.com&quot;, ...}
+  success          true
+</code></pre></div>
+<p>This tells you exactly what was passed to the tool and what came back — invaluable for debugging &quot;the agent called the right tool but got unexpected results.&quot;</p>
+<h3 id="54-failed-tool-nodes">5.4 Failed tool nodes <a class="heading-anchor" href="#54-failed-tool-nodes" aria-label="Link to this section">#</a></h3>
+<p>If a tool throws an exception, the node turns red:</p>
+<div class="code-block"><pre><code>● crm_search  20:13:14.892    ← red node
+  event              action_failed
+  action_name        crm_search
+  duration           0.3s
+  status             failure
+  exception_type     ConnectionError
+  exception_message  CRM API timeout after 5000ms
+</code></pre></div>
+<p>The exception is recorded and then re-raised — your existing error handling continues to work. The timeline shows where it broke and what the error was.</p>
+<h3 id="55-activity-stream">5.5 Activity Stream <a class="heading-anchor" href="#55-activity-stream" aria-label="Link to this section">#</a></h3>
+<p>Tool executions appear in the Activity Stream as action events:</p>
+<div class="code-block"><pre><code>● action_started     lead-qualifier &gt; task-lead-4801      just now    (crm_search)
+● action_completed   lead-qualifier &gt; task-lead-4801      just now    (crm_search)
+● action_started     lead-qualifier &gt; task-lead-4801      just now    (score_lead)
+● action_completed   lead-qualifier &gt; task-lead-4801      just now    (score_lead)
+</code></pre></div>
+<p>Use the <strong>action</strong> stream filter to see only tool executions. Use the <strong>error</strong> filter to show only <code>action_failed</code> events — the tools that broke.</p>
+<h3 id="56-zero-tool-turns">5.6 Zero-tool turns <a class="heading-anchor" href="#56-zero-tool-turns" aria-label="Link to this section">#</a></h3>
+<p>When the LLM responds without calling any tools (a pure text response), the <code>for tool_call in response.tool_calls</code> loop body never executes. No <code>track_context()</code> opens, no action events emit. The timeline shows the LLM node with nothing after it until the next turn. This is correct — there's nothing to track.</p>
+<hr />
+<h2 id="6-how-it-works-inside">6. How It Works Inside <a class="heading-anchor" href="#6-how-it-works-inside" aria-label="Link to this section">#</a></h2>
+<h3 id="61-the-lifecycle">6.1 The lifecycle <a class="heading-anchor" href="#61-the-lifecycle" aria-label="Link to this section">#</a></h3>
+<p><code>agent.track_context(action_name)</code> returns an <code>_ActionContext</code> object that manages three phases:</p>
+<p><strong>Phase 1 — <code>__enter__</code> (on <code>with</code> entry):</strong></p>
+<ol>
+<li>Generates a unique <code>action_id</code> (UUID)</li>
+<li>Reads <code>parent_action_id</code> from <code>contextvars</code> — if this block is inside another tracked action, it becomes a child</li>
+<li>Sets its own <code>action_id</code> as the current context (so nested blocks become its children)</li>
+<li>Emits <code>action_started</code> event with the action name and parent reference</li>
+<li>Starts timing (<code>time.perf_counter()</code>)</li>
+</ol>
+<p><strong>Phase 2a — Clean exit (no exception):</strong></p>
+<ol>
+<li>Stops timing, calculates <code>duration_ms</code></li>
+<li>Emits <code>action_completed</code> event with <code>status=&quot;success&quot;</code>, duration, and any payload set via <code>set_payload()</code></li>
+<li>Restores the previous <code>parent_action_id</code> in <code>contextvars</code></li>
+</ol>
+<p><strong>Phase 2b — Exception exit:</strong></p>
+<ol>
+<li>Stops timing, calculates <code>duration_ms</code></li>
+<li>Emits <code>action_failed</code> event with <code>exception_type</code>, <code>exception_message</code>, and duration</li>
+<li>Restores the previous <code>parent_action_id</code> in <code>contextvars</code></li>
+<li><strong>Re-raises the exception</strong> — <code>track_context()</code> never swallows errors</li>
+</ol>
+<h3 id="62-thread-and-async-safety">6.2 Thread and async safety <a class="heading-anchor" href="#62-thread-and-async-safety" aria-label="Link to this section">#</a></h3>
+<p>The parent-child chain is tracked via <code>contextvars.ContextVar</code>, which provides automatic isolation for both threads and asyncio tasks. Each thread and each <code>async</code> coroutine gets its own context. Token-based restoration (<code>contextvars</code> tokens) ensures the parent context is always correctly restored, even when multiple tasks are running concurrently.</p>
+<p>This means you can safely use <code>track_context()</code> in:</p>
+<ul>
+<li>Synchronous code</li>
+<li><code>async/await</code> code</li>
+<li>Multi-threaded agents</li>
+<li>Agents that process multiple tasks concurrently</li>
+</ul>
+<h3 id="63-transport">6.3 Transport <a class="heading-anchor" href="#63-transport" aria-label="Link to this section">#</a></h3>
+<p>Events from <code>track_context()</code> flow through the same path as all SDK events: they're enqueued in a thread-safe buffer and flushed to HiveBoard via batched HTTP POST to <code>/v1/ingest</code>. The <code>with</code> block returns immediately after enqueuing — it doesn't wait for the server to acknowledge the event. Tool execution latency is unaffected by observability.</p>
+<hr />
+<h2 id="7-attaching-data-with-set_payload">7. Attaching Data with <code>set_payload()</code> <a class="heading-anchor" href="#7-attaching-data-with-set_payload" aria-label="Link to this section">#</a></h2>
+<p>The context object returned by <code>track_context()</code> supports <code>set_payload()</code> for attaching tool-specific metadata. This data appears in the detail panel when you click the action node on the timeline.</p>
+<h3 id="71-basic-usage">7.1 Basic usage <a class="heading-anchor" href="#71-basic-usage" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with hiveloop_agent.track_context(tool_call.name) as ctx:
+    result = execute_tool(tool_call.name, tool_call.args)
+    ctx.set_payload({
+        &quot;args&quot;: {k: str(v)[:100] for k, v in tool_call.args.items()},
+        &quot;result_preview&quot;: str(result)[:200],
+    })
+</code></pre></div>
+<h3 id="72-what-to-include">7.2 What to include <a class="heading-anchor" href="#72-what-to-include" aria-label="Link to this section">#</a></h3>
+<p>The payload is a dictionary of arbitrary key-value pairs. Useful fields for tool tracking:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Why it's useful</th>
+  <th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>args</code></td>
+  <td>See what was passed to the tool</td>
+  <td><code>{&quot;query&quot;: &quot;Acme Corp&quot;}</code></td>
+</tr>
+<tr>
+  <td><code>result_preview</code></td>
+  <td>See what the tool returned</td>
+  <td><code>{&quot;name&quot;: &quot;Acme Corp&quot;, ...}</code></td>
+</tr>
+<tr>
+  <td><code>success</code></td>
+  <td>Explicit success/failure flag</td>
+  <td><code>true</code></td>
+</tr>
+<tr>
+  <td><code>error</code></td>
+  <td>Error message (for tools that return errors instead of raising)</td>
+  <td><code>&quot;404 Not Found&quot;</code></td>
+</tr>
+<tr>
+  <td><code>source</code></td>
+  <td>Where the tool call originated</td>
+  <td><code>&quot;agent_decision&quot;</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="73-truncation-matters">7.3 Truncation matters <a class="heading-anchor" href="#73-truncation-matters" aria-label="Link to this section">#</a></h3>
+<p>Tool arguments and results can be large. Always truncate:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># ✅ Safe:
+ctx.set_payload({&quot;result&quot;: str(result)[:200]})
+
+# ❌ Dangerous:
+ctx.set_payload({&quot;result&quot;: result})   # could be megabytes of CRM data
+</code></pre></div>
+<p>The SDK doesn't enforce payload size limits, but large payloads increase network traffic and make the detail panel unreadable. A 100-200 character preview is usually enough for debugging.</p>
+<h3 id="74-when-set_payload-is-called">7.4 When <code>set_payload()</code> is called <a class="heading-anchor" href="#74-when-set_payload-is-called" aria-label="Link to this section">#</a></h3>
+<p>Call it after the tool executes but before the <code>with</code> block exits. The payload is attached to the <code>action_completed</code> event:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with hiveloop_agent.track_context(&quot;crm_search&quot;) as ctx:
+    result = execute_tool(&quot;crm_search&quot;, args)   # tool runs
+    ctx.set_payload({&quot;preview&quot;: str(result)})    # attach data
+    # ← on exit, action_completed fires with the payload
+</code></pre></div>
+<p>If the tool raises, <code>set_payload()</code> is never reached and <code>action_failed</code> fires without a payload. The exception info (type + message) is attached automatically.</p>
+<hr />
+<h2 id="8-nesting-actions-inside-actions">8. Nesting — Actions Inside Actions <a class="heading-anchor" href="#8-nesting-actions-inside-actions" aria-label="Link to this section">#</a></h2>
+<p><code>track_context()</code> supports automatic nesting via <code>contextvars</code>. If a <code>track_context()</code> block is opened inside another tracked action (either a decorator or another context manager), the inner block becomes a child.</p>
+<h3 id="81-tool-calls-inside-a-tracked-function">8.1 Tool calls inside a tracked function <a class="heading-anchor" href="#81-tool-calls-inside-a-tracked-function" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">@agent.track(&quot;process_lead&quot;)
+def process_lead(lead):
+    # This tool call is a child of &quot;process_lead&quot;
+    with agent.track_context(&quot;crm_search&quot;) as ctx:
+        data = crm.search(lead.email)
+        ctx.set_payload({&quot;found&quot;: data is not None})
+
+    # This too
+    with agent.track_context(&quot;enrich_company&quot;) as ctx:
+        enrichment = clearbit.lookup(lead.company)
+</code></pre></div>
+<p>Timeline nesting:</p>
+<div class="code-block"><pre><code>process_lead (3.2s)
+  ├── crm_search (0.8s)
+  └── enrich_company (1.4s)
+</code></pre></div>
+<h3 id="82-nested-context-managers">8.2 Nested context managers <a class="heading-anchor" href="#82-nested-context-managers" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with agent.track_context(&quot;outer_step&quot;) as outer:
+    with agent.track_context(&quot;inner_step&quot;) as inner:
+        do_work()
+</code></pre></div>
+<p>Timeline nesting:</p>
+<div class="code-block"><pre><code>outer_step (2.1s)
+  └── inner_step (1.8s)
+</code></pre></div>
+<h3 id="83-mixed-decorator-context-manager">8.3 Mixed decorator + context manager <a class="heading-anchor" href="#83-mixed-decorator-context-manager" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with agent.task(&quot;task-123&quot;) as task:
+    @agent.track(&quot;step1&quot;)
+    def score():
+        with agent.track_context(&quot;llm_inference&quot;) as ctx:
+            result = model.predict(lead)
+            ctx.set_payload({&quot;score&quot;: result})
+        return result
+
+    score()
+</code></pre></div>
+<p>This produces the chain: <code>task → step1 → llm_inference</code>, all linked via <code>parent_action_id</code>. The dashboard renders these as nested nodes in the timeline.</p>
+<h3 id="84-why-nesting-matters-for-tools">8.4 Why nesting matters for tools <a class="heading-anchor" href="#84-why-nesting-matters-for-tools" aria-label="Link to this section">#</a></h3>
+<p>In agentic systems, some tools call other tools. A <code>research</code> tool might call <code>web_search</code> and then <code>summarize</code>. With nesting:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with agent.track_context(&quot;research&quot;) as ctx:
+    search_results = web_search(query)
+    with agent.track_context(&quot;summarize&quot;) as inner:
+        summary = llm_summarize(search_results)
+</code></pre></div>
+<p>The timeline shows <code>summarize</code> as a child of <code>research</code>, making the tool call hierarchy visible.</p>
+<hr />
+<h2 id="9-when-to-use-track_context-vs-agenttrack">9. When to Use <code>track_context()</code> vs <code>@agent.track()</code> <a class="heading-anchor" href="#9-when-to-use-track_context-vs-agenttrack" aria-label="Link to this section">#</a></h2>
+<p>Both produce identical events. The difference is when the action name is available.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Situation</th>
+  <th>Recommended</th>
+  <th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Named, reusable functions</td>
+  <td><code>@agent.track(&quot;name&quot;)</code></td>
+  <td>Decorator is cleaner — name is fixed and matches the function</td>
+</tr>
+<tr>
+  <td>Dynamic tool dispatch (agentic loops)</td>
+  <td><code>track_context(tool_name)</code></td>
+  <td>Tool name comes from the LLM response at runtime</td>
+</tr>
+<tr>
+  <td>Class methods where agent isn't available at definition time</td>
+  <td><code>track_context(&quot;name&quot;)</code></td>
+  <td>Context manager works inside the method body</td>
+</tr>
+<tr>
+  <td>Inline code blocks (not a separate function)</td>
+  <td><code>track_context(&quot;name&quot;)</code></td>
+  <td>No function to decorate</td>
+</tr>
+<tr>
+  <td>Conditional tracking</td>
+  <td><code>track_context(&quot;name&quot;)</code></td>
+  <td>Only opens the context when needed</td>
+</tr>
+<tr>
+  <td>Need <code>set_payload()</code> mid-execution</td>
+  <td><code>track_context(&quot;name&quot;)</code></td>
+  <td>The decorator doesn't expose a context object</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The rule of thumb:</strong> If the action name is known at function definition time and the function is standalone, use the decorator. For everything else, use <code>track_context()</code>.</p>
+<p>In practice, a well-instrumented agentic system uses both:</p>
+<ul>
+<li><code>@agent.track()</code> for the agent's own functions — <code>score_lead()</code>, <code>enrich_data()</code>, <code>generate_email()</code></li>
+<li><code>track_context()</code> for dynamic tool execution inside the agentic loop — whatever tools the LLM picks at runtime</li>
+</ul>
+<hr />
+<h2 id="10-plumbing-the-agent-handle">10. Plumbing the Agent Handle <a class="heading-anchor" href="#10-plumbing-the-agent-handle" aria-label="Link to this section">#</a></h2>
+<p><code>track_context()</code> is called on the agent handle (<code>hiveloop_agent.track_context(...)</code>), not on the task object. This means you need the HiveLoop agent handle available at the tool execution site — which may be deep in the call stack.</p>
+<h3 id="101-the-challenge">10.1 The challenge <a class="heading-anchor" href="#101-the-challenge" aria-label="Link to this section">#</a></h3>
+<p>The tool execution loop is often many function calls away from where <code>hb.agent()</code> was called:</p>
+<div class="code-block"><pre><code>main.py           → hb.agent(&quot;my-agent&quot;)          # agent created here
+  agent_manager.py  → agent.run()
+    loop.py           → run_turn()
+      loop.py           → execute_tools()          # agent handle needed HERE
+</code></pre></div>
+<p>Passing the agent handle through every function signature is tedious and pollutes your API.</p>
+<h3 id="102-solution-contextvars-recommended">10.2 Solution — <code>contextvars</code> (recommended) <a class="heading-anchor" href="#102-solution-contextvars-recommended" aria-label="Link to this section">#</a></h3>
+<p>Add a second <code>ContextVar</code> for the agent handle alongside your existing task context:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># observability.py
+import contextvars
+from typing import Optional, Any
+
+# Existing: task context
+_current_task = contextvars.ContextVar('hiveloop_task', default=None)
+
+# New: agent handle context
+_current_hiveloop_agent = contextvars.ContextVar('hiveloop_agent', default=None)
+
+
+def set_hiveloop_agent(agent: Any) -&gt; None:
+    &quot;&quot;&quot;Set the HiveLoop agent handle for the current execution context.&quot;&quot;&quot;
+    _current_hiveloop_agent.set(agent)
+
+def get_hiveloop_agent() -&gt; Optional[Any]:
+    &quot;&quot;&quot;Get the current HiveLoop agent handle, or None if not initialized.&quot;&quot;&quot;
+    return _current_hiveloop_agent.get()
+
+def clear_hiveloop_agent() -&gt; None:
+    &quot;&quot;&quot;Clear the current HiveLoop agent handle.&quot;&quot;&quot;
+    _current_hiveloop_agent.set(None)
+</code></pre></div>
+<p>Set it alongside the task at the top of the execution path:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">with hiveloop_agent.task(task_id, project=&quot;my-project&quot;) as task:
+    set_current_task(task)
+    set_hiveloop_agent(hiveloop_agent)        # ← new
+    try:
+        result = run_agent_loop()
+    finally:
+        clear_current_task()
+        clear_hiveloop_agent()                # ← new
+</code></pre></div>
+<p>Use it at the tool execution site:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">from myproject.observability import get_hiveloop_agent
+
+_agent = get_hiveloop_agent()
+if _agent:
+    with _agent.track_context(tool_name) as ctx:
+        result = execute_tool(tool_name, args)
+        ctx.set_payload({&quot;result_preview&quot;: str(result)[:200]})
+else:
+    result = execute_tool(tool_name, args)
+</code></pre></div>
+<p>Same pattern as <code>get_current_task()</code> — set it once at the top, use it anywhere deeper, clean it up in <code>finally</code>.</p>
+<h3 id="103-why-a-separate-contextvar">10.3 Why a separate <code>ContextVar</code>? <a class="heading-anchor" href="#103-why-a-separate-contextvar" aria-label="Link to this section">#</a></h3>
+<p>The task object and agent handle have different lifetimes and scopes:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Object</th>
+  <th>Scope</th>
+  <th>Lifetime</th>
+  <th>Used for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Task (<code>get_current_task()</code>)</td>
+  <td>One task execution</td>
+  <td>Start → complete/fail</td>
+  <td><code>task.llm_call()</code>, <code>task.plan()</code>, <code>task.escalate()</code>, etc.</td>
+</tr>
+<tr>
+  <td>Agent (<code>get_hiveloop_agent()</code>)</td>
+  <td>Entire agent run</td>
+  <td>Agent startup → shutdown</td>
+  <td><code>track_context()</code>, <code>agent.report_issue()</code>, <code>agent.queue_snapshot()</code>, etc.</td>
+</tr>
+</tbody>
+</table></div>
+<p>A single task starts and ends many times during an agent's lifetime. The agent handle persists. Keeping them in separate <code>ContextVar</code>s avoids lifecycle confusion and lets you use agent-level methods even outside a task context.</p>
+<hr />
+<h2 id="11-real-world-case-study-loopcore">11. Real-World Case Study — loopCore <a class="heading-anchor" href="#11-real-world-case-study-loopcore" aria-label="Link to this section">#</a></h2>
+<p>This section walks through how an actual agentic framework (loopCore) implemented <code>track_context()</code> for tool execution. It illustrates the decisions and subtleties you'll encounter in a real codebase.</p>
+<h3 id="111-the-starting-point">11.1 The starting point <a class="heading-anchor" href="#111-the-starting-point" aria-label="Link to this section">#</a></h3>
+<p>loopCore's agentic loop calls tools at a single chokepoint in <code>loop.py</code>:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># loop.py, line 1501 — the single tool execution site
+tool_result = self.tool_registry.execute(tool_name, parameters)
+</code></pre></div>
+<p>Every tool call flows through this one line. Zero or more tools per turn, chosen by the LLM at runtime.</p>
+<h3 id="112-the-plumbing">11.2 The plumbing <a class="heading-anchor" href="#112-the-plumbing" aria-label="Link to this section">#</a></h3>
+<p>The <code>observability.py</code> module was extended with a second <code>ContextVar</code>:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># observability.py — added alongside existing task context
+_current_hiveloop_agent = contextvars.ContextVar(&quot;hiveloop_agent&quot;, default=None)
+
+def set_hiveloop_agent(agent):
+    _current_hiveloop_agent.set(agent)
+
+def get_hiveloop_agent():
+    return _current_hiveloop_agent.get()
+
+def clear_hiveloop_agent():
+    _current_hiveloop_agent.set(None)
+</code></pre></div>
+<p>In <code>agent_manager.py</code>, the agent handle is set alongside the task:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_hiveloop_task = _hiveloop_ctx.__enter__()
+set_current_task(_hiveloop_task)
+set_hiveloop_agent(_hiveloop_agent)          # ← added
+
+# ... in the finally block:
+clear_current_task()
+clear_hiveloop_agent()                       # ← added
+</code></pre></div>
+<h3 id="113-the-implementation-and-a-subtlety">11.3 The implementation — and a subtlety <a class="heading-anchor" href="#113-the-implementation-and-a-subtlety" aria-label="Link to this section">#</a></h3>
+<p>The first attempt used a straightforward <code>with</code> block:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># First attempt:
+_hl_agent = get_hiveloop_agent()
+if _hl_agent is not None:
+    try:
+        with _hl_agent.track_context(tool_name) as _ctx:
+            tool_result = self.tool_registry.execute(tool_name, parameters)
+            _ctx.set_payload({...})
+    except Exception:
+        tool_result = self.tool_registry.execute(tool_name, parameters)
+else:
+    tool_result = self.tool_registry.execute(tool_name, parameters)
+</code></pre></div>
+<p>This had a problem: if <code>track_context()</code> itself failed (not the tool), the <code>except</code> block would execute the tool a second time. And if <code>track_context()</code> succeeded but the tool returned an error result (without raising — <code>ToolResult(success=False, error=&quot;...&quot;)</code>), the <code>with</code> block wouldn't know the tool logically failed.</p>
+<p>The fix separated the three phases — open context, execute tool, close context:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Final implementation:
+_hl_agent = get_hiveloop_agent()
+_hl_ctx = None
+if _hl_agent is not None:
+    try:
+        _hl_ctx = _hl_agent.track_context(tool_name)
+        _hl_ctx.__enter__()
+    except Exception:
+        _hl_ctx = None
+
+tool_result = self.tool_registry.execute(tool_name, parameters)     # always runs exactly once
+
+if _hl_ctx is not None:
+    try:
+        _hl_ctx.set_payload({
+            &quot;args&quot;: {k: str(v)[:100] for k, v in parameters.items()},
+            &quot;result_preview&quot;: (tool_result.output or &quot;&quot;)[:200],
+            &quot;success&quot;: tool_result.success,
+            &quot;error&quot;: tool_result.error,
+        })
+        _hl_ctx.__exit__(None, None, None)
+    except Exception:
+        pass
+</code></pre></div>
+<p>Key properties of this pattern:</p>
+<ul>
+<li><strong>Single execution path</strong> — <code>tool_registry.execute()</code> runs exactly once, regardless of whether tracking is active</li>
+<li><strong>Safe context opening</strong> — if <code>track_context()</code> fails to initialize, <code>_hl_ctx</code> stays <code>None</code> and the tool runs without tracking</li>
+<li><strong>Rich payload</strong> — includes truncated args, result preview, and the explicit <code>success</code>/<code>error</code> fields from the tool result</li>
+<li><strong>Graceful context closing</strong> — if <code>set_payload()</code> or <code>__exit__()</code> fails, it's silently ignored</li>
+</ul>
+<h3 id="114-why-this-matters">11.4 Why this matters <a class="heading-anchor" href="#114-why-this-matters" aria-label="Link to this section">#</a></h3>
+<p>This pattern — manual <code>__enter__()</code> / <code>__exit__()</code> instead of <code>with</code> — is unusual but important when the tool execution framework doesn't use exceptions for error signaling. If your <code>execute_tool()</code> raises on failure, the standard <code>with</code> block works perfectly. If it returns an error object (like <code>ToolResult(success=False)</code>), you need the separated pattern to avoid double execution.</p>
+<h3 id="115-the-result">11.5 The result <a class="heading-anchor" href="#115-the-result" aria-label="Link to this section">#</a></h3>
+<p>On HiveBoard's timeline, loopCore's tasks now show:</p>
+<div class="code-block"><pre><code>[■ phase1_reasoning LLM] → [● crm_search] → [■ phase2_tool_use LLM] → [● send_email]
+     claude-sonnet             0.8s              claude-sonnet              1.1s
+</code></pre></div>
+<p>Purple LLM nodes from <code>task.llm_call()</code>, blue action nodes from <code>track_context()</code>, each with duration and payload. Click a tool node to see the arguments and result. Click an LLM node to see the model, tokens, and cost. The complete turn-by-turn narrative is visible.</p>
+<hr />
+<h2 id="12-usage-patterns">12. Usage Patterns <a class="heading-anchor" href="#12-usage-patterns" aria-label="Link to this section">#</a></h2>
+<h3 id="121-agentic-tool-dispatch-the-primary-use-case">12.1 Agentic tool dispatch (the primary use case) <a class="heading-anchor" href="#121-agentic-tool-dispatch-the-primary-use-case" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">for tool_call in response.tool_calls:
+    with hiveloop_agent.track_context(tool_call.name) as ctx:
+        result = tool_registry.execute(tool_call.name, tool_call.arguments)
+        ctx.set_payload({
+            &quot;args&quot;: {k: str(v)[:100] for k, v in tool_call.arguments.items()},
+            &quot;result_preview&quot;: str(result)[:200],
+        })
+</code></pre></div>
+<h3 id="122-dynamic-pipeline-steps">12.2 Dynamic pipeline steps <a class="heading-anchor" href="#122-dynamic-pipeline-steps" aria-label="Link to this section">#</a></h3>
+<p>When a pipeline has steps that vary at runtime:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">for step_name in pipeline.steps:
+    with hiveloop_agent.track_context(step_name.lower().replace(&quot; &quot;, &quot;_&quot;)) as ctx:
+        run_step(step_name)
+</code></pre></div>
+<h3 id="123-conditional-tracking">12.3 Conditional tracking <a class="heading-anchor" href="#123-conditional-tracking" aria-label="Link to this section">#</a></h3>
+<p>Only track when it matters:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">_agent = get_hiveloop_agent()
+if expensive_operation and _agent:
+    with _agent.track_context(&quot;heavy_computation&quot;) as ctx:
+        result = compute(data)
+        ctx.set_payload({&quot;records&quot;: len(data)})
+else:
+    result = compute(data)
+</code></pre></div>
+<h3 id="124-class-methods-agent-not-available-at-definition-time">12.4 Class methods (agent not available at definition time) <a class="heading-anchor" href="#124-class-methods-agent-not-available-at-definition-time" aria-label="Link to this section">#</a></h3>
+<p>When you can't use the decorator because the agent handle doesn't exist when the class is defined:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">class ToolExecutor:
+    def execute(self, tool_name, args):
+        _agent = get_hiveloop_agent()
+        if _agent:
+            with _agent.track_context(tool_name) as ctx:
+                result = self._run(tool_name, args)
+                ctx.set_payload({&quot;success&quot;: result.ok})
+                return result
+        return self._run(tool_name, args)
+
+    def _run(self, tool_name, args):
+        # actual execution logic, unchanged
+        ...
+</code></pre></div>
+<h3 id="125-retry-loops-with-per-attempt-tracking">12.5 Retry loops with per-attempt tracking <a class="heading-anchor" href="#125-retry-loops-with-per-attempt-tracking" aria-label="Link to this section">#</a></h3>
+<p>Track each attempt separately:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">for attempt in range(max_retries):
+    with hiveloop_agent.track_context(f&quot;{tool_name}_attempt_{attempt + 1}&quot;) as ctx:
+        try:
+            result = execute_tool(tool_name, args)
+            ctx.set_payload({&quot;attempt&quot;: attempt + 1, &quot;success&quot;: True})
+            break
+        except RetryableError as e:
+            ctx.set_payload({&quot;attempt&quot;: attempt + 1, &quot;error&quot;: str(e)[:100]})
+            # exception re-raised by track_context, caught by retry loop
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(2 ** attempt)
+</code></pre></div>
+<p>Timeline for a tool that succeeds on attempt 2:</p>
+<div class="code-block"><pre><code>[● crm_search_attempt_1] → [● crm_search_attempt_2]
+       0.3s  ✗ failed           0.8s  ✔ success
+</code></pre></div>
+<h3 id="126-combining-with-taskllm_call-for-the-full-picture">12.6 Combining with <code>task.llm_call()</code> for the full picture <a class="heading-anchor" href="#126-combining-with-taskllm_call-for-the-full-picture" aria-label="Link to this section">#</a></h3>
+<p>The most valuable pattern — instrument both the LLM reasoning and the tool execution in each turn. See Section 4 for the complete code. The result:</p>
+<div class="code-block"><pre><code>Turn 1:  [■ reasoning LLM] → [● search_crm] → [● enrich_company]
+Turn 2:  [■ reasoning LLM] → [● score_lead]
+Turn 3:  [■ reasoning LLM] → [● send_email]
+Turn 4:  [■ summarize LLM]    (no tools — pure text response)
+</code></pre></div>
+<p>This is the complete narrative of an agent working through a task. Every LLM decision and every tool execution is visible, timed, and debuggable.</p>
+<hr />
+<h2 id="13-troubleshooting">13. Troubleshooting <a class="heading-anchor" href="#13-troubleshooting" aria-label="Link to this section">#</a></h2>
+<h3 id="131-tool-nodes-not-appearing-on-the-timeline">13.1 Tool nodes not appearing on the timeline <a class="heading-anchor" href="#131-tool-nodes-not-appearing-on-the-timeline" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> LLM nodes appear (purple), but no blue action nodes for tool execution.</p>
+<p><strong>Possible causes:</strong></p>
+<ol>
+<li><p><strong><code>get_hiveloop_agent()</code> returns <code>None</code>.</strong> The agent handle isn't set in the context. Check that <code>set_hiveloop_agent()</code> is called at the task boundary and that the execution path is in the same thread/async context. Add a temporary debug line: <code>print(f&quot;agent={get_hiveloop_agent()}&quot;)</code> before the tool execution.</p>
+</li>
+<li><p><strong>The <code>if _agent:</code> guard is skipping.</strong> Same cause — the agent isn't in context. Verify the plumbing in Section 10.</p>
+</li>
+<li><p><strong>The <code>try/except</code> is swallowing errors.</strong> If <code>track_context()</code> raises during <code>__enter__()</code>, your except block may silently fall through to untracked execution. Temporarily remove the try/except to see the error.</p>
+</li>
+<li><p><strong>No tools were called.</strong> If the LLM responded without tool calls, there's nothing to track. Check <code>len(response.tool_calls)</code> — if it's zero, no action events are expected.</p>
+</li>
+</ol>
+<h3 id="132-all-tool-nodes-show-the-same-name">13.2 All tool nodes show the same name <a class="heading-anchor" href="#132-all-tool-nodes-show-the-same-name" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> Every tool execution appears as <code>&quot;execute_tool&quot;</code> instead of the actual tool name.</p>
+<p><strong>Cause:</strong> You're tracking the wrapper function instead of passing the tool name:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># ❌ Same name for every tool:
+with agent.track_context(&quot;execute_tool&quot;):
+    execute_tool(tool_call.name, args)
+
+# ✅ Dynamic name per tool:
+with agent.track_context(tool_call.name):
+    execute_tool(tool_call.name, args)
+</code></pre></div>
+<h3 id="133-tool-appears-to-execute-twice">13.3 Tool appears to execute twice <a class="heading-anchor" href="#133-tool-appears-to-execute-twice" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> The tool's side effects happen twice (e.g. email sent twice, record created twice).</p>
+<p><strong>Cause:</strong> Your fallback pattern has a double-execute bug:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># ❌ Double execute — if track_context works but the tool raises,
+#    the except block runs the tool again:
+try:
+    with agent.track_context(name):
+        result = execute_tool(name, args)     # first execution
+except Exception:
+    result = execute_tool(name, args)         # second execution!
+</code></pre></div>
+<p><strong>Fix:</strong> Separate the context lifecycle from the tool execution (see Section 11.3 for the pattern), or only catch <code>track_context</code> initialization errors:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># ✅ Single execution:
+_ctx = None
+try:
+    _ctx = agent.track_context(tool_name)
+    _ctx.__enter__()
+except Exception:
+    _ctx = None
+
+result = execute_tool(tool_name, args)        # always runs exactly once
+
+if _ctx:
+    try:
+        _ctx.__exit__(None, None, None)
+    except Exception:
+        pass
+</code></pre></div>
+<h3 id="134-missing-duration-on-tool-nodes">13.4 Missing duration on tool nodes <a class="heading-anchor" href="#134-missing-duration-on-tool-nodes" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> Tool nodes appear but show 0ms or no duration.</p>
+<p><strong>Cause:</strong> The context manager was opened and closed without the tool execution happening inside it:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># ❌ Tool runs outside the context:
+with agent.track_context(name):
+    pass                                    # context opens and closes immediately
+result = execute_tool(name, args)           # runs after tracking is done
+</code></pre></div>
+<p><strong>Fix:</strong> The tool execution must happen between <code>__enter__()</code> and <code>__exit__()</code>.</p>
+<h3 id="135-payload-not-showing-in-detail-panel">13.5 Payload not showing in detail panel <a class="heading-anchor" href="#135-payload-not-showing-in-detail-panel" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> You called <code>ctx.set_payload()</code> but clicking the node shows no payload fields.</p>
+<p><strong>Possible causes:</strong></p>
+<ol>
+<li><p><strong><code>set_payload()</code> was called after an exception.</strong> If the tool raises before <code>set_payload()</code>, the context manager exits via the exception path — no payload is attached.</p>
+</li>
+<li><p><strong>Payload value is not JSON-serializable.</strong> The SDK silently drops non-serializable values. Ensure all values are strings, numbers, booleans, or lists/dicts of those types.</p>
+</li>
+<li><p><strong>Payload is too large and was truncated server-side.</strong> Check your value sizes. Keep previews under 500 characters.</p>
+</li>
+</ol>
+<h3 id="136-nesting-is-flat-children-appear-as-siblings">13.6 Nesting is flat (children appear as siblings) <a class="heading-anchor" href="#136-nesting-is-flat-children-appear-as-siblings" aria-label="Link to this section">#</a></h3>
+<p><strong>Symptom:</strong> A <code>track_context()</code> inside a <code>@agent.track()</code> function should be a child, but both appear at the same level on the timeline.</p>
+<p><strong>Cause:</strong> The <code>contextvars</code> propagation may be broken. This can happen when:</p>
+<ul>
+<li>The inner call runs in a different thread (without copying the context)</li>
+<li>The agent handle used for the inner call is a different agent instance</li>
+</ul>
+<p><strong>Fix:</strong> Verify both the decorator and the context manager use the same agent handle. If using threads, ensure <code>contextvars</code> context is copied (<code>contextvars.copy_context().run(...)</code>).</p>
+
+        </article>
+        <div class="prev-next"><a class="prev-next-link prev" href="docs-operational-events.html"><span class="prev-next-label">← Previous</span><span class="prev-next-title">Operational Events</span></a><div></div></div>
+    </main>
+
+    <!-- RIGHT TOC -->
+<nav class="page-toc"><div class="page-toc-title">On this page</div>
+<a class="toc-link" href="#table-of-contents">Table of Contents</a>
+<a class="toc-link" href="#1-the-problem-dynamic-tool-dispatch">1. The Problem: Dynamic Tool Dispatch</a>
+<a class="toc-link" href="#2-what-track_context-does">2. What track_context() Does</a>
+<a class="toc-link" href="#3-the-minimal-pattern-two-lines">3. The Minimal Pattern — Two Lines</a>
+<a class="toc-link" href="#4-the-full-turn-pattern-llm-tools-together">4. The Full Turn Pattern — LLM + Tools Together</a>
+<a class="toc-link" href="#5-what-to-expect-on-the-dashboard">5. What to Expect on the Dashboard</a>
+<a class="toc-link toc-h3" href="#51-timeline-before-and-after">5.1 Timeline — before and after</a>
+<a class="toc-link toc-h3" href="#52-timeline-node-types">5.2 Timeline node types</a>
+<a class="toc-link toc-h3" href="#53-clicking-a-tool-node">5.3 Clicking a tool node</a>
+<a class="toc-link toc-h3" href="#54-failed-tool-nodes">5.4 Failed tool nodes</a>
+<a class="toc-link toc-h3" href="#55-activity-stream">5.5 Activity Stream</a>
+<a class="toc-link toc-h3" href="#56-zero-tool-turns">5.6 Zero-tool turns</a>
+<a class="toc-link" href="#6-how-it-works-inside">6. How It Works Inside</a>
+<a class="toc-link toc-h3" href="#61-the-lifecycle">6.1 The lifecycle</a>
+<a class="toc-link toc-h3" href="#62-thread-and-async-safety">6.2 Thread and async safety</a>
+<a class="toc-link toc-h3" href="#63-transport">6.3 Transport</a>
+<a class="toc-link" href="#7-attaching-data-with-set_payload">7. Attaching Data with set_payload()</a>
+<a class="toc-link toc-h3" href="#71-basic-usage">7.1 Basic usage</a>
+<a class="toc-link toc-h3" href="#72-what-to-include">7.2 What to include</a>
+<a class="toc-link toc-h3" href="#73-truncation-matters">7.3 Truncation matters</a>
+<a class="toc-link toc-h3" href="#74-when-set_payload-is-called">7.4 When set_payload() is called</a>
+<a class="toc-link" href="#8-nesting-actions-inside-actions">8. Nesting — Actions Inside Actions</a>
+<a class="toc-link toc-h3" href="#81-tool-calls-inside-a-tracked-function">8.1 Tool calls inside a tracked function</a>
+<a class="toc-link toc-h3" href="#82-nested-context-managers">8.2 Nested context managers</a>
+<a class="toc-link toc-h3" href="#83-mixed-decorator-context-manager">8.3 Mixed decorator + context manager</a>
+<a class="toc-link toc-h3" href="#84-why-nesting-matters-for-tools">8.4 Why nesting matters for tools</a>
+<a class="toc-link" href="#9-when-to-use-track_context-vs-agenttrack">9. When to Use track_context() vs @agent.track()</a>
+<a class="toc-link" href="#10-plumbing-the-agent-handle">10. Plumbing the Agent Handle</a>
+<a class="toc-link toc-h3" href="#101-the-challenge">10.1 The challenge</a>
+<a class="toc-link toc-h3" href="#102-solution-contextvars-recommended">10.2 Solution — contextvars (recommended)</a>
+<a class="toc-link toc-h3" href="#103-why-a-separate-contextvar">10.3 Why a separate ContextVar?</a>
+<a class="toc-link" href="#11-real-world-case-study-loopcore">11. Real-World Case Study — loopCore</a>
+<a class="toc-link toc-h3" href="#111-the-starting-point">11.1 The starting point</a>
+<a class="toc-link toc-h3" href="#112-the-plumbing">11.2 The plumbing</a>
+<a class="toc-link toc-h3" href="#113-the-implementation-and-a-subtlety">11.3 The implementation — and a subtlety</a>
+<a class="toc-link toc-h3" href="#114-why-this-matters">11.4 Why this matters</a>
+<a class="toc-link toc-h3" href="#115-the-result">11.5 The result</a>
+<a class="toc-link" href="#12-usage-patterns">12. Usage Patterns</a>
+<a class="toc-link toc-h3" href="#121-agentic-tool-dispatch-the-primary-use-case">12.1 Agentic tool dispatch (the primary use case)</a>
+<a class="toc-link toc-h3" href="#122-dynamic-pipeline-steps">12.2 Dynamic pipeline steps</a>
+<a class="toc-link toc-h3" href="#123-conditional-tracking">12.3 Conditional tracking</a>
+<a class="toc-link toc-h3" href="#124-class-methods-agent-not-available-at-definition-time">12.4 Class methods (agent not available at definition time)</a>
+<a class="toc-link toc-h3" href="#125-retry-loops-with-per-attempt-tracking">12.5 Retry loops with per-attempt tracking</a>
+<a class="toc-link toc-h3" href="#126-combining-with-taskllm_call-for-the-full-picture">12.6 Combining with task.llm_call() for the full picture</a>
+<a class="toc-link" href="#13-troubleshooting">13. Troubleshooting</a>
+<a class="toc-link toc-h3" href="#131-tool-nodes-not-appearing-on-the-timeline">13.1 Tool nodes not appearing on the timeline</a>
+<a class="toc-link toc-h3" href="#132-all-tool-nodes-show-the-same-name">13.2 All tool nodes show the same name</a>
+<a class="toc-link toc-h3" href="#133-tool-appears-to-execute-twice">13.3 Tool appears to execute twice</a>
+<a class="toc-link toc-h3" href="#134-missing-duration-on-tool-nodes">13.4 Missing duration on tool nodes</a>
+<a class="toc-link toc-h3" href="#135-payload-not-showing-in-detail-panel">13.5 Payload not showing in detail panel</a>
+<a class="toc-link toc-h3" href="#136-nesting-is-flat-children-appear-as-siblings">13.6 Nesting is flat (children appear as siblings)</a>
+</nav>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script>
+// Re-highlight after load
+Prism.highlightAll();
+
+// Mobile menu toggle
+document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.toggle('open');
+});
+
+// Close sidebar on content click (mobile)
+document.querySelector('.docs-main')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.remove('open');
+});
+
+// Active TOC tracking
+(function() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    if (!tocLinks.length) return;
+    
+    const headings = [];
+    tocLinks.forEach(link => {
+        const id = link.getAttribute('href')?.slice(1);
+        const el = id && document.getElementById(id);
+        if (el) headings.push({ el, link });
+    });
+    
+    function updateActive() {
+        let current = headings[0];
+        for (const h of headings) {
+            if (h.el.getBoundingClientRect().top <= 100) current = h;
+        }
+        tocLinks.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+    
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', a.getAttribute('href'));
+        }
+    });
+});
+</script>
+</body>
+</html>

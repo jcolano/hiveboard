@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layer 2 — LLM Tracking — HiveBoard Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (HiveBoard system)
+   ═══════════════════════════════════════ */
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --accent-light: rgba(194, 65, 12, 0.1);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --success-dim: rgba(22, 163, 74, 0.08);
+    --error: #dc2626;
+    --error-dim: rgba(220, 38, 38, 0.06);
+    --warning: #d97706;
+    --warning-dim: rgba(217, 119, 6, 0.08);
+    --info: #2563eb;
+    --info-dim: rgba(37, 99, 235, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.docs-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 3px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 1px solid rgba(194, 65, 12, 0.12);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.topbar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-link.primary {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+}
+.topbar-link.primary:hover { background: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.docs-layout {
+    display: flex; min-height: 100vh; padding-top: 56px;
+}
+
+/* ─── LEFT SIDEBAR ─── */
+.docs-sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: fixed; top: 56px; bottom: 0; left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.docs-nav-section {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding: 16px 12px 6px;
+}
+.docs-nav-section:first-child { padding-top: 0; }
+
+.docs-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    transition: all 0.12s; border: 1px solid transparent;
+}
+.docs-nav-item:hover {
+    background: var(--bg-hover); color: var(--text-primary);
+}
+.docs-nav-item.active {
+    background: var(--accent-dim); color: var(--accent);
+    font-weight: 600; border-color: rgba(194, 65, 12, 0.1);
+}
+.docs-nav-icon {
+    width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5;
+    display: flex; align-items: center;
+}
+.docs-nav-icon svg { width: 18px; height: 18px; }
+.docs-nav-item.active .docs-nav-icon { opacity: 1; color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.docs-main {
+    flex: 1; margin-left: 260px; margin-right: 220px;
+    padding: 40px 48px 80px;
+    max-width: 820px;
+    animation: fade-in 0.3s ease;
+}
+
+/* ─── RIGHT TOC ─── */
+.page-toc {
+    position: fixed; top: 96px; right: 24px;
+    width: 196px; max-height: calc(100vh - 120px);
+    overflow-y: auto; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.page-toc::-webkit-scrollbar { width: 3px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.page-toc-title {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+}
+.toc-link {
+    display: block; padding: 4px 0;
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s;
+    line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -1px;
+}
+.toc-link:hover { color: var(--text-primary); }
+.toc-link.toc-h3 { padding-left: 22px; font-size: 12px; }
+.toc-link.active {
+    color: var(--accent); font-weight: 600;
+    border-left-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   CONTENT TYPOGRAPHY
+   ═══════════════════════════════════════ */
+.doc-content h1 {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    letter-spacing: -0.7px; line-height: 1.2;
+    margin-bottom: 8px; color: var(--text-primary);
+}
+.doc-content h2 {
+    font-family: var(--font-sans); font-size: 21px; font-weight: 700;
+    letter-spacing: -0.3px; line-height: 1.3;
+    margin-top: 48px; margin-bottom: 16px;
+    padding-top: 24px; border-top: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+.doc-content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+
+.doc-content h3 {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    margin-top: 32px; margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.doc-content h4 {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    margin-top: 24px; margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.heading-anchor {
+    color: var(--accent); text-decoration: none;
+    opacity: 0; font-weight: 400; margin-left: 6px;
+    transition: opacity 0.15s;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor { opacity: 0.5; }
+.heading-anchor:hover { opacity: 1 !important; }
+
+.doc-content p {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 16px;
+}
+.doc-content strong { color: var(--text-primary); font-weight: 600; }
+
+.doc-content a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(194, 65, 12, 0.2);
+    transition: border-color 0.15s;
+}
+.doc-content a:hover { border-bottom-color: var(--accent); }
+
+.doc-content ul, .doc-content ol {
+    margin-bottom: 16px; padding-left: 24px;
+}
+.doc-content li {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.doc-content li strong { color: var(--text-primary); }
+
+/* Inline code */
+.doc-content code {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(194, 65, 12, 0.08);
+}
+
+/* Code blocks */
+.code-block {
+    position: relative; margin-bottom: 20px;
+    background: #1e1e2e; border-radius: var(--radius-md);
+    border: 1px solid #2a2a3e;
+    overflow: hidden;
+}
+.code-block .code-lang {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8888aa; background: rgba(255,255,255,0.05);
+    padding: 4px 12px; border-radius: 0 var(--radius-md) 0 6px;
+}
+.code-block pre {
+    margin: 0; padding: 20px 24px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.code-block pre::-webkit-scrollbar { height: 4px; }
+.code-block pre::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.code-block pre code {
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    color: #cdd6f4; background: none; padding: 0; border: none; border-radius: 0;
+}
+
+/* Tables */
+.table-wrapper {
+    margin-bottom: 20px; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    scrollbar-width: thin;
+}
+.table-wrapper table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px;
+}
+.table-wrapper th {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); background: var(--bg-elevated);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.table-wrapper td {
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+    color: var(--text-secondary); padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+}
+.table-wrapper tr:last-child td { border-bottom: none; }
+.table-wrapper tr:hover td { background: var(--bg-elevated); }
+.table-wrapper td code {
+    font-size: 12px;
+}
+
+/* Blockquotes / Callouts */
+.callout {
+    margin-bottom: 20px; padding: 16px 20px;
+    border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--bg-elevated);
+}
+.callout p { margin-bottom: 8px; font-size: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.callout em { color: var(--text-muted); }
+
+.callout-warning {
+    border-left-color: var(--warning);
+    background: var(--warning-dim);
+}
+.callout-tip {
+    border-left-color: var(--success);
+    background: var(--success-dim);
+}
+.callout-info {
+    border-left-color: var(--info);
+    background: var(--info-dim);
+}
+.callout-danger {
+    border-left-color: var(--error);
+    background: var(--error-dim);
+}
+
+/* HR */
+.doc-content hr {
+    border: none; height: 1px;
+    background: var(--border); margin: 32px 0;
+}
+
+/* ─── VERSION BADGE ─── */
+.doc-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.doc-meta-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); background: var(--bg-elevated);
+    padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ─── PREV / NEXT NAV ─── */
+.prev-next {
+    display: flex; gap: 16px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+}
+.prev-next-link {
+    flex: 1; display: block; padding: 16px 20px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); text-decoration: none;
+    transition: all 0.15s;
+}
+.prev-next-link:hover {
+    border-color: var(--accent); background: var(--accent-dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.06);
+}
+.prev-next-link.next { text-align: right; }
+.prev-next-label {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--text-muted); display: block; margin-bottom: 4px;
+}
+.prev-next-title {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    color: var(--text-primary);
+}
+.prev-next-link:hover .prev-next-title { color: var(--accent); }
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+    cursor: pointer; color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 1200px) {
+    .page-toc { display: none; }
+    .docs-main { margin-right: 0; }
+}
+
+@media (max-width: 860px) {
+    .mobile-menu-toggle { display: flex; }
+    .docs-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 50;
+        box-shadow: none;
+    }
+    .docs-sidebar.open {
+        transform: translateX(0);
+        box-shadow: 8px 0 30px rgba(0,0,0,0.1);
+    }
+    .docs-main {
+        margin-left: 0; padding: 28px 20px 60px;
+    }
+    .doc-content h1 { font-size: 24px; }
+    .doc-content h2 { font-size: 19px; }
+    .prev-next { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════
+   PRISM THEME OVERRIDES (dark code blocks)
+   ═══════════════════════════════════════ */
+.code-block .token.comment,
+.code-block .token.prolog,
+.code-block .token.doctype { color: #6c7086; }
+.code-block .token.punctuation { color: #a6adc8; }
+.code-block .token.property,
+.code-block .token.tag,
+.code-block .token.boolean,
+.code-block .token.number { color: #fab387; }
+.code-block .token.string,
+.code-block .token.attr-value { color: #a6e3a1; }
+.code-block .token.selector,
+.code-block .token.attr-name,
+.code-block .token.builtin { color: #89b4fa; }
+.code-block .token.keyword { color: #cba6f7; }
+.code-block .token.function { color: #89b4fa; }
+.code-block .token.operator { color: #89dceb; }
+.code-block .token.class-name { color: #f9e2af; }
+.code-block .token.decorator { color: #f38ba8; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="home.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <span class="docs-badge">Docs</span>
+    </div>
+    <div class="topbar-right">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <a href="https://github.com/hiveboard/hiveloop" class="topbar-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="home.html" class="topbar-link primary">Open Dashboard</a>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="docs-layout">
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar" id="docsSidebar">
+<div class="docs-nav-section">Getting Started</div>
+<a class="docs-nav-item" href="user-manual.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7a2 2 0 012 2v12.5l-.5-.5-3-3H3.5A1.5 1.5 0 012 11.5v-8z" stroke="currentColor" stroke-width="1.3"/><path d="M16 3.5A1.5 1.5 0 0014.5 2H11a2 2 0 00-2 2v12.5l.5-.5 3-3h2A1.5 1.5 0 0016 11.5v-8z" stroke="currentColor" stroke-width="1.3"/></svg></span><span>SDK Manual</span></a>
+<a class="docs-nav-item" href="integration-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M6 2v4M12 2v4M4 6h10v3a5 5 0 01-5 5 5 5 0 01-5-5V6zM9 14v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Integration Guide</span></a>
+<div class="docs-nav-section">Dashboard</div>
+<a class="docs-nav-item" href="docs-dashboard-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 7h14M7 7v9" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Dashboard Guide</span></a>
+<div class="docs-nav-section">Instrumentation</div>
+<a class="docs-nav-item" href="docs-instrumentation-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Instrumentation</span></a>
+<a class="docs-nav-item" href="docs-layer1-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6l7 4 7-4-7-4zM2 12l7 4 7-4M2 9l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Layer 1 Guide</span></a>
+<div class="docs-nav-section">Rich Events</div>
+<a class="docs-nav-item" href="docs-layer2-rich-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M10 2L3 10h5l-1 6 7-8h-5l1-6z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Rich Events</span></a>
+<a class="docs-nav-item active" href="docs-layer2-llm-tracking.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="7" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2v2M11 2v2M7 14v2M11 14v2M2 7h2M2 11h2M14 7h2M14 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>LLM Tracking</span></a>
+<a class="docs-nav-item" href="docs-operational-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M16 9h-3l-2 7L7 2 5 9H2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Operational Events</span></a>
+<a class="docs-nav-item" href="docs-track-context.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7v4M13 7c0 3-2 4-8 4" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Track Context</span></a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+        <div class="doc-meta">
+            <span class="doc-meta-badge">v0.1.0</span>
+            <span class="doc-meta-badge">Updated Feb 2026</span>
+        </div>
+        <article class="doc-content">
+<h1 id="hiveboard-user-manual-part-6-layer-2-llm-tracking-what-to-expect">HiveBoard — User Manual Part 6: Layer 2 LLM Tracking — What to Expect <a class="heading-anchor" href="#hiveboard-user-manual-part-6-layer-2-llm-tracking-what-to-expect" aria-label="Link to this section">#</a></h1>
+<p><strong>Version:</strong> 0.1.0
+<strong>Last updated:</strong> 2026-02-12</p>
+<blockquote class="callout"><p><em>You've added <code>task.llm_call()</code>. Here's what lights up, what the numbers mean, and how to use them.</em></p></blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents <a class="heading-anchor" href="#table-of-contents" aria-label="Link to this section">#</a></h2>
+<ol>
+<li><a href="#1-what-llm-tracking-gives-you">What LLM Tracking Gives You</a></li>
+<li><a href="#2-the-cost-explorer">The Cost Explorer</a></li>
+<li><a href="#3-reading-the-task-table-with-llm-data">Reading the Task Table with LLM Data</a></li>
+<li><a href="#4-reading-the-timeline-with-llm-nodes">Reading the Timeline with LLM Nodes</a></li>
+<li><a href="#5-reading-the-activity-stream-with-llm-events">Reading the Activity Stream with LLM Events</a></li>
+<li><a href="#6-the-stats-ribbon-with-cost-data">The Stats Ribbon with Cost Data</a></li>
+<li><a href="#7-agent-cards-with-cost-context">Agent Cards with Cost Context</a></li>
+<li><a href="#8-investigation-workflows">Investigation Workflows</a></li>
+<li><a href="#9-understanding-your-cost-profile">Understanding Your Cost Profile</a></li>
+<li><a href="#10-common-patterns">Common Patterns</a></li>
+<li><a href="#11-what-you-dont-see-yet-and-why">What You Don't See Yet (and Why)</a></li>
+</ol>
+<hr />
+<h2 id="1-what-llm-tracking-gives-you">1. What LLM Tracking Gives You <a class="heading-anchor" href="#1-what-llm-tracking-gives-you" aria-label="Link to this section">#</a></h2>
+<p>Layer 1 told you what your agents are doing and how long it takes. LLM tracking tells you <strong>what it costs and where the money goes.</strong></p>
+<p>With <code>task.llm_call()</code> in place, here's the before and after:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard element</th>
+  <th>Layer 1 (before)</th>
+  <th>+ LLM tracking (now)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Cost Explorer</strong></td>
+  <td>All zeros</td>
+  <td>Fully functional — cost by model, cost by agent, call counts, token totals</td>
+</tr>
+<tr>
+  <td><strong>Task Table — LLM column</strong></td>
+  <td>&quot;—&quot;</td>
+  <td>Call count per task (e.g. &quot;◆ 6&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Task Table — COST column</strong></td>
+  <td>&quot;—&quot;</td>
+  <td>Dollar amount per task (e.g. &quot;$0.07&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Timeline</strong></td>
+  <td>Task + action nodes only</td>
+  <td>+ Purple LLM nodes with model badges</td>
+</tr>
+<tr>
+  <td><strong>Timeline header</strong></td>
+  <td>Duration + status</td>
+  <td>+ &quot;◆ 6 LLM&quot; call count</td>
+</tr>
+<tr>
+  <td><strong>Stats Ribbon — Cost (1h)</strong></td>
+  <td>&quot;—&quot;</td>
+  <td>Dollar amount (e.g. &quot;$5.11&quot;)</td>
+</tr>
+<tr>
+  <td><strong>Mini-Charts — LLM Cost/Task</strong></td>
+  <td>Flat</td>
+  <td>Cost-per-task trend bars</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>task + action events</td>
+  <td>+ <code>llm_call</code> events with model, tokens, cost</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream — &quot;llm&quot; filter</strong></td>
+  <td>Empty</td>
+  <td>Shows every LLM call</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="what-questions-llm-tracking-answers">What questions LLM tracking answers <a class="heading-anchor" href="#what-questions-llm-tracking-answers" aria-label="Link to this section">#</a></h3>
+<ul>
+<li>How much is my agent fleet costing per hour?</li>
+<li>Which model is the most expensive?</li>
+<li>Which agent spends the most?</li>
+<li>How many LLM calls per task?</li>
+<li>What's the average cost per call?</li>
+<li>Is cost per task stable or increasing?</li>
+<li>Which LLM call within a task is the most expensive?</li>
+<li>Am I using an expensive model where a cheaper one would work?</li>
+</ul>
+<hr />
+<h2 id="2-the-cost-explorer">2. The Cost Explorer <a class="heading-anchor" href="#2-the-cost-explorer" aria-label="Link to this section">#</a></h2>
+<p>The Cost Explorer is the primary view for cost analysis. Switch to it by clicking <strong>Cost Explorer</strong> in the top navigation bar.</p>
+<h3 id="21-cost-ribbon">2.1 Cost Ribbon <a class="heading-anchor" href="#21-cost-ribbon" aria-label="Link to this section">#</a></h3>
+<p>The top bar shows aggregate numbers:</p>
+<div class="code-block"><pre><code>TOTAL COST     LLM CALLS     TOKENS IN      TOKENS OUT     AVG COST/CALL
+$5.11          397            1,563.5K       117.0K         $0.013
+</code></pre></div>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Metric</th>
+  <th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Total Cost</strong></td>
+  <td>Sum of all LLM call costs in the current time window</td>
+</tr>
+<tr>
+  <td><strong>LLM Calls</strong></td>
+  <td>Total number of <code>task.llm_call()</code> events</td>
+</tr>
+<tr>
+  <td><strong>Tokens In</strong></td>
+  <td>Total input tokens across all calls</td>
+</tr>
+<tr>
+  <td><strong>Tokens Out</strong></td>
+  <td>Total output tokens across all calls</td>
+</tr>
+<tr>
+  <td><strong>Avg Cost/Call</strong></td>
+  <td>Total Cost ÷ LLM Calls — your average per-call spend</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="22-cost-by-model">2.2 Cost by Model <a class="heading-anchor" href="#22-cost-by-model" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>MODEL                              CALLS    TOKENS IN    TOKENS OUT    COST
+claude-sonnet-4-5-20250929         332      1,538.5K     111.7K        $5.10    ████████████████
+claude-3-haiku-20240307            65       25.0K        5.3K          $0.01    ▎
+</code></pre></div>
+<p>This table answers: <strong>&quot;Where is the money going?&quot;</strong></p>
+<p>In the example above, Sonnet accounts for 99.8% of cost despite being only 84% of calls. Haiku handles 16% of calls for $0.01 total. This is the typical pattern — one expensive model dominates cost while a cheaper model handles lightweight tasks.</p>
+<p><strong>What to look for:</strong></p>
+<ul>
+<li><strong>Model concentration:</strong> Is 90%+ of cost coming from one model? Could some of those calls use a cheaper model?</li>
+<li><strong>Token ratios:</strong> High tokens-in with low tokens-out may mean you're sending large prompts for simple completions — consider prompt optimization</li>
+<li><strong>Call counts:</strong> Many small calls vs few large calls have different optimization strategies</li>
+</ul>
+<h3 id="23-cost-by-agent">2.3 Cost by Agent <a class="heading-anchor" href="#23-cost-by-agent" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>AGENT              CALLS    TOKENS IN    TOKENS OUT    COST
+main               199      1,033.7K     61.1K         $3.18    █████████████
+ag_6ce5uncd        198      529.8K       55.9K         $1.93    ████████
+</code></pre></div>
+<p>This table answers: <strong>&quot;Which agent is the most expensive?&quot;</strong></p>
+<p><strong>What to look for:</strong></p>
+<ul>
+<li><strong>Cost asymmetry:</strong> If agents do similar work but one costs 2× more, it may be using a more expensive model or sending larger prompts</li>
+<li><strong>Calls per agent:</strong> Similar call counts but different costs → different models or prompt sizes</li>
+<li><strong>Tokens In per call:</strong> Divide Tokens In by Calls. If one agent averages 5K tokens/call and another averages 2K, the first is sending much larger contexts</li>
+</ul>
+<h3 id="24-time-filtering">2.4 Time filtering <a class="heading-anchor" href="#24-time-filtering" aria-label="Link to this section">#</a></h3>
+<p>The Cost Explorer respects the environment selector in the top bar. All numbers reflect the currently selected environment and time window.</p>
+<hr />
+<h2 id="3-reading-the-task-table-with-llm-data">3. Reading the Task Table with LLM Data <a class="heading-anchor" href="#3-reading-the-task-table-with-llm-data" aria-label="Link to this section">#</a></h2>
+<h3 id="31-new-columns">3.1 New columns <a class="heading-anchor" href="#31-new-columns" aria-label="Link to this section">#</a></h3>
+<p>With LLM tracking, two columns in the Task Table come alive:</p>
+<div class="code-block"><pre><code>TASK ID                          AGENT          TYPE       STATUS      DURATION  LLM    COST     TIME
+ag_6ce5uncd-evt_f758dc50253d     ag_6ce5uncd    heartbeat  completed   27.0s     ◆ 6    $0.07    2m ago
+main-evt_4f7ffbde231a            main           heartbeat  completed   27.9s     ◆ 6    $0.12    2m ago
+ag_6ce5uncd-evt_034d8a89118f     ag_6ce5uncd    heartbeat  completed   25.4s     ◆ 6    $0.07    3m ago
+</code></pre></div>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Column</th>
+  <th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>LLM</strong></td>
+  <td>Purple diamond + count of LLM calls in this task (e.g. &quot;◆ 6&quot;)</td>
+</tr>
+<tr>
+  <td><strong>COST</strong></td>
+  <td>Total cost of all LLM calls in this task</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="32-what-to-scan-for">3.2 What to scan for <a class="heading-anchor" href="#32-what-to-scan-for" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>All rows show similar LLM count and cost</td>
+  <td>Consistent task behavior — each task makes the same calls</td>
+</tr>
+<tr>
+  <td>One row has significantly higher cost</td>
+  <td>That task hit an expensive code path — click to investigate timeline</td>
+</tr>
+<tr>
+  <td>LLM count varies (◆ 2 vs ◆ 8)</td>
+  <td>Different task types trigger different LLM paths</td>
+</tr>
+<tr>
+  <td>Cost increasing over time (newer rows cost more)</td>
+  <td>Prompt sizes may be growing (context window filling up)</td>
+</tr>
+<tr>
+  <td>Cost per agent differs ($0.12 vs $0.07 for same task type)</td>
+  <td>Agents may use different models or prompt configurations</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="33-cost-difference-between-agents">3.3 Cost difference between agents <a class="heading-anchor" href="#33-cost-difference-between-agents" aria-label="Link to this section">#</a></h3>
+<p>In the screenshots, <code>main</code> tasks cost $0.12 while <code>ag_6ce5uncd</code> tasks cost $0.07 — same task type (heartbeat), same number of LLM calls (◆ 6). The difference comes from prompt size: <code>main</code> sends ~5.2K tokens per Phase 1 call while <code>ag_6ce5uncd</code> sends ~2.7K. Larger context = more tokens = higher cost. This is exactly the kind of insight that was invisible before LLM tracking.</p>
+<hr />
+<h2 id="4-reading-the-timeline-with-llm-nodes">4. Reading the Timeline with LLM Nodes <a class="heading-anchor" href="#4-reading-the-timeline-with-llm-nodes" aria-label="Link to this section">#</a></h2>
+<h3 id="41-llm-nodes-on-the-timeline">4.1 LLM nodes on the timeline <a class="heading-anchor" href="#41-llm-nodes-on-the-timeline" aria-label="Link to this section">#</a></h3>
+<p>With LLM tracking, purple square nodes appear on the timeline for each LLM call:</p>
+<div class="code-block"><pre><code>TIMELINE  ag_6ce5uncd-evt_f758dc50253d  ⏱ 27.0s  🤖 ag_6ce5uncd  ✓ completed  ◆ 6 LLM
+
+  [phase1_reasoning]  [phase2_tool_use]  [phase1_reasoning]  [phase2_tool_use]  [phase1_reasoning]  [heartbeat_summary]
+       □                    □                   □                    □                  □                    □
+   20:13:11           20:13:14            20:13:20             20:13:23           20:13:29              20:13:30
+</code></pre></div>
+<p>Each LLM node represents one <code>task.llm_call()</code>:</p>
+<ul>
+<li><strong>Square shape (□)</strong> — LLM calls use squares, not circles (which are task/action events)</li>
+<li><strong>Purple color</strong> — distinguishes LLM events from task events (green) and action events (blue)</li>
+<li><strong>Model badge</strong> — the model name appears above the node (e.g. <code>claude-sonnet-4-5-20250929</code>)</li>
+<li><strong>Timestamp</strong> — when the call started</li>
+</ul>
+<h3 id="42-timeline-header-enrichment">4.2 Timeline header enrichment <a class="heading-anchor" href="#42-timeline-header-enrichment" aria-label="Link to this section">#</a></h3>
+<p>The timeline header now shows LLM call count:</p>
+<div class="code-block"><pre><code>TIMELINE  task-id  ⏱ 27.0s  🤖 agent-name  ✓ completed  ◆ 6 LLM
+</code></pre></div>
+<p>The &quot;◆ 6 LLM&quot; tells you at a glance how many LLM calls this task made without needing to count nodes.</p>
+<h3 id="43-reading-the-llm-call-sequence">4.3 Reading the LLM call sequence <a class="heading-anchor" href="#43-reading-the-llm-call-sequence" aria-label="Link to this section">#</a></h3>
+<p>The node sequence tells you the agent's reasoning flow:</p>
+<div class="code-block"><pre><code>phase1_reasoning → phase2_tool_use → phase1_reasoning → phase2_tool_use → phase1_reasoning → heartbeat_summary
+</code></pre></div>
+<p>This reveals:</p>
+<ul>
+<li>The agent did 3 reasoning passes (phase1) and 2 tool-use passes (phase2)</li>
+<li>The pattern is alternating: reason → act → reason → act → reason</li>
+<li>The final call is a heartbeat summary using a cheaper model (Haiku)</li>
+<li>Each pair (reason + act) represents one &quot;turn&quot; of the agent loop</li>
+</ul>
+<h3 id="44-clicking-an-llm-node">4.4 Clicking an LLM node <a class="heading-anchor" href="#44-clicking-an-llm-node" aria-label="Link to this section">#</a></h3>
+<p>Click any purple node to see the detail panel:</p>
+<div class="code-block"><pre><code>◆ phase1_reasoning  20:12:12.830
+  event       llm_call
+  model       claude-sonnet-4-5-20250929
+  tokens_in   9,569
+  tokens_out  363
+  cost        $0.034
+  duration    2.8s
+</code></pre></div>
+<p>This shows exactly what happened in this specific call — the model used, token counts, cost, and latency. Compare this across calls to find which ones are expensive.</p>
+<h3 id="45-identifying-the-expensive-call">4.5 Identifying the expensive call <a class="heading-anchor" href="#45-identifying-the-expensive-call" aria-label="Link to this section">#</a></h3>
+<p>In a task with 6 LLM calls totaling $0.07, one call may account for $0.03 while the others are $0.008 each. Click through the nodes to find the expensive one — it's usually the first <code>phase1_reasoning</code> call (largest context) or a <code>phase2_tool_use</code> call (tool responses can be large).</p>
+<hr />
+<h2 id="5-reading-the-activity-stream-with-llm-events">5. Reading the Activity Stream with LLM Events <a class="heading-anchor" href="#5-reading-the-activity-stream-with-llm-events" aria-label="Link to this section">#</a></h2>
+<h3 id="51-llm-events-in-the-stream">5.1 LLM events in the stream <a class="heading-anchor" href="#51-llm-events-in-the-stream" aria-label="Link to this section">#</a></h3>
+<p>LLM calls appear as <code>llm_call</code> events with rich detail:</p>
+<div class="code-block"><pre><code>●● llm_call                                                    2m ago
+   ag_6ce5uncd &gt; ag_6ce5uncd-evt_f758dc50253d
+   heartbeat_summary → claude-3-haiku-20240307 (378 in / 81 out, $0.0002)
+
+●● llm_call                                                    2m ago
+   ag_6ce5uncd &gt; ag_6ce5uncd-evt_f758dc50253d
+   phase1_reasoning → claude-sonnet-4-5-20250929 (4565 in / 327 out, $0.019)
+
+●● llm_call                                                    3m ago
+   main &gt; main-evt_4f7ffbde231a
+   phase2_tool_use → claude-sonnet-4-5-20250929 (1220 in / 228 out, $0.007)
+</code></pre></div>
+<p>Each LLM event shows:</p>
+<ul>
+<li><strong>Call name</strong> → <strong>Model</strong> (e.g. <code>phase1_reasoning → claude-sonnet-4-5-20250929</code>)</li>
+<li><strong>Token counts</strong> in parentheses (tokens in / tokens out)</li>
+<li><strong>Cost</strong> in USD</li>
+<li><strong>Agent and task reference</strong> — clickable to navigate</li>
+</ul>
+<h3 id="52-the-quotllmquot-stream-filter">5.2 The &quot;llm&quot; stream filter <a class="heading-anchor" href="#52-the-quotllmquot-stream-filter" aria-label="Link to this section">#</a></h3>
+<p>Click the <strong>llm</strong> filter button to show only LLM call events. This gives you a live feed of every LLM API call across your fleet — useful for:</p>
+<ul>
+<li>Watching LLM calls in real time during a task</li>
+<li>Spotting unexpectedly expensive calls</li>
+<li>Seeing which models are being used</li>
+<li>Identifying patterns (e.g. every task ends with a cheap Haiku call for summarization)</li>
+</ul>
+<h3 id="53-reading-cost-in-the-stream">5.3 Reading cost in the stream <a class="heading-anchor" href="#53-reading-cost-in-the-stream" aria-label="Link to this section">#</a></h3>
+<p>The stream shows cost per-call. Scan for outliers:</p>
+<ul>
+<li>Most calls might be $0.005-$0.02</li>
+<li>If one shows $0.15, that's a 10× outlier — investigate (likely a very large prompt)</li>
+<li>Calls showing <code>$0.0002</code> are cheap model calls (Haiku) — expected for lightweight tasks</li>
+</ul>
+<hr />
+<h2 id="6-the-stats-ribbon-with-cost-data">6. The Stats Ribbon with Cost Data <a class="heading-anchor" href="#6-the-stats-ribbon-with-cost-data" aria-label="Link to this section">#</a></h2>
+<h3 id="61-cost-1h">6.1 Cost (1h) <a class="heading-anchor" href="#61-cost-1h" aria-label="Link to this section">#</a></h3>
+<p>The Stats Ribbon now shows cost in the rightmost position:</p>
+<div class="code-block"><pre><code>TOTAL AGENTS  PROCESSING  WAITING  STUCK  ERRORS  SUCCESS RATE  AVG DURATION  COST (1H)
+2             0           0        0      0       100%          27.3s         $5.11
+</code></pre></div>
+<p><strong>Cost (1h)</strong> is the total LLM spend in the last hour. This is your burn rate indicator.</p>
+<p><strong>Quick math:</strong> If Cost (1h) = $5.11, your daily burn rate is roughly $5.11 × 24 = ~$123/day, or ~$3,700/month. This is the number that makes invisible spend visible.</p>
+<h3 id="62-llm-costtask-mini-chart">6.2 LLM Cost/Task mini-chart <a class="heading-anchor" href="#62-llm-costtask-mini-chart" aria-label="Link to this section">#</a></h3>
+<p>The LLM Cost/Task chart shows cost-per-task over time. Each bar represents the average cost of tasks in that time bucket.</p>
+<p><strong>What to watch for:</strong></p>
+<ul>
+<li><strong>Flat line</strong> — consistent cost per task. Good.</li>
+<li><strong>Rising trend</strong> — cost per task is increasing. May indicate growing context windows, more LLM turns per task, or a model change.</li>
+<li><strong>Spikes</strong> — occasional expensive tasks. Click the Task Table to find them.</li>
+</ul>
+<hr />
+<h2 id="7-agent-cards-with-cost-context">7. Agent Cards with Cost Context <a class="heading-anchor" href="#7-agent-cards-with-cost-context" aria-label="Link to this section">#</a></h2>
+<h3 id="71-current-task-visibility">7.1 Current task visibility <a class="heading-anchor" href="#71-current-task-visibility" aria-label="Link to this section">#</a></h3>
+<p>With LLM tracking, agent cards show the current task ID (which now includes the event ID for uniqueness):</p>
+<div class="code-block"><pre><code>┌─────────────────────────────────────┐
+│ ag_6ce5uncd                    IDLE │
+│ Marketing Expert  ● 12s ago        │
+│ ↳ ag_6ce5uncd-evt_f758dc50253d     │  ← current/last task with unique ID
+│ ▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪           │
+└─────────────────────────────────────┘
+</code></pre></div>
+<h3 id="72-cost-on-agent-cards">7.2 Cost on agent cards <a class="heading-anchor" href="#72-cost-on-agent-cards" aria-label="Link to this section">#</a></h3>
+<p>The Cost by Agent breakdown in the Cost Explorer is your primary tool for per-agent cost analysis. Agent cards don't show cost directly (they focus on status and health), but clicking an agent filters the entire dashboard — including the Stats Ribbon's Cost (1h) — to that agent's data.</p>
+<hr />
+<h2 id="8-investigation-workflows">8. Investigation Workflows <a class="heading-anchor" href="#8-investigation-workflows" aria-label="Link to this section">#</a></h2>
+<h3 id="81-quothow-much-is-this-costing-mequot">8.1 &quot;How much is this costing me?&quot; <a class="heading-anchor" href="#81-quothow-much-is-this-costing-mequot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Click <strong>Cost Explorer</strong> in the top bar</li>
+<li>Read <strong>Total Cost</strong> in the Cost Ribbon — that's your current burn</li>
+<li>Check <strong>Cost by Model</strong> — which model dominates spend?</li>
+<li>Check <strong>Cost by Agent</strong> — which agent spends the most?</li>
+<li>Quick math: Total Cost ÷ time window = burn rate</li>
+</ol>
+<h3 id="82-quotwhy-is-this-task-expensivequot">8.2 &quot;Why is this task expensive?&quot; <a class="heading-anchor" href="#82-quotwhy-is-this-task-expensivequot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Find the task in the Task Table (sort by COST column)</li>
+<li>Click the task row to load its timeline</li>
+<li>Look at the LLM nodes — how many calls? Which ones?</li>
+<li>Click each purple node — compare <code>tokens_in</code> across calls</li>
+<li>The call with the highest <code>tokens_in</code> is likely the most expensive</li>
+</ol>
+<h3 id="83-quotcan-i-use-a-cheaper-modelquot">8.3 &quot;Can I use a cheaper model?&quot; <a class="heading-anchor" href="#83-quotcan-i-use-a-cheaper-modelquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Open Cost Explorer → Cost by Model</li>
+<li>Identify the expensive model (e.g. Sonnet at $5.10)</li>
+<li>Click the <strong>llm</strong> filter in the Activity Stream</li>
+<li>Scan the call names — which operations use the expensive model?</li>
+<li>Ask: Do <code>heartbeat_summary</code> calls need Sonnet, or would Haiku work?</li>
+<li>If an operation is simple (summarization, classification), try switching it to a cheaper model</li>
+</ol>
+<h3 id="84-quotwhy-does-agent-a-cost-more-than-agent-bquot">8.4 &quot;Why does agent A cost more than agent B?&quot; <a class="heading-anchor" href="#84-quotwhy-does-agent-a-cost-more-than-agent-bquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Open Cost Explorer → Cost by Agent</li>
+<li>Note the difference: agent A ($3.18) vs agent B ($1.93)</li>
+<li>Check Tokens In: agent A (1,033.7K) vs agent B (529.8K) — A sends 2× more tokens</li>
+<li>Check Calls: similar (199 vs 198) — same number of calls</li>
+<li>Conclusion: Agent A's prompts are larger. It's the same number of calls but bigger context windows. Investigate whether A needs the extra context or if it can be trimmed.</li>
+</ol>
+<h3 id="85-quotis-cost-trending-upquot">8.5 &quot;Is cost trending up?&quot; <a class="heading-anchor" href="#85-quotis-cost-trending-upquot" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>Watch the <strong>LLM Cost/Task</strong> mini-chart over time</li>
+<li>If bars are growing, cost per task is increasing</li>
+<li>Common causes:<ul>
+<li>Context window growing (conversation history accumulating)</li>
+<li>More LLM turns per task (agent needing more reasoning passes)</li>
+<li>Model change (upgraded to a more expensive model)</li>
+</ul>
+</li>
+<li>Check the Task Table — sort by TIME (newest first), compare COST column across recent vs older tasks</li>
+</ol>
+<hr />
+<h2 id="9-understanding-your-cost-profile">9. Understanding Your Cost Profile <a class="heading-anchor" href="#9-understanding-your-cost-profile" aria-label="Link to this section">#</a></h2>
+<h3 id="91-the-model-mix">9.1 The model mix <a class="heading-anchor" href="#91-the-model-mix" aria-label="Link to this section">#</a></h3>
+<p>Most agent systems use 2-3 models:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Role</th>
+  <th>Typical model</th>
+  <th>Cost tier</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Heavy reasoning</td>
+  <td>Sonnet, GPT-4o, Gemini Pro</td>
+  <td>$3-15/M tokens in</td>
+</tr>
+<tr>
+  <td>Tool use / execution</td>
+  <td>Sonnet, GPT-4o</td>
+  <td>$3-10/M tokens in</td>
+</tr>
+<tr>
+  <td>Lightweight tasks</td>
+  <td>Haiku, GPT-4o-mini, Flash</td>
+  <td>$0.10-0.80/M tokens in</td>
+</tr>
+<tr>
+  <td>Summarization</td>
+  <td>Haiku, GPT-4o-mini</td>
+  <td>$0.10-0.80/M tokens in</td>
+</tr>
+</tbody>
+</table></div>
+<p>The Cost Explorer's &quot;by model&quot; view immediately shows your mix. A healthy cost profile uses expensive models for reasoning and cheap models for routine operations.</p>
+<h3 id="92-the-token-budget">9.2 The token budget <a class="heading-anchor" href="#92-the-token-budget" aria-label="Link to this section">#</a></h3>
+<p>For each task, the total cost breaks down as:</p>
+<div class="code-block"><pre><code>Task cost = Σ (tokens_in × input_rate + tokens_out × output_rate) for each LLM call
+</code></pre></div>
+<p>Input tokens (prompts) typically dominate cost because:</p>
+<ul>
+<li>System prompts and conversation history are large</li>
+<li>Tool definitions add to every call</li>
+<li>Context windows grow over the task's lifetime</li>
+</ul>
+<p>Output tokens (completions) are usually smaller but have higher per-token rates (3-5× input rate for most models).</p>
+<h3 id="93-establishing-your-baseline">9.3 Establishing your baseline <a class="heading-anchor" href="#93-establishing-your-baseline" aria-label="Link to this section">#</a></h3>
+<p>After running for 1-2 hours with LLM tracking, note these numbers:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Metric</th>
+  <th>Your baseline</th>
+  <th>Where to find it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Cost per task</td>
+  <td>e.g. $0.07-0.12</td>
+  <td>Task Table, COST column</td>
+</tr>
+<tr>
+  <td>LLM calls per task</td>
+  <td>e.g. ◆ 6</td>
+  <td>Task Table, LLM column</td>
+</tr>
+<tr>
+  <td>Cost per hour</td>
+  <td>e.g. $5/hr</td>
+  <td>Stats Ribbon, Cost (1h)</td>
+</tr>
+<tr>
+  <td>Avg cost per call</td>
+  <td>e.g. $0.013</td>
+  <td>Cost Explorer, Avg Cost/Call</td>
+</tr>
+<tr>
+  <td>Most expensive model</td>
+  <td>e.g. Sonnet at 99%</td>
+  <td>Cost Explorer, Cost by Model</td>
+</tr>
+</tbody>
+</table></div>
+<p>These are your reference numbers. When something changes — cost spikes, new model deployed, prompt restructured — you'll compare against this baseline.</p>
+<hr />
+<h2 id="10-common-patterns">10. Common Patterns <a class="heading-anchor" href="#10-common-patterns" aria-label="Link to this section">#</a></h2>
+<h3 id="101-healthy-cost-profile">10.1 Healthy cost profile <a class="heading-anchor" href="#101-healthy-cost-profile" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>Cost Explorer:  Stable total, 1-2 models, clear model roles
+Task Table:     Consistent cost per task ($0.07 ± $0.02)
+Timeline:       Predictable LLM call pattern (reason → act → reason → summarize)
+Stream:         Regular llm_call events, no outliers
+</code></pre></div>
+<p>This is normal. Bookmark these numbers.</p>
+<h3 id="102-cost-creep">10.2 Cost creep <a class="heading-anchor" href="#102-cost-creep" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>Cost Explorer:  Total Cost rising each hour
+Task Table:     Recent tasks cost more than older tasks
+Mini-chart:     LLM Cost/Task trend rising
+</code></pre></div>
+<p><strong>Diagnosis:</strong> Context windows are growing. Each task carries more conversation history, so <code>tokens_in</code> increases with every turn. Check whether context compaction is running. If it is, its compaction threshold may need tuning.</p>
+<h3 id="103-expensive-outlier-tasks">10.3 Expensive outlier tasks <a class="heading-anchor" href="#103-expensive-outlier-tasks" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>Task Table:     Most tasks $0.07, one task $0.45
+Timeline:       Outlier task has 15 LLM calls instead of the usual 6
+Stream:         Multiple retry-like patterns (reasoning → tool_use → reasoning → tool_use...)
+</code></pre></div>
+<p><strong>Diagnosis:</strong> The agent got stuck in a reasoning loop — it kept retrying or the task was complex enough to require many more turns. Check if there's a turn limit in your agent configuration.</p>
+<h3 id="104-wrong-model-for-the-job">10.4 Wrong model for the job <a class="heading-anchor" href="#104-wrong-model-for-the-job" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>Cost Explorer:  Expensive model (Sonnet) handles 100% of calls
+Stream:         heartbeat_summary calls use Sonnet ($0.03) instead of Haiku ($0.0002)
+</code></pre></div>
+<p><strong>Diagnosis:</strong> A cheap summarization task is using an expensive model. Switching <code>heartbeat_summary</code> to Haiku saves ~$0.03 per call × hundreds of calls per day. This is the &quot;invisible $40/hour&quot; scenario — everything works fine, but you're paying 100× more than necessary for lightweight tasks.</p>
+<h3 id="105-token-asymmetry">10.5 Token asymmetry <a class="heading-anchor" href="#105-token-asymmetry" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><pre><code>Cost Explorer:  Tokens In = 1,563K, Tokens Out = 117K (13:1 ratio)
+Stream:         Every call shows large tokens_in, small tokens_out
+</code></pre></div>
+<p><strong>Diagnosis:</strong> Prompts are very large relative to completions. This is normal for agentic systems (large system prompts, tool definitions, conversation history) but worth watching. If the ratio exceeds 20:1, consider whether all that context is necessary for every call.</p>
+<hr />
+<h2 id="11-what-you-dont-see-yet-and-why">11. What You Don't See Yet (and Why) <a class="heading-anchor" href="#11-what-you-dont-see-yet-and-why" aria-label="Link to this section">#</a></h2>
+<p>Even with LLM tracking, some dashboard elements remain empty until additional Layer 2 events are added:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Element</th>
+  <th>Shows</th>
+  <th>What fills it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Plan progress bar</strong></td>
+  <td>Hidden</td>
+  <td><code>task.plan()</code> + <code>task.plan_step()</code></td>
+</tr>
+<tr>
+  <td><strong>Pipeline tab (Queue)</strong></td>
+  <td>Empty</td>
+  <td><code>agent.queue_snapshot()</code></td>
+</tr>
+<tr>
+  <td><strong>Pipeline tab (Issues)</strong></td>
+  <td>Empty</td>
+  <td><code>agent.report_issue()</code></td>
+</tr>
+<tr>
+  <td><strong>Pipeline tab (TODOs)</strong></td>
+  <td>Empty</td>
+  <td><code>agent.todo()</code></td>
+</tr>
+<tr>
+  <td><strong>Pipeline tab (Scheduled)</strong></td>
+  <td>Empty</td>
+  <td><code>agent.scheduled()</code></td>
+</tr>
+<tr>
+  <td><strong>Waiting count</strong></td>
+  <td>0</td>
+  <td><code>task.request_approval()</code></td>
+</tr>
+<tr>
+  <td><strong>&quot;human&quot; stream filter</strong></td>
+  <td>Empty</td>
+  <td><code>task.escalate()</code> or <code>task.request_approval()</code></td>
+</tr>
+<tr>
+  <td><strong>&quot;pipeline&quot; stream filter</strong></td>
+  <td>Empty</td>
+  <td>Pipeline events</td>
+</tr>
+</tbody>
+</table></div>
+<p>LLM tracking is the highest-value Layer 2 addition, but the remaining events add operational narrative. See Part 5, Section 12 for the incremental adoption strategy.</p>
+
+        </article>
+        <div class="prev-next"><a class="prev-next-link prev" href="docs-layer2-rich-events.html"><span class="prev-next-label">← Previous</span><span class="prev-next-title">Rich Events</span></a><a class="prev-next-link next" href="docs-operational-events.html"><span class="prev-next-label">Next →</span><span class="prev-next-title">Operational Events</span></a></div>
+    </main>
+
+    <!-- RIGHT TOC -->
+<nav class="page-toc"><div class="page-toc-title">On this page</div>
+<a class="toc-link" href="#table-of-contents">Table of Contents</a>
+<a class="toc-link" href="#1-what-llm-tracking-gives-you">1. What LLM Tracking Gives You</a>
+<a class="toc-link toc-h3" href="#what-questions-llm-tracking-answers">What questions LLM tracking answers</a>
+<a class="toc-link" href="#2-the-cost-explorer">2. The Cost Explorer</a>
+<a class="toc-link toc-h3" href="#21-cost-ribbon">2.1 Cost Ribbon</a>
+<a class="toc-link toc-h3" href="#22-cost-by-model">2.2 Cost by Model</a>
+<a class="toc-link toc-h3" href="#23-cost-by-agent">2.3 Cost by Agent</a>
+<a class="toc-link toc-h3" href="#24-time-filtering">2.4 Time filtering</a>
+<a class="toc-link" href="#3-reading-the-task-table-with-llm-data">3. Reading the Task Table with LLM Data</a>
+<a class="toc-link toc-h3" href="#31-new-columns">3.1 New columns</a>
+<a class="toc-link toc-h3" href="#32-what-to-scan-for">3.2 What to scan for</a>
+<a class="toc-link toc-h3" href="#33-cost-difference-between-agents">3.3 Cost difference between agents</a>
+<a class="toc-link" href="#4-reading-the-timeline-with-llm-nodes">4. Reading the Timeline with LLM Nodes</a>
+<a class="toc-link toc-h3" href="#41-llm-nodes-on-the-timeline">4.1 LLM nodes on the timeline</a>
+<a class="toc-link toc-h3" href="#42-timeline-header-enrichment">4.2 Timeline header enrichment</a>
+<a class="toc-link toc-h3" href="#43-reading-the-llm-call-sequence">4.3 Reading the LLM call sequence</a>
+<a class="toc-link toc-h3" href="#44-clicking-an-llm-node">4.4 Clicking an LLM node</a>
+<a class="toc-link toc-h3" href="#45-identifying-the-expensive-call">4.5 Identifying the expensive call</a>
+<a class="toc-link" href="#5-reading-the-activity-stream-with-llm-events">5. Reading the Activity Stream with LLM Events</a>
+<a class="toc-link toc-h3" href="#51-llm-events-in-the-stream">5.1 LLM events in the stream</a>
+<a class="toc-link toc-h3" href="#52-the-llm-stream-filter">5.2 The "llm" stream filter</a>
+<a class="toc-link toc-h3" href="#53-reading-cost-in-the-stream">5.3 Reading cost in the stream</a>
+<a class="toc-link" href="#6-the-stats-ribbon-with-cost-data">6. The Stats Ribbon with Cost Data</a>
+<a class="toc-link toc-h3" href="#61-cost-1h">6.1 Cost (1h)</a>
+<a class="toc-link toc-h3" href="#62-llm-costtask-mini-chart">6.2 LLM Cost/Task mini-chart</a>
+<a class="toc-link" href="#7-agent-cards-with-cost-context">7. Agent Cards with Cost Context</a>
+<a class="toc-link toc-h3" href="#71-current-task-visibility">7.1 Current task visibility</a>
+<a class="toc-link toc-h3" href="#72-cost-on-agent-cards">7.2 Cost on agent cards</a>
+<a class="toc-link" href="#8-investigation-workflows">8. Investigation Workflows</a>
+<a class="toc-link toc-h3" href="#81-how-much-is-this-costing-me">8.1 "How much is this costing me?"</a>
+<a class="toc-link toc-h3" href="#82-why-is-this-task-expensive">8.2 "Why is this task expensive?"</a>
+<a class="toc-link toc-h3" href="#83-can-i-use-a-cheaper-model">8.3 "Can I use a cheaper model?"</a>
+<a class="toc-link toc-h3" href="#84-why-does-agent-a-cost-more-than-agent-b">8.4 "Why does agent A cost more than agent B?"</a>
+<a class="toc-link toc-h3" href="#85-is-cost-trending-up">8.5 "Is cost trending up?"</a>
+<a class="toc-link" href="#9-understanding-your-cost-profile">9. Understanding Your Cost Profile</a>
+<a class="toc-link toc-h3" href="#91-the-model-mix">9.1 The model mix</a>
+<a class="toc-link toc-h3" href="#92-the-token-budget">9.2 The token budget</a>
+<a class="toc-link toc-h3" href="#93-establishing-your-baseline">9.3 Establishing your baseline</a>
+<a class="toc-link" href="#10-common-patterns">10. Common Patterns</a>
+<a class="toc-link toc-h3" href="#101-healthy-cost-profile">10.1 Healthy cost profile</a>
+<a class="toc-link toc-h3" href="#102-cost-creep">10.2 Cost creep</a>
+<a class="toc-link toc-h3" href="#103-expensive-outlier-tasks">10.3 Expensive outlier tasks</a>
+<a class="toc-link toc-h3" href="#104-wrong-model-for-the-job">10.4 Wrong model for the job</a>
+<a class="toc-link toc-h3" href="#105-token-asymmetry">10.5 Token asymmetry</a>
+<a class="toc-link" href="#11-what-you-dont-see-yet-and-why">11. What You Don't See Yet (and Why)</a>
+</nav>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script>
+// Re-highlight after load
+Prism.highlightAll();
+
+// Mobile menu toggle
+document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.toggle('open');
+});
+
+// Close sidebar on content click (mobile)
+document.querySelector('.docs-main')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.remove('open');
+});
+
+// Active TOC tracking
+(function() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    if (!tocLinks.length) return;
+    
+    const headings = [];
+    tocLinks.forEach(link => {
+        const id = link.getAttribute('href')?.slice(1);
+        const el = id && document.getElementById(id);
+        if (el) headings.push({ el, link });
+    });
+    
+    function updateActive() {
+        let current = headings[0];
+        for (const h of headings) {
+            if (h.el.getBoundingClientRect().top <= 100) current = h;
+        }
+        tocLinks.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+    
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', a.getAttribute('href'));
+        }
+    });
+});
+</script>
+</body>
+</html>

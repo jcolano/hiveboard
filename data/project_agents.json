@@ -1,1 +1,44 @@
-[]
+[
+  {
+    "tenant_id": "dev",
+    "project_id": "489bb070-8e39-4495-b724-84d52b56b5e4",
+    "agent_id": "scout",
+    "added_at": "2026-02-14T21:13:16.658984Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "3891cc0a-b4dc-487f-af58-c6f1ad402cac",
+    "agent_id": "closer",
+    "added_at": "2026-02-14T21:13:16.667485Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "3eeb0e50-51a1-46ff-a51d-c96d5ee77c73",
+    "agent_id": "harper",
+    "added_at": "2026-02-14T21:13:16.674087Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "6b298dbd-d662-4163-bab1-f165674b6c38",
+    "agent_id": "campaigner",
+    "added_at": "2026-02-14T21:13:16.680982Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "0b56f772-54f7-4b31-aacb-7be025631dcd",
+    "agent_id": "archivist",
+    "added_at": "2026-02-14T21:13:16.688315Z",
+    "role": "member"
+  },
+  {
+    "tenant_id": "dev",
+    "project_id": "489bb070-8e39-4495-b724-84d52b56b5e4",
+    "agent_id": "dispatch",
+    "added_at": "2026-02-14T21:13:16.695482Z",
+    "role": "member"
+  }
+]

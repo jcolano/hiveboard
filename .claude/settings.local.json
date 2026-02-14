@@ -17,7 +17,10 @@
       "Bash(git stash:*)",
       "Bash(echo:*)",
       "Bash(netstat:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(pkill:*)",
+      "Bash(node -e:*)",
+      "Bash(timeout:*)"
     ]
   }
 }
