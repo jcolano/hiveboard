@@ -139,10 +139,11 @@ async def _prune_loop(storage: JsonStorageBackend):
 async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
     """Create a dev tenant, API key, and owner user on first run.
 
-    The dev key is read from HIVEBOARD_DEV_KEY env var.
+    The dev key is read from config.json (or HIVEBOARD_DEV_KEY env var).
     If unset, bootstrap is skipped (no hardcoded key in source).
     """
-    raw_key = os.environ.get("HIVEBOARD_DEV_KEY")
+    from backend.config import get as _cfg
+    raw_key = _cfg("dev_key")
     if not raw_key:
         return
     tenant = await storage.get_tenant("dev")
@@ -160,7 +161,7 @@ async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
     )
     # Bootstrap dev owner user
     from backend.auth import hash_password
-    dev_password = os.environ.get("HIVEBOARD_DEV_PASSWORD")
+    dev_password = _cfg("dev_password")
     if not dev_password:
         return
     try:

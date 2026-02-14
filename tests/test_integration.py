@@ -35,6 +35,9 @@ AUTH = {"Authorization": f"Bearer {DEV_KEY}"}
 async def server(tmp_path: Path, monkeypatch):
     """Start backend with fresh storage, return httpx async client."""
     monkeypatch.setenv("HIVEBOARD_DEV_KEY", DEV_KEY)
+    monkeypatch.setenv("HIVEBOARD_DEV_PASSWORD", "test-integration-pw")
+    import backend.config
+    backend.config.reload()
     reset_rate_limits()
     storage = JsonStorageBackend(data_dir=tmp_path / "data")
     await storage.initialize()

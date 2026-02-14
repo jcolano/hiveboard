@@ -27,6 +27,8 @@ async def client(tmp_path: Path, monkeypatch):
     """Test client with fresh storage per test."""
     monkeypatch.setenv("HIVEBOARD_DEV_KEY", DEV_KEY)
     monkeypatch.setenv("HIVEBOARD_DEV_PASSWORD", DEV_PASSWORD)
+    import backend.config
+    backend.config.reload()
     reset_rate_limits()
     storage = JsonStorageBackend(data_dir=tmp_path)
     await storage.initialize()

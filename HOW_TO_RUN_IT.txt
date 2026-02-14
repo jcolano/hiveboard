@@ -1,8 +1,6 @@
   To run the E2E demo:
-  set HIVEBOARD_DEV_KEY=hb_live_dev000000000000000000000000000000
-  set HIVEBOARD_DEV_PASSWORD=your-chosen-dev-password
-  uvicorn backend.app:app --port 8000
+  1. Copy config.example.json to config.json and fill in your values
+  2. uvicorn backend.app:app --port 8000
   # In another terminal:
   python examples/simulator.py --fast
   # Then open http://localhost:8000/dashboard
-
