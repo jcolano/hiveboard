@@ -34,5 +34,7 @@ docs/my_own_agents_case/
 docs/AWS_WEBSOCKET_SETUP_GUIDE.md
 docs/loopcore-hiveboard-observability-deep-dive.md
 
+src/dashboard/
+
 # Build artifacts
 src/sdk/dist/
