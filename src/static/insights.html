@@ -1602,24 +1602,882 @@ function renderQ10to16(agent) {
 
 
 // ══════════════════════════════════════════════════════
-//  SECTION 3: THE OPTIMIZATION (Q17-Q28) — placeholder
+//  SECTION 3: THE OPTIMIZATION (Q17-Q28) + Smart Detectors
 // ══════════════════════════════════════════════════════
 
 function renderOptimization() {
     var el = document.getElementById('optimizationContent');
     if (!el) return;
-    el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#9881;</span><div>Optimization section coming in next release.</div></div>';
+
+    var html = '';
+
+    // Q17-Q20: Cost Overview row
+    html += '<div class="subsection-label">Cost Overview (Q17\u2013Q20)</div>';
+    html += '<div class="insights-grid-4 mb-16">';
+    html += renderQ17();
+    html += renderQ18();
+    html += renderQ19();
+    html += renderQ20();
+    html += '</div>';
+
+    // Q21: Cost Timeseries chart
+    html += renderQ21();
+
+    // Q22-Q24: Cost By Model, By Agent, Top Calls
+    html += '<div class="subsection-label mt-16">Cost Breakdown (Q22\u2013Q24)</div>';
+    html += '<div class="insights-grid-3 mb-16">';
+    html += renderQ22();
+    html += renderQ23();
+    html += renderQ24();
+    html += '</div>';
+
+    // Q25-Q26: Error Patterns
+    html += '<div class="subsection-label mt-16">Error Patterns (Q25\u2013Q26)</div>';
+    html += '<div class="insights-grid-2 mb-16">';
+    html += renderQ25();
+    html += renderQ26();
+    html += '</div>';
+
+    // Q27-Q28: Smart Detectors
+    html += '<div class="subsection-label mt-16">Smart Detectors (Q27\u2013Q28)</div>';
+    html += renderSmartDetectors();
+
+    el.innerHTML = html;
+}
+
+// Q17: How much has this cost?
+function renderQ17() {
+    if (insErrors.cost) return errorCard('Total Spend', 'Q17', 'cost');
+    if (!insCost) return emptyCard('Total Spend', 'Q17', 'No cost data available.');
+
+    var total = insCost.total_cost || 0;
+    var reported = insCost.reported_cost || 0;
+    var estimated = insCost.estimated_cost || 0;
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Total Spend</span>' +
+        '<span class="insights-card-qid">Q17</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number">$' + total.toFixed(2) + '</div>' +
+        '<div class="text-xs muted mt-8">' + insightsRange + ' window</div>' +
+        (estimated > 0 ? '<div class="text-xs muted mt-8">Reported: $' + reported.toFixed(2) + ' \u00B7 Estimated: ~$' + estimated.toFixed(2) + '</div>' : '') +
+        '</div></div>';
+}
+
+// Q18: What's the cost per task?
+function renderQ18() {
+    if (insErrors.metrics) return errorCard('Cost / Task', 'Q18', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Cost / Task', 'Q18', 'No task data.');
+
+    var avgCpt = summary.avg_cost_per_task || 0;
+    var totalTasks = summary.total_tasks || 0;
+    var totalCost = summary.total_cost || 0;
+
+    // Trend from timeseries
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    var cptData = ts.map(function(b) {
+        return b.tasks_completed > 0 ? (b.cost || 0) / b.tasks_completed : 0;
+    });
+    var trend = computeTrend(cptData);
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Cost / Task</span>' +
+        '<span class="insights-card-qid">Q18</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small">$' + avgCpt.toFixed(3) + '</span>' +
+        trendHtml(trend, true) + '</div>' +
+        '<div class="text-xs muted mt-8">$' + totalCost.toFixed(2) + ' across ' + totalTasks + ' tasks</div>' +
+        '</div></div>';
+}
+
+// Q19: How many LLM calls are being made?
+function renderQ19() {
+    if (insErrors.cost) return errorCard('LLM Calls', 'Q19', 'cost');
+    if (!insCost) return emptyCard('LLM Calls', 'Q19', 'No data.');
+
+    var callCount = insCost.call_count || 0;
+    // Calls-per-task if metrics available
+    var totalTasks = insMetrics && insMetrics.summary ? insMetrics.summary.total_tasks || 1 : 1;
+    var callsPerTask = totalTasks > 0 ? (callCount / totalTasks).toFixed(1) : '\u2014';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">LLM Calls</span>' +
+        '<span class="insights-card-qid">Q19</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number small">' + fmtTokens(callCount) + '</div>' +
+        '<div class="text-xs muted mt-8">' + callsPerTask + ' calls/task avg</div>' +
+        '</div></div>';
+}
+
+// Q20: What's the token split?
+function renderQ20() {
+    if (insErrors.cost) return errorCard('Token Split', 'Q20', 'cost');
+    if (!insCost) return emptyCard('Token Split', 'Q20', 'No data.');
+
+    var tokIn = insCost.total_tokens_in || 0;
+    var tokOut = insCost.total_tokens_out || 0;
+    var total = tokIn + tokOut || 1;
+    var inPct = ((tokIn / total) * 100).toFixed(0);
+    var outPct = ((tokOut / total) * 100).toFixed(0);
+    var ratio = tokOut > 0 ? (tokIn / tokOut).toFixed(1) : '\u2014';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Token Split</span>' +
+        '<span class="insights-card-qid">Q20</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8">' +
+        '<span class="text-xs mono" style="color:var(--active);">In: ' + fmtTokens(tokIn) + ' (' + inPct + '%)</span>' +
+        '<span class="text-xs mono" style="color:var(--success);">Out: ' + fmtTokens(tokOut) + ' (' + outPct + '%)</span>' +
+        '</div>' +
+        '<div class="token-bar">' +
+        '<div class="in" style="width:' + inPct + '%;"></div>' +
+        '<div class="out" style="width:' + outPct + '%;"></div></div>' +
+        '<div class="text-xs muted mt-8">In/Out ratio: ' + ratio + ':1</div>' +
+        '</div></div>';
+}
+
+// Q21: Cost over time
+function renderQ21() {
+    if (insErrors.costTimeseries) {
+        return '<div class="insights-card insights-card--full mb-16">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Cost Over Time</span>' +
+            '<span class="insights-card-qid">Q21</span></div>' +
+            '<div class="insights-error-state"><span class="error-icon">!</span><div>Failed to load cost timeseries</div>' +
+            '<button class="retry-btn" onclick="manualRefresh()">Retry</button></div></div>';
+    }
+
+    if (!insCostTimeseries || insCostTimeseries.length < 2) {
+        return '<div class="insights-card insights-card--full mb-16">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Cost Over Time</span>' +
+            '<span class="insights-card-qid">Q21</span></div>' +
+            '<div class="insights-card-body"><div class="insights-empty-state">' +
+            '<div>Not enough data for a chart. Keep agents running to see trends.</div></div></div></div>';
+    }
+
+    var costData = insCostTimeseries.map(function(b) { return b.cost || 0; });
+    var cumulative = [];
+    var sum = 0;
+    costData.forEach(function(v) { sum += v; cumulative.push(sum); });
+
+    // Area chart
+    var chart = buildAreaChart(cumulative, insCostTimeseries.map(function(b) { return b.timestamp; }),
+        'var(--llm)', 'gcCost', 80, '$');
+
+    return '<div class="insights-card insights-card--full mb-16">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Cumulative Cost</span>' +
+        '<span class="insights-card-qid">Q21</span></div>' +
+        '<div class="insights-card-body"><div class="chart-container">' + chart + '</div></div></div>';
+}
+
+function buildAreaChart(data, labels, color, gradientId, height, prefix) {
+    if (!data || data.length < 2) return '';
+    height = height || 80;
+    prefix = prefix || '';
+    var w = 400, h = height;
+    var max = Math.max.apply(null, data);
+    var min = Math.min.apply(null, data);
+    var range = max - min || 1;
+    var pad = 6;
+
+    var points = data.map(function(v, i) {
+        var x = pad + (i / (data.length - 1)) * (w - pad * 2);
+        var y = pad + ((max - v) / range) * (h - pad * 2);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+
+    var polyPoints = pad.toFixed(1) + ',' + (h - pad) + ' ' + points + ' ' + (w - pad).toFixed(1) + ',' + (h - pad);
+
+    // Y-axis labels
+    var yLabels = '';
+    yLabels += '<text x="2" y="' + (pad + 4) + '" fill="var(--text-muted)" font-size="9" font-family="var(--font-mono)">' + prefix + max.toFixed(2) + '</text>';
+    yLabels += '<text x="2" y="' + (h - pad + 2) + '" fill="var(--text-muted)" font-size="9" font-family="var(--font-mono)">' + prefix + min.toFixed(2) + '</text>';
+
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" height="' + height + '" preserveAspectRatio="none" style="width:100%;">' +
+        '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.2"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0.02"/>' +
+        '</linearGradient></defs>' +
+        '<polygon points="' + polyPoints + '" fill="url(#' + gradientId + ')"/>' +
+        '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2"/>' +
+        yLabels +
+        '</svg>';
+}
+
+// Q22: Cost by model
+function renderQ22() {
+    if (insErrors.cost) return errorCard('Cost by Model', 'Q22', 'cost');
+    if (!insCost || !insCost.by_model || insCost.by_model.length === 0) {
+        return emptyCard('Cost by Model', 'Q22', 'No model cost data.');
+    }
+
+    var sorted = insCost.by_model.slice().sort(function(a, b) { return (b.cost || 0) - (a.cost || 0); });
+    var maxCost = sorted[0].cost || 1;
+
+    var bars = sorted.map(function(m) {
+        var pct = ((m.cost || 0) / maxCost * 100).toFixed(0);
+        return '<div class="insights-bar-row">' +
+            '<span class="insights-bar-label">' + escHtml(m.model || 'unknown') + '</span>' +
+            '<div class="insights-bar-track"><div class="insights-bar-fill" style="width:' + pct + '%;background:var(--llm);">' +
+            (parseInt(pct) > 25 ? '$' + (m.cost || 0).toFixed(2) : '') + '</div></div>' +
+            '<span class="insights-bar-value">$' + (m.cost || 0).toFixed(2) + '</span></div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Cost by Model</span>' +
+        '<span class="insights-card-qid">Q22</span></div>' +
+        '<div class="insights-card-body">' + bars + '</div></div>';
+}
+
+// Q23: Cost by agent
+function renderQ23() {
+    if (insErrors.cost) return errorCard('Cost by Agent', 'Q23', 'cost');
+    if (!insCost || !insCost.by_agent || insCost.by_agent.length === 0) {
+        return emptyCard('Cost by Agent', 'Q23', 'No agent cost data.');
+    }
+
+    var sorted = insCost.by_agent.slice().sort(function(a, b) { return (b.cost || 0) - (a.cost || 0); });
+    var maxCost = sorted[0].cost || 1;
+
+    var bars = sorted.slice(0, 8).map(function(a) {
+        var pct = ((a.cost || 0) / maxCost * 100).toFixed(0);
+        return '<div class="insights-bar-row">' +
+            '<span class="insights-bar-label nav-link" onclick="selectInsightsAgent(\'' + escHtml(a.agent_id || a.agent || '') + '\')">' + escHtml(a.agent_id || a.agent || 'unknown') + '</span>' +
+            '<div class="insights-bar-track"><div class="insights-bar-fill" style="width:' + pct + '%;background:var(--accent);">' +
+            (parseInt(pct) > 25 ? '$' + (a.cost || 0).toFixed(2) : '') + '</div></div>' +
+            '<span class="insights-bar-value">$' + (a.cost || 0).toFixed(2) + '</span></div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Cost by Agent</span>' +
+        '<span class="insights-card-qid">Q23</span></div>' +
+        '<div class="insights-card-body">' + bars + '</div></div>';
+}
+
+// Q24: Top expensive calls
+function renderQ24() {
+    if (insErrors.costCalls) return errorCard('Top Calls', 'Q24', 'costCalls');
+    if (!insCostCalls || insCostCalls.length === 0) {
+        return emptyCard('Top Calls', 'Q24', 'No LLM call data.');
+    }
+
+    var sorted = insCostCalls.slice().sort(function(a, b) { return (b.cost || 0) - (a.cost || 0); });
+    var top = sorted.slice(0, 6);
+
+    var rows = top.map(function(c) {
+        return '<tr>' +
+            '<td>' + escHtml(c.model || '?') + '</td>' +
+            '<td>$' + (c.cost || 0).toFixed(3) + '</td>' +
+            '<td>' + fmtTokens(c.tokens_in) + '/' + fmtTokens(c.tokens_out) + '</td>' +
+            '<td>' + fmtDuration(c.duration_ms) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Top Calls by Cost</span>' +
+        '<span class="insights-card-qid">Q24</span></div>' +
+        '<div class="insights-card-body">' +
+        '<table class="insights-table"><thead><tr><th>Model</th><th>Cost</th><th>Tok In/Out</th><th>Duration</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div></div>';
+}
+
+// Q25: Common error types
+function renderQ25() {
+    if (insErrors.events) return errorCard('Error Types', 'Q25', 'events');
+
+    var errorEvents = insEvents.filter(function(ev) { return ev.severity === 'error'; });
+    if (errorEvents.length === 0) {
+        return '<div class="insights-card">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Error Types</span>' +
+            '<span class="insights-card-qid">Q25</span></div>' +
+            '<div class="insights-card-body">' +
+            '<div style="color:var(--success);font-weight:600;font-size:13px;">No errors in recent events</div>' +
+            '</div></div>';
+    }
+
+    // Group by event_type
+    var groups = {};
+    errorEvents.forEach(function(ev) {
+        var key = ev.event_type || 'unknown';
+        if (!groups[key]) groups[key] = { count: 0, agents: {} };
+        groups[key].count++;
+        groups[key].agents[ev.agent_id] = true;
+    });
+
+    var sorted = Object.entries(groups).sort(function(a, b) { return b[1].count - a[1].count; });
+    var rows = sorted.slice(0, 6).map(function(entry) {
+        var key = entry[0], data = entry[1];
+        var agentCount = Object.keys(data.agents).length;
+        return '<tr><td>' + escHtml(key) + '</td>' +
+            '<td style="font-weight:600;color:var(--error);">' + data.count + '</td>' +
+            '<td>' + agentCount + ' agent' + (agentCount !== 1 ? 's' : '') + '</td></tr>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Error Types</span>' +
+        '<span class="insights-card-qid">Q25</span></div>' +
+        '<div class="insights-card-body">' +
+        '<table class="insights-table"><thead><tr><th>Type</th><th>Count</th><th>Agents</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div></div>';
+}
+
+// Q26: Retry/escalation patterns
+function renderQ26() {
+    if (insErrors.tasks) return errorCard('Retries & Escalations', 'Q26', 'tasks');
+
+    var escalatedCount = insTasks.filter(function(t) { return t.has_escalation; }).length;
+    var humanCount = insTasks.filter(function(t) { return t.has_human_intervention; }).length;
+    var failedCount = insTasks.filter(function(t) { return t.derived_status === 'failed'; }).length;
+    var totalTasks = insTasks.length;
+
+    var escalationRate = totalTasks > 0 ? ((escalatedCount / totalTasks) * 100).toFixed(1) : '0.0';
+    var humanRate = totalTasks > 0 ? ((humanCount / totalTasks) * 100).toFixed(1) : '0.0';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Retries & Escalations</span>' +
+        '<span class="insights-card-qid">Q26</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8">' +
+        '<span class="insights-badge insights-badge--amber">' + escalatedCount + ' escalated (' + escalationRate + '%)</span>' +
+        '</div>' +
+        '<div class="gap-row mb-8">' +
+        '<span class="insights-badge insights-badge--blue">' + humanCount + ' human interventions (' + humanRate + '%)</span>' +
+        '</div>' +
+        '<div class="gap-row">' +
+        '<span class="insights-badge insights-badge--red">' + failedCount + ' failed tasks</span>' +
+        '</div>' +
+        '</div></div>';
+}
+
+// Q27-Q28: Smart Detectors
+function renderSmartDetectors() {
+    var detectors = [];
+
+    // Detector 1: Cost Spike
+    detectors.push(detectCostSpike());
+
+    // Detector 2: Error Burst
+    detectors.push(detectErrorBurst());
+
+    // Detector 3: Stuck Fleet
+    detectors.push(detectStuckFleet());
+
+    // Detector 4: Token Waste
+    detectors.push(detectTokenWaste());
+
+    // Detector 5: Throughput Drop
+    detectors.push(detectThroughputDrop());
+
+    // Detector 6: Model Cost Imbalance
+    detectors.push(detectModelImbalance());
+
+    var html = '<div class="detector-grid">';
+    detectors.forEach(function(d) {
+        var statusCls = d.status === 'ok' ? 'detector-ok' : d.status === 'warn' ? 'detector-warn' : 'detector-error';
+        var dotColor = d.status === 'ok' ? 'var(--success)' : d.status === 'warn' ? 'var(--warning)' : 'var(--error)';
+        html += '<div class="insights-card--detector ' + statusCls + '">' +
+            '<div class="detector-header">' +
+            '<span class="detector-name"><span class="detector-status-dot" style="background:' + dotColor + ';"></span>' +
+            escHtml(d.name) + '</span>' +
+            '<span class="insights-badge insights-badge--' + (d.status === 'ok' ? 'green' : d.status === 'warn' ? 'amber' : 'red') + '">' + d.status + '</span>' +
+            '</div>' +
+            '<div class="detector-summary">' + escHtml(d.summary) + '</div>' +
+            (d.detail ? '<div class="text-xs mono muted">' + escHtml(d.detail) + '</div>' : '') +
+            '<div class="detector-footer">Checked: just now</div>' +
+            '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function detectCostSpike() {
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    if (ts.length < 4) return { name: 'Cost Spike', status: 'ok', summary: 'Not enough data to detect spikes.', detail: '' };
+
+    var costData = ts.map(function(b) { return b.cost || 0; });
+    var avg = costData.reduce(function(s,v){return s+v;},0) / costData.length;
+    var last = costData[costData.length - 1];
+    var ratio = avg > 0 ? last / avg : 0;
+
+    if (ratio > 3) return { name: 'Cost Spike', status: 'error', summary: 'Last interval cost is ' + ratio.toFixed(1) + 'x the average.', detail: 'Last: $' + last.toFixed(3) + ', Avg: $' + avg.toFixed(3) };
+    if (ratio > 2) return { name: 'Cost Spike', status: 'warn', summary: 'Cost is ' + ratio.toFixed(1) + 'x average \u2014 worth watching.', detail: 'Last: $' + last.toFixed(3) + ', Avg: $' + avg.toFixed(3) };
+    return { name: 'Cost Spike', status: 'ok', summary: 'Cost is within normal range.', detail: 'Last: $' + last.toFixed(3) + ', Avg: $' + avg.toFixed(3) };
+}
+
+function detectErrorBurst() {
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    if (ts.length < 2) return { name: 'Error Burst', status: 'ok', summary: 'Not enough data.', detail: '' };
+
+    var errorData = ts.map(function(b) { return b.tasks_failed || 0; });
+    var total = errorData.reduce(function(s,v){return s+v;},0);
+    var lastThree = errorData.slice(-3);
+    var recentSum = lastThree.reduce(function(s,v){return s+v;},0);
+
+    if (recentSum >= 5) return { name: 'Error Burst', status: 'error', summary: recentSum + ' failures in the last 3 intervals.', detail: total + ' total failures in range' };
+    if (recentSum >= 3) return { name: 'Error Burst', status: 'warn', summary: recentSum + ' failures in recent intervals.', detail: total + ' total failures in range' };
+    return { name: 'Error Burst', status: 'ok', summary: total + ' failures total \u2014 no burst detected.', detail: '' };
+}
+
+function detectStuckFleet() {
+    var stuckCount = insAgents.filter(function(a) { return a.is_stuck; }).length;
+    var total = insAgents.length || 1;
+    var pct = (stuckCount / total * 100).toFixed(0);
+
+    if (stuckCount >= 3 || parseInt(pct) > 50) return { name: 'Stuck Fleet', status: 'error', summary: stuckCount + '/' + total + ' agents stuck (' + pct + '%).', detail: 'Multiple agents unresponsive' };
+    if (stuckCount >= 1) return { name: 'Stuck Fleet', status: 'warn', summary: stuckCount + ' agent(s) stuck.', detail: pct + '% of fleet' };
+    return { name: 'Stuck Fleet', status: 'ok', summary: 'All agents responding within thresholds.', detail: '' };
+}
+
+function detectTokenWaste() {
+    if (!insCost) return { name: 'Token Waste', status: 'ok', summary: 'No data.', detail: '' };
+    var tokIn = insCost.total_tokens_in || 0;
+    var tokOut = insCost.total_tokens_out || 0;
+    var ratio = tokOut > 0 ? tokIn / tokOut : 0;
+
+    if (ratio > 20) return { name: 'Token Waste', status: 'error', summary: 'Input/output ratio is ' + ratio.toFixed(1) + ':1 \u2014 may indicate excessive context.', detail: 'In: ' + fmtTokens(tokIn) + ', Out: ' + fmtTokens(tokOut) };
+    if (ratio > 10) return { name: 'Token Waste', status: 'warn', summary: 'High input/output ratio (' + ratio.toFixed(1) + ':1).', detail: 'Consider optimizing prompts' };
+    return { name: 'Token Waste', status: 'ok', summary: 'Token ratio looks healthy (' + ratio.toFixed(1) + ':1).', detail: '' };
+}
+
+function detectThroughputDrop() {
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    if (ts.length < 6) return { name: 'Throughput Drop', status: 'ok', summary: 'Not enough data.', detail: '' };
+
+    var data = ts.map(function(b) { return b.throughput || 0; });
+    var mid = Math.floor(data.length / 2);
+    var firstHalf = data.slice(0, mid);
+    var secondHalf = data.slice(mid);
+    var avg = function(arr) { return arr.reduce(function(s,v){return s+v;},0) / arr.length; };
+    var a1 = avg(firstHalf);
+    var a2 = avg(secondHalf);
+    var dropPct = a1 > 0 ? ((a1 - a2) / a1) * 100 : 0;
+
+    if (dropPct > 50) return { name: 'Throughput Drop', status: 'error', summary: 'Throughput dropped ' + dropPct.toFixed(0) + '% vs earlier window.', detail: 'First half: ' + a1.toFixed(1) + '/hr, Second half: ' + a2.toFixed(1) + '/hr' };
+    if (dropPct > 25) return { name: 'Throughput Drop', status: 'warn', summary: 'Throughput down ' + dropPct.toFixed(0) + '%.', detail: 'First half: ' + a1.toFixed(1) + '/hr, Second half: ' + a2.toFixed(1) + '/hr' };
+    return { name: 'Throughput Drop', status: 'ok', summary: 'Throughput is stable.', detail: '' };
+}
+
+function detectModelImbalance() {
+    if (!insCost || !insCost.by_model || insCost.by_model.length < 2) {
+        return { name: 'Model Imbalance', status: 'ok', summary: 'Only one model in use.', detail: '' };
+    }
+    var sorted = insCost.by_model.slice().sort(function(a, b) { return (b.cost || 0) - (a.cost || 0); });
+    var total = sorted.reduce(function(s, m) { return s + (m.cost || 0); }, 0);
+    var topPct = total > 0 ? ((sorted[0].cost || 0) / total * 100) : 0;
+
+    if (topPct > 90) return { name: 'Model Imbalance', status: 'warn', summary: sorted[0].model + ' accounts for ' + topPct.toFixed(0) + '% of cost.', detail: 'Consider if a cheaper model could handle some tasks' };
+    return { name: 'Model Imbalance', status: 'ok', summary: 'Model usage looks balanced.', detail: 'Top model: ' + topPct.toFixed(0) + '% of spend' };
 }
 
 
 // ══════════════════════════════════════════════════════
-//  SECTION 4: THE REVIEW (Q29-Q38) — placeholder
+//  SECTION 4: THE REVIEW (Q29-Q38)
 // ══════════════════════════════════════════════════════
 
 function renderReview() {
     var el = document.getElementById('reviewContent');
     if (!el) return;
-    el.innerHTML = '<div class="insights-empty-state"><span class="empty-icon">&#128200;</span><div>Review section coming in next release.</div></div>';
+
+    var html = '';
+
+    // Q29-Q32: Summary stats row
+    html += '<div class="subsection-label">Period Summary (Q29\u2013Q32)</div>';
+    html += '<div class="insights-grid-4 mb-16">';
+    html += renderQ29();
+    html += renderQ30();
+    html += renderQ31();
+    html += renderQ32();
+    html += '</div>';
+
+    // Q33-Q34: Agent performance ranking + Fleet utilization
+    html += '<div class="subsection-label mt-16">Fleet Performance (Q33\u2013Q34)</div>';
+    html += '<div class="insights-grid-2 mb-16">';
+    html += renderQ33();
+    html += renderQ34();
+    html += '</div>';
+
+    // Q35: ROI Calculator
+    html += '<div class="subsection-label mt-16">ROI Analysis (Q35)</div>';
+    html += renderQ35();
+
+    // Q36: Trend summary
+    html += '<div class="subsection-label mt-16">Trend Summary (Q36)</div>';
+    html += renderQ36();
+
+    // Q37: Health Gauge + Q38: Scale Readiness
+    html += '<div class="subsection-label mt-16">Fleet Health & Scale Readiness (Q37\u2013Q38)</div>';
+    html += '<div class="insights-grid-2 mb-16">';
+    html += renderQ37();
+    html += renderQ38();
+    html += '</div>';
+
+    el.innerHTML = html;
+
+    // Bind ROI calculator events
+    bindROIEvents();
+}
+
+// Q29: Total tasks completed
+function renderQ29() {
+    if (insErrors.metrics) return errorCard('Tasks Completed', 'Q29', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Tasks Completed', 'Q29', 'No data.');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Tasks Completed</span>' +
+        '<span class="insights-card-qid">Q29</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number">' + (summary.completed || 0) + '</div>' +
+        '<div class="text-xs muted mt-8">of ' + (summary.total_tasks || 0) + ' total (' + insightsRange + ')</div>' +
+        '</div></div>';
+}
+
+// Q30: Overall success rate
+function renderQ30() {
+    if (insErrors.metrics) return errorCard('Success Rate', 'Q30', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Success Rate', 'Q30', 'No data.');
+
+    var rate = summary.success_rate != null ? summary.success_rate : (summary.total_tasks > 0 ? (summary.completed / summary.total_tasks * 100) : 100);
+    var color = rate >= 95 ? 'var(--success)' : rate >= 80 ? 'var(--warning)' : 'var(--error)';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Success Rate</span>' +
+        '<span class="insights-card-qid">Q30</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number" style="color:' + color + ';">' + rate.toFixed(1) + '%</div>' +
+        '<div class="text-xs muted mt-8">' + (summary.failed || 0) + ' failed, ' + (summary.escalated || 0) + ' escalated</div>' +
+        '</div></div>';
+}
+
+// Q31: Average task duration
+function renderQ31() {
+    if (insErrors.metrics) return errorCard('Avg Duration', 'Q31', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Avg Duration', 'Q31', 'No data.');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Avg Duration</span>' +
+        '<span class="insights-card-qid">Q31</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number small">' + fmtDuration(summary.avg_duration_ms) + '</div>' +
+        '<div class="text-xs muted mt-8">across ' + (summary.completed || 0) + ' completed tasks</div>' +
+        '</div></div>';
+}
+
+// Q32: Total cost summary
+function renderQ32() {
+    if (insErrors.metrics) return errorCard('Period Cost', 'Q32', 'metrics');
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (!summary) return emptyCard('Period Cost', 'Q32', 'No data.');
+
+    var total = summary.total_cost || 0;
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Period Cost</span>' +
+        '<span class="insights-card-qid">Q32</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-big-number small">$' + total.toFixed(2) + '</div>' +
+        '<div class="text-xs muted mt-8">Avg: $' + (summary.avg_cost_per_task || 0).toFixed(3) + '/task</div>' +
+        '</div></div>';
+}
+
+// Q33: Agent performance ranking
+function renderQ33() {
+    if (!insAgents || insAgents.length === 0) return emptyCard('Agent Ranking', 'Q33', 'No agents.');
+
+    var ranked = insAgents.map(function(a) {
+        var s = a.stats_1h || {};
+        var total = (s.tasks_completed || 0) + (s.tasks_failed || 0);
+        var rate = total > 0 ? (s.tasks_completed / total * 100) : 100;
+        return { agent_id: a.agent_id, completed: s.tasks_completed || 0, failed: s.tasks_failed || 0, rate: rate, cost: s.total_cost || 0, status: a.derived_status };
+    }).sort(function(a, b) {
+        if (b.completed !== a.completed) return b.completed - a.completed;
+        return b.rate - a.rate;
+    });
+
+    var rows = ranked.map(function(r, i) {
+        var statusCls = statusBadgeClass(r.status);
+        var rateColor = r.rate >= 95 ? 'var(--success)' : r.rate >= 80 ? 'var(--warning)' : 'var(--error)';
+        return '<tr>' +
+            '<td style="font-weight:600;">#' + (i + 1) + '</td>' +
+            '<td><span class="nav-link" onclick="selectInsightsAgent(\'' + escHtml(r.agent_id) + '\')">' + escHtml(r.agent_id) + '</span></td>' +
+            '<td><span class="insights-badge ' + statusCls + '">' + escHtml(r.status) + '</span></td>' +
+            '<td>' + r.completed + '</td>' +
+            '<td style="color:' + rateColor + ';font-weight:600;">' + r.rate.toFixed(0) + '%</td>' +
+            '<td>$' + r.cost.toFixed(2) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Agent Ranking (1h)</span>' +
+        '<span class="insights-card-qid">Q33</span></div>' +
+        '<div class="insights-card-body">' +
+        '<table class="insights-table"><thead><tr><th>Rank</th><th>Agent</th><th>Status</th><th>Done</th><th>Rate</th><th>Cost</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody></table></div></div>';
+}
+
+// Q34: Fleet utilization
+function renderQ34() {
+    if (!insAgents || insAgents.length === 0) return emptyCard('Fleet Utilization', 'Q34', 'No agents.');
+
+    var processing = insAgents.filter(function(a) { return a.derived_status === 'processing'; }).length;
+    var total = insAgents.length;
+    var utilPct = total > 0 ? (processing / total * 100) : 0;
+
+    var idle = insAgents.filter(function(a) { return a.derived_status === 'idle'; }).length;
+    var waiting = insAgents.filter(function(a) { return a.derived_status === 'waiting_approval'; }).length;
+
+    var totalQueue = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.queue_depth : 0;
+
+    var utilColor = utilPct >= 80 ? 'var(--success)' : utilPct >= 40 ? 'var(--warning)' : 'var(--text-muted)';
+
+    var wasteHtml = '';
+    if (idle > 0 && totalQueue > 0) {
+        wasteHtml = '<div class="mt-8 text-xs" style="color:var(--warning);font-weight:600;">' +
+            idle + ' idle agent' + (idle !== 1 ? 's' : '') + ' with ' + totalQueue + ' queued items</div>';
+    }
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Fleet Utilization</span>' +
+        '<span class="insights-card-qid">Q34</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="insights-metric-row">' +
+        '<span class="insights-big-number small" style="color:' + utilColor + ';">' + utilPct.toFixed(0) + '%</span>' +
+        '<span class="text-xs muted">active</span></div>' +
+        '<div class="text-xs muted mt-8">' + processing + ' processing, ' + idle + ' idle, ' + waiting + ' waiting</div>' +
+        '<div class="hb-bar-track mt-8">' +
+        '<div class="hb-bar-fill" style="width:' + utilPct.toFixed(0) + '%;background:' + utilColor + ';"></div></div>' +
+        wasteHtml +
+        '</div></div>';
+}
+
+// Q35: ROI Calculator
+function renderQ35() {
+    var totalCost = (insCost ? insCost.total_cost : 0) || 0;
+    var totalTasks = (insMetrics && insMetrics.summary) ? insMetrics.summary.completed || 0 : 0;
+
+    return '<div class="insights-card insights-card--full mb-16">' +
+        '<div class="insights-card-header"><span class="insights-card-label">ROI Calculator</span>' +
+        '<span class="insights-card-qid">Q35</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="text-xs muted mb-8">Estimate the value your AI fleet delivers compared to manual work.</div>' +
+        '<div class="roi-inputs">' +
+        '<div class="roi-input-group"><label>Hourly Rate ($/hr)</label>' +
+        '<input type="number" id="roiHourlyRate" value="75" min="1" step="5"></div>' +
+        '<div class="roi-input-group"><label>Min/Task Manual</label>' +
+        '<input type="number" id="roiMinPerTask" value="30" min="1" step="5"></div>' +
+        '<div class="roi-input-group"><label>Tasks Completed</label>' +
+        '<input type="number" id="roiTaskCount" value="' + totalTasks + '" min="0" readonly></div>' +
+        '</div>' +
+        '<div class="roi-result" id="roiResult">' +
+        '<div class="roi-result-item"><div class="val" id="roiManualCost">$0</div><div class="lbl">Manual Cost</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiAiCost" style="color:var(--llm);">$' + totalCost.toFixed(2) + '</div><div class="lbl">AI Cost</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiSavings">$0</div><div class="lbl">Savings</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiMultiplier">0x</div><div class="lbl">ROI Multiplier</div></div>' +
+        '</div></div></div>';
+}
+
+function bindROIEvents() {
+    var rateEl = document.getElementById('roiHourlyRate');
+    var minEl = document.getElementById('roiMinPerTask');
+    if (!rateEl || !minEl) return;
+    var calc = function() { calculateROI(); };
+    rateEl.addEventListener('input', calc);
+    minEl.addEventListener('input', calc);
+    calculateROI();
+}
+
+function calculateROI() {
+    var rate = parseFloat(document.getElementById('roiHourlyRate').value) || 75;
+    var minPerTask = parseFloat(document.getElementById('roiMinPerTask').value) || 30;
+    var taskCount = parseInt(document.getElementById('roiTaskCount').value) || 0;
+    var aiCost = (insCost ? insCost.total_cost : 0) || 0;
+
+    var manualCost = (rate / 60) * minPerTask * taskCount;
+    var savings = manualCost - aiCost;
+    var multiplier = aiCost > 0 ? (manualCost / aiCost) : 0;
+
+    var manualEl = document.getElementById('roiManualCost');
+    var savingsEl = document.getElementById('roiSavings');
+    var multiEl = document.getElementById('roiMultiplier');
+
+    if (manualEl) manualEl.textContent = '$' + manualCost.toFixed(2);
+    if (savingsEl) {
+        savingsEl.textContent = '$' + savings.toFixed(2);
+        savingsEl.style.color = savings >= 0 ? 'var(--success)' : 'var(--error)';
+    }
+    if (multiEl) multiEl.textContent = multiplier.toFixed(1) + 'x';
+}
+
+// Q36: Trend summary
+function renderQ36() {
+    var ts = (insMetrics && insMetrics.timeseries) || [];
+    if (ts.length < 4) {
+        return '<div class="insights-card insights-card--full mb-16">' +
+            '<div class="insights-card-header"><span class="insights-card-label">Trend Summary</span>' +
+            '<span class="insights-card-qid">Q36</span></div>' +
+            '<div class="insights-card-body"><div class="insights-empty-state">' +
+            '<div>Not enough data points for trend analysis. Keep agents running.</div></div></div></div>';
+    }
+
+    var throughputData = ts.map(function(b) { return b.throughput || 0; });
+    var errorData = ts.map(function(b) { return b.tasks_failed || 0; });
+    var costData = ts.map(function(b) { return b.cost || 0; });
+    var durationData = ts.map(function(b) { return b.avg_duration_ms || 0; });
+
+    var trends = [
+        { label: 'Throughput', trend: computeTrend(throughputData), invertGood: false, unit: 'tasks/hr' },
+        { label: 'Errors', trend: computeTrend(errorData), invertGood: true, unit: 'errors' },
+        { label: 'Cost', trend: computeTrend(costData), invertGood: true, unit: '$' },
+        { label: 'Duration', trend: computeTrend(durationData), invertGood: true, unit: 'ms' },
+    ];
+
+    var rows = trends.map(function(t) {
+        return '<div class="gap-row mb-8">' +
+            '<span class="text-sm" style="width:100px;font-weight:600;">' + t.label + '</span>' +
+            trendHtml(t.trend, t.invertGood) +
+            '<span class="text-xs muted">' + Math.abs(t.trend.delta).toFixed(1) + '% ' + t.trend.direction + '</span>' +
+            '</div>';
+    }).join('');
+
+    var greenCount = trends.filter(function(t) {
+        if (t.invertGood) return t.trend.direction === 'down' || t.trend.direction === 'flat';
+        return t.trend.direction === 'up' || t.trend.direction === 'flat';
+    }).length;
+
+    var verdictCls = greenCount >= 3 ? 'verdict-banner--green' : greenCount >= 2 ? 'verdict-banner--amber' : 'verdict-banner--red';
+    var verdictText = greenCount >= 3 ? 'Trends look healthy. Keep it up.' :
+        greenCount >= 2 ? 'Mixed signals \u2014 some trends need attention.' :
+        'Multiple concerning trends. Review details above.';
+
+    return '<div class="insights-card insights-card--full mb-16">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Trend Summary</span>' +
+        '<span class="insights-card-qid">Q36</span></div>' +
+        '<div class="insights-card-body">' + rows +
+        '<div class="verdict-banner ' + verdictCls + '">' + verdictText + '</div>' +
+        '</div></div>';
+}
+
+// Q37: Health Gauge
+function renderQ37() {
+    var score = 100;
+    var deductions = [];
+
+    var stuckCount = insAgents.filter(function(a) { return a.is_stuck; }).length;
+    if (stuckCount > 0) { score -= stuckCount * 15; deductions.push(stuckCount + ' stuck (-' + (stuckCount * 15) + ')'); }
+
+    var errorAgents = insAgents.filter(function(a) { return a.derived_status === 'error'; }).length;
+    if (errorAgents > 0) { score -= errorAgents * 10; deductions.push(errorAgents + ' error (-' + (errorAgents * 10) + ')'); }
+
+    var summary = insMetrics ? insMetrics.summary : null;
+    if (summary && summary.success_rate != null && summary.success_rate < 90) {
+        var srDeduct = Math.round((90 - summary.success_rate) * 0.5);
+        score -= srDeduct;
+        deductions.push('Success rate ' + summary.success_rate.toFixed(0) + '% (-' + srDeduct + ')');
+    }
+
+    var issueCount = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.active_issues : 0;
+    if (issueCount > 0) { score -= Math.min(issueCount * 5, 20); deductions.push(issueCount + ' issues (-' + Math.min(issueCount * 5, 20) + ')'); }
+
+    if (insAgents.length === 0) { score -= 50; deductions.push('No agents (-50)'); }
+
+    score = Math.max(0, Math.min(100, score));
+
+    var gaugeColor = score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--error)';
+    var gaugeLabel = score >= 80 ? 'Healthy' : score >= 50 ? 'Needs Attention' : 'Critical';
+
+    var gauge = buildGaugeSVG(score, gaugeColor);
+
+    var deductHtml = deductions.length > 0
+        ? '<div class="mt-8 text-xs muted">' + deductions.join(' \u00B7 ') + '</div>'
+        : '<div class="mt-8 text-xs" style="color:var(--success);font-weight:600;">No deductions \u2014 everything looks great!</div>';
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Fleet Health</span>' +
+        '<span class="insights-card-qid">Q37</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gauge-container">' + gauge +
+        '<div class="gauge-label" style="color:' + gaugeColor + ';">' + gaugeLabel + '</div></div>' +
+        deductHtml +
+        '</div></div>';
+}
+
+function buildGaugeSVG(score, color) {
+    var size = 140, cx = 70, cy = 80, r = 55;
+    var startAngle = Math.PI * 0.8;
+    var endAngle = Math.PI * 2.2;
+    var totalAngle = endAngle - startAngle;
+    var valueAngle = startAngle + (score / 100) * totalAngle;
+
+    var describeArc = function(startA, endA) {
+        var x1 = cx + r * Math.cos(startA);
+        var y1 = cy + r * Math.sin(startA);
+        var x2 = cx + r * Math.cos(endA);
+        var y2 = cy + r * Math.sin(endA);
+        var largeArc = (endA - startA > Math.PI) ? 1 : 0;
+        return 'M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + x2.toFixed(1) + ' ' + y2.toFixed(1);
+    };
+
+    return '<svg class="gauge-svg" viewBox="0 0 ' + size + ' ' + (size - 20) + '">' +
+        '<path d="' + describeArc(startAngle, endAngle) + '" fill="none" stroke="var(--bg-hover)" stroke-width="12" stroke-linecap="round"/>' +
+        '<path d="' + describeArc(startAngle, valueAngle) + '" fill="none" stroke="' + color + '" stroke-width="12" stroke-linecap="round"/>' +
+        '<text x="' + cx + '" y="' + (cy + 5) + '" text-anchor="middle" font-size="28" font-weight="800" font-family="var(--font-sans)" fill="' + color + '">' + score + '</text>' +
+        '<text x="' + cx + '" y="' + (cy + 20) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-family="var(--font-sans)">/ 100</text>' +
+        '</svg>';
+}
+
+// Q38: Scale Readiness Checklist
+function renderQ38() {
+    var checks = [];
+
+    var allOnline = insAgents.length > 0 && insAgents.every(function(a) { return a.heartbeat_age_seconds != null && a.heartbeat_age_seconds < 300; });
+    checks.push({ label: 'All agents online', pass: allOnline, value: insAgents.length + ' agents' });
+
+    var noStuck = insAgents.every(function(a) { return !a.is_stuck; });
+    checks.push({ label: 'No stuck agents', pass: noStuck, value: insAgents.filter(function(a) { return a.is_stuck; }).length + ' stuck' });
+
+    var summary = insMetrics ? insMetrics.summary : null;
+    var sr = summary ? (summary.success_rate || 0) : 0;
+    checks.push({ label: 'Success rate \u2265 90%', pass: sr >= 90, value: sr.toFixed(1) + '%' });
+
+    var issueCount = (insFleetPipeline && insFleetPipeline.totals) ? insFleetPipeline.totals.active_issues : 0;
+    checks.push({ label: 'No active issues', pass: issueCount === 0, value: issueCount + ' issues' });
+
+    var cpt = summary ? (summary.avg_cost_per_task || 0) : 0;
+    checks.push({ label: 'Cost/task < $1.00', pass: cpt < 1.0, value: '$' + cpt.toFixed(3) });
+
+    var multiAgent = insAgents.length >= 2;
+    checks.push({ label: 'Multi-agent fleet', pass: multiAgent, value: insAgents.length + ' agent(s)' });
+
+    var hasRecentActivity = insEvents.length > 0;
+    checks.push({ label: 'Recent activity', pass: hasRecentActivity, value: hasRecentActivity ? timeAgo(insEvents[0].timestamp) : 'none' });
+
+    var passCount = checks.filter(function(c) { return c.pass; }).length;
+    var totalChecks = checks.length;
+
+    var readyColor = passCount === totalChecks ? 'var(--success)' : passCount >= totalChecks - 2 ? 'var(--warning)' : 'var(--error)';
+    var readyLabel = passCount === totalChecks ? 'Ready to scale' : passCount >= totalChecks - 2 ? 'Almost ready' : 'Not ready yet';
+
+    var checklistHtml = checks.map(function(c) {
+        return '<div class="checklist-item">' +
+            '<span class="check-icon ' + (c.pass ? 'check-pass' : 'check-fail') + '">' + (c.pass ? '\u2713' : '\u2717') + '</span>' +
+            '<span class="check-label">' + escHtml(c.label) + '</span>' +
+            '<span class="check-value">' + escHtml(c.value) + '</span>' +
+            '</div>';
+    }).join('');
+
+    return '<div class="insights-card">' +
+        '<div class="insights-card-header"><span class="insights-card-label">Scale Readiness</span>' +
+        '<span class="insights-card-qid">Q38</span></div>' +
+        '<div class="insights-card-body">' +
+        '<div class="gap-row mb-8">' +
+        '<span class="text-sm" style="font-weight:700;color:' + readyColor + ';">' + readyLabel + '</span>' +
+        '<span class="insights-badge insights-badge--' + (passCount === totalChecks ? 'green' : passCount >= totalChecks - 2 ? 'amber' : 'red') + '">' + passCount + '/' + totalChecks + '</span>' +
+        '</div>' +
+        checklistHtml +
+        '</div></div>';
 }
 
 </script>
