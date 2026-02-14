@@ -41,6 +41,14 @@
 
 ---
 
+## Live Demo
+
+**🔴 [Try the live dashboard →](https://hiveboard.net/static/index.html?apiKey=hb_live_dev000000000000000000000000000000)**
+
+5 AI agents running a simulated company (BrightPath Digital) — live heartbeats, real-time tasks, cost data flowing. No signup required.
+
+---
+
 ## Demo Video
 
 <!-- Replace with actual video embed or link after recording -->
