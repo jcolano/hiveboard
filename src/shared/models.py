@@ -274,6 +274,7 @@ class ApiKeyRecord(BaseModel):
     key_prefix: str
     key_type: str                               # live / test / read
     label: str | None = None
+    created_by_user_id: str | None = None       # User who created this key
     created_at: datetime
     last_used_at: datetime | None = None
     revoked_at: datetime | None = None
@@ -285,6 +286,149 @@ class ApiKeyInfo(BaseModel):
     key_id: str
     tenant_id: str
     key_type: str
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  USER MODELS — Auth System
+# ═══════════════════════════════════════════════════════════════════════════
+
+class UserRecord(BaseModel):
+    """Stored user record."""
+    user_id: str
+    tenant_id: str
+    email: str
+    password_hash: str
+    name: str
+    role: str                                   # owner / admin / member / viewer
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+    last_login_at: datetime | None = None
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class UserCreate(BaseModel):
+    """POST body for creating a user."""
+    email: str
+    password: str | None = None
+    name: str
+    role: str = "member"
+
+
+class UserUpdate(BaseModel):
+    """PUT body for updating a user."""
+    email: str | None = None
+    name: str | None = None
+    role: str | None = None
+    settings: dict[str, Any] | None = None
+
+
+class UserInfo(BaseModel):
+    """Minimal JWT auth lookup result."""
+    user_id: str
+    tenant_id: str
+    role: str
+
+
+class UserSafe(BaseModel):
+    """API response — all UserRecord fields except password_hash."""
+    user_id: str
+    tenant_id: str
+    email: str
+    name: str
+    role: str
+    is_active: bool = True
+    created_at: datetime
+    updated_at: datetime
+    last_login_at: datetime | None = None
+    settings: dict[str, Any] = Field(default_factory=dict)
+
+
+class LoginRequest(BaseModel):
+    """POST body for login."""
+    email: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    """Login response with JWT token."""
+    token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: UserSafe
+
+
+class PasswordChangeRequest(BaseModel):
+    """POST body for password change."""
+    current_password: str
+    new_password: str
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  AUTH FLOW MODELS — Registration, Email-Code Login, Invites
+# ═══════════════════════════════════════════════════════════════════════════
+
+class RegisterRequest(BaseModel):
+    """POST /v1/auth/register body."""
+    email: str
+    name: str
+    tenant_name: str
+
+
+class SendCodeRequest(BaseModel):
+    """POST /v1/auth/send-code body."""
+    email: str
+
+
+class VerifyCodeRequest(BaseModel):
+    """POST /v1/auth/verify-code body."""
+    email: str
+    code: str
+
+
+class AcceptInviteRequest(BaseModel):
+    """POST /v1/auth/accept-invite body."""
+    invite_token: str
+    name: str
+
+
+class InviteRequest(BaseModel):
+    """POST /v1/auth/invite body."""
+    email: str
+    role: str = "member"
+    name: str | None = None
+
+
+class InviteRecord(BaseModel):
+    """Stored invite."""
+    invite_id: str
+    tenant_id: str
+    email: str
+    role: str
+    name: str | None = None
+    invite_token_hash: str
+    created_by_user_id: str
+    created_at: datetime
+    expires_at: datetime
+    accepted_at: datetime | None = None
+    is_accepted: bool = False
+
+
+class AuthCodeRecord(BaseModel):
+    """Stored login code."""
+    code_id: str
+    email: str
+    code_hash: str
+    created_at: datetime
+    expires_at: datetime
+    attempts: int = 0
+    used: bool = False
+
+
+class ApiKeyCreateRequest(BaseModel):
+    """POST /v1/api-keys body."""
+    label: str
+    key_type: str = "live"
 
 
 class ProjectRecord(BaseModel):

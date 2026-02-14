@@ -137,14 +137,6 @@ class TestTTLPruning:
         ]
         assert len(orphan) == 1
 
-    @pytest.mark.xfail(
-        reason="BUG: _parse_dt() in storage_json.py raises ValueError on invalid "
-               "timestamps instead of returning None. The defensive check in "
-               "_is_event_within_retention (line 1787: 'if ts is None: return True') "
-               "is unreachable for malformed strings. The _parse_dt in app.py has "
-               "a try/except but the one in storage_json.py does not.",
-        strict=True,
-    )
     async def test_unparseable_timestamp_kept(self, storage: JsonStorageBackend):
         """Events with unparseable timestamps should be kept defensively.
 

@@ -13,7 +13,8 @@
       "Bash(if not exist \"C:\\\\code\\\\hiveBoard\\\\docs\" mkdir \"C:\\\\code\\\\hiveBoard\\\\docs\")",
       "Bash(node -c:*)",
       "Bash(powershell -Command \"\\(Get-Content ''C:\\\\code\\\\hiveBoard\\\\src\\\\static\\\\js\\\\hiveboard.js'' | Measure-Object -Line\\).Lines\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

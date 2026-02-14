@@ -838,3 +838,341 @@ class TestPipelineSnapshotAt:
         pipeline = await storage.get_pipeline("t1", "lead-qualifier")
         assert pipeline.queue is not None
         assert "snapshot_at" in pipeline.queue
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  USER STORAGE TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestUsers:
+    async def test_create_user(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        user = await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="hashed_pw", name="Alice", role="member",
+        )
+        assert user.user_id == "u1"
+        assert user.email == "alice@acme.com"
+        assert user.role == "member"
+        assert user.is_active is True
+
+    async def test_get_user(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="hashed_pw", name="Alice",
+        )
+        user = await storage.get_user("t1", "u1")
+        assert user is not None
+        assert user.name == "Alice"
+
+    async def test_get_user_not_found(self, storage: JsonStorageBackend):
+        user = await storage.get_user("t1", "nonexistent")
+        assert user is None
+
+    async def test_get_user_by_email(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="Alice@Acme.com",
+            password_hash="hashed_pw", name="Alice",
+        )
+        # Case-insensitive lookup
+        user = await storage.get_user_by_email("t1", "alice@acme.com")
+        assert user is not None
+        assert user.user_id == "u1"
+
+    async def test_get_user_by_email_deactivated(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="hashed_pw", name="Alice",
+        )
+        await storage.deactivate_user("t1", "u1")
+        user = await storage.get_user_by_email("t1", "alice@acme.com")
+        assert user is None  # Deactivated users can't be found by email
+
+    async def test_list_users(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="h1", name="Alice", role="admin",
+        )
+        await storage.create_user(
+            user_id="u2", tenant_id="t1", email="bob@acme.com",
+            password_hash="h2", name="Bob", role="member",
+        )
+        all_users = await storage.list_users("t1")
+        assert len(all_users) == 2
+
+        admins = await storage.list_users("t1", role="admin")
+        assert len(admins) == 1
+        assert admins[0].name == "Alice"
+
+    async def test_update_user(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="h1", name="Alice", role="member",
+        )
+        updated = await storage.update_user("t1", "u1", name="Alice Smith", role="admin")
+        assert updated is not None
+        assert updated.name == "Alice Smith"
+        assert updated.role == "admin"
+
+    async def test_update_user_not_found(self, storage: JsonStorageBackend):
+        result = await storage.update_user("t1", "nonexistent", name="Nobody")
+        assert result is None
+
+    async def test_deactivate_and_reactivate(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="h1", name="Alice",
+        )
+        assert await storage.deactivate_user("t1", "u1") is True
+        user = await storage.get_user("t1", "u1")
+        assert user is not None
+        assert user.is_active is False
+
+        assert await storage.reactivate_user("t1", "u1") is True
+        user = await storage.get_user("t1", "u1")
+        assert user.is_active is True
+
+    async def test_tenant_isolation(self, storage: JsonStorageBackend):
+        """Email is now globally unique — same email in two tenants should fail."""
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_tenant("t2", "Beta", "beta")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="h1", name="Alice",
+        )
+        # Same email in different tenant should now fail (global uniqueness)
+        with pytest.raises(ValueError, match="already registered"):
+            await storage.create_user(
+                user_id="u2", tenant_id="t2", email="alice@acme.com",
+                password_hash="h2", name="Alice Beta",
+            )
+        assert await storage.get_user("t2", "u1") is None
+
+    async def test_duplicate_email_rejected(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="alice@acme.com",
+            password_hash="h1", name="Alice",
+        )
+        with pytest.raises(ValueError, match="already registered"):
+            await storage.create_user(
+                user_id="u2", tenant_id="t1", email="Alice@Acme.com",
+                password_hash="h2", name="Alice Dup",
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  AUTH CODE TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestAuthCodes:
+    async def test_create_and_get_active(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+        rec = await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
+        assert rec.code_id == "c1"
+        assert rec.email == "user@test.com"
+        assert rec.used is False
+
+        active = await storage.get_active_auth_code("user@test.com")
+        assert active is not None
+        assert active.code_id == "c1"
+
+    async def test_expired_code_not_returned(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        expires = datetime.now(timezone.utc) - timedelta(minutes=1)  # Already expired
+        await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
+        active = await storage.get_active_auth_code("user@test.com")
+        assert active is None
+
+    async def test_mark_used(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
+        ok = await storage.mark_auth_code_used("c1")
+        assert ok is True
+        active = await storage.get_active_auth_code("user@test.com")
+        assert active is None  # Used code should not be returned
+
+    async def test_increment_attempts(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
+        count = await storage.increment_auth_code_attempts("c1")
+        assert count == 1
+        count = await storage.increment_auth_code_attempts("c1")
+        assert count == 2
+
+    async def test_count_recent(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await storage.create_auth_code("c1", "user@test.com", "h1", expires)
+        await storage.create_auth_code("c2", "user@test.com", "h2", expires)
+        await storage.create_auth_code("c3", "other@test.com", "h3", expires)
+
+        since = datetime.now(timezone.utc) - timedelta(minutes=1)
+        count = await storage.count_recent_codes("user@test.com", since)
+        assert count == 2
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  INVITE TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestInvites:
+    async def test_create_and_get_by_token(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        await storage.create_tenant("t1", "Acme", "acme")
+        expires = datetime.now(timezone.utc) + timedelta(days=7)
+        inv = await storage.create_invite(
+            "inv1", "t1", "bob@test.com", "member", "Bob", "tokenhash1", "user1", expires,
+        )
+        assert inv.invite_id == "inv1"
+        assert inv.is_accepted is False
+
+        found = await storage.get_invite_by_token_hash("tokenhash1")
+        assert found is not None
+        assert found.email == "bob@test.com"
+
+    async def test_expired_invite_not_returned(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        await storage.create_tenant("t1", "Acme", "acme")
+        expires = datetime.now(timezone.utc) - timedelta(days=1)  # Already expired
+        await storage.create_invite(
+            "inv1", "t1", "bob@test.com", "member", None, "tokenhash1", "user1", expires,
+        )
+        found = await storage.get_invite_by_token_hash("tokenhash1")
+        assert found is None
+
+    async def test_get_pending_invite(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        await storage.create_tenant("t1", "Acme", "acme")
+        expires = datetime.now(timezone.utc) + timedelta(days=7)
+        await storage.create_invite(
+            "inv1", "t1", "bob@test.com", "member", None, "tokenhash1", "user1", expires,
+        )
+        pending = await storage.get_pending_invite("t1", "bob@test.com")
+        assert pending is not None
+        assert pending.invite_id == "inv1"
+
+    async def test_mark_accepted(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        await storage.create_tenant("t1", "Acme", "acme")
+        expires = datetime.now(timezone.utc) + timedelta(days=7)
+        await storage.create_invite(
+            "inv1", "t1", "bob@test.com", "member", None, "tokenhash1", "user1", expires,
+        )
+        ok = await storage.mark_invite_accepted("inv1")
+        assert ok is True
+        # No longer returned as pending
+        found = await storage.get_invite_by_token_hash("tokenhash1")
+        assert found is None
+
+    async def test_list_invites(self, storage: JsonStorageBackend):
+        from datetime import timedelta
+        await storage.create_tenant("t1", "Acme", "acme")
+        expires = datetime.now(timezone.utc) + timedelta(days=7)
+        await storage.create_invite(
+            "inv1", "t1", "bob@test.com", "member", None, "th1", "user1", expires,
+        )
+        await storage.create_invite(
+            "inv2", "t1", "carol@test.com", "admin", None, "th2", "user1", expires,
+        )
+        all_inv = await storage.list_invites("t1")
+        assert len(all_inv) == 2
+
+        # Filter by is_accepted
+        pending = await storage.list_invites("t1", is_accepted=False)
+        assert len(pending) == 2
+        await storage.mark_invite_accepted("inv1")
+        pending = await storage.list_invites("t1", is_accepted=False)
+        assert len(pending) == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  GLOBAL EMAIL UNIQUENESS TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestGlobalEmailUniqueness:
+    async def test_same_email_two_tenants_fails(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_tenant("t2", "Beta", "beta")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="shared@test.com",
+            password_hash="h1", name="User One",
+        )
+        with pytest.raises(ValueError, match="already registered"):
+            await storage.create_user(
+                user_id="u2", tenant_id="t2", email="shared@test.com",
+                password_hash="h2", name="User Two",
+            )
+
+    async def test_get_user_by_email_global(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="global@test.com",
+            password_hash="h1", name="Global User",
+        )
+        user = await storage.get_user_by_email_global("global@test.com")
+        assert user is not None
+        assert user.user_id == "u1"
+
+        # Not found
+        user2 = await storage.get_user_by_email_global("nonexistent@test.com")
+        assert user2 is None
+
+    async def test_deactivated_email_allows_reuse(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_tenant("t2", "Beta", "beta")
+        await storage.create_user(
+            user_id="u1", tenant_id="t1", email="reuse@test.com",
+            password_hash="h1", name="User One",
+        )
+        await storage.deactivate_user("t1", "u1")
+        # Deactivated user doesn't block new registration
+        user = await storage.create_user(
+            user_id="u2", tenant_id="t2", email="reuse@test.com",
+            password_hash="h2", name="User Two",
+        )
+        assert user.user_id == "u2"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  API KEYS BY USER TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestApiKeysByUser:
+    async def test_create_with_user_id(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        h = hashlib.sha256(b"mykey").hexdigest()
+        rec = await storage.create_api_key(
+            key_id="k1", tenant_id="t1", key_hash=h,
+            key_prefix="hb_live_", key_type="live",
+            created_by_user_id="user-1",
+        )
+        assert rec.created_by_user_id == "user-1"
+
+    async def test_list_filtered_by_user(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        for i, uid in enumerate(["user-1", "user-1", "user-2"]):
+            h = hashlib.sha256(f"key{i}".encode()).hexdigest()
+            await storage.create_api_key(
+                key_id=f"k{i}", tenant_id="t1", key_hash=h,
+                key_prefix="hb_live_", key_type="live",
+                created_by_user_id=uid,
+            )
+        keys_u1 = await storage.list_api_keys_by_user("t1", "user-1")
+        assert len(keys_u1) == 2
+        keys_u2 = await storage.list_api_keys_by_user("t1", "user-2")
+        assert len(keys_u2) == 1

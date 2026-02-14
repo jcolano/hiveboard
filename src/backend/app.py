@@ -11,7 +11,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -41,22 +41,34 @@ from shared.enums import (
     VALID_SEVERITIES,
 )
 from shared.models import (
+    AcceptInviteRequest,
     AgentRecord,
     AgentStats1h,
     AgentSummary,
     AlertRuleCreate,
     AlertRuleUpdate,
+    ApiKeyCreateRequest,
     CostSummary,
     ErrorResponse,
     Event,
     IngestError,
     IngestRequest,
     IngestResponse,
+    InviteRequest,
+    LoginRequest,
+    LoginResponse,
     Page,
     PaginationInfo,
+    PasswordChangeRequest,
     ProjectCreate,
     ProjectMergeRequest,
     ProjectUpdate,
+    RegisterRequest,
+    SendCodeRequest,
+    UserCreate,
+    UserSafe,
+    UserUpdate,
+    VerifyCodeRequest,
 )
 
 
@@ -127,7 +139,7 @@ async def _prune_loop(storage: JsonStorageBackend):
 
 
 async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
-    """Create a dev tenant and API key on first run for easy testing.
+    """Create a dev tenant, API key, and owner user on first run.
 
     The dev key is read from HIVEBOARD_DEV_KEY env var.
     If unset, bootstrap is skipped (no hardcoded key in source).
@@ -148,6 +160,20 @@ async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
         key_type="live",
         label="Development API Key",
     )
+    # Bootstrap dev owner user
+    from backend.auth import hash_password
+    dev_password = os.environ.get("HIVEBOARD_DEV_PASSWORD", "admin")
+    try:
+        await storage.create_user(
+            user_id="dev-owner",
+            tenant_id="dev",
+            email="admin@hiveboard.dev",
+            password_hash=hash_password(dev_password),
+            name="Dev Admin",
+            role="owner",
+        )
+    except ValueError:
+        pass  # Already exists
 
 
 app = FastAPI(
@@ -1364,6 +1390,714 @@ async def list_alert_history(
         since=_parse_dt(since), limit=limit, cursor=cursor,
     )
     return page.model_dump(mode="json")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  AUTH & USER ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _user_to_safe(user) -> dict:
+    """Convert UserRecord to safe API response (no password_hash)."""
+    return UserSafe(
+        user_id=user.user_id,
+        tenant_id=user.tenant_id,
+        email=user.email,
+        name=user.name,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        last_login_at=user.last_login_at,
+        settings=user.settings,
+    ).model_dump(mode="json")
+
+
+def _require_role(request: Request, allowed_roles: list[str]):
+    """Check JWT user has required role. API keys bypass role checks."""
+    auth_type = getattr(request.state, "auth_type", None)
+    if auth_type == "api_key":
+        return  # API keys bypass role checks (backward compatible)
+    user_role = getattr(request.state, "user_role", None)
+    if user_role not in allowed_roles:
+        raise HTTPException(403, {
+            "error": "insufficient_permissions",
+            "message": f"Role '{user_role}' not in allowed roles: {allowed_roles}",
+            "status": 403,
+        })
+
+
+@app.post("/v1/auth/login")
+async def login(body: LoginRequest, request: Request, tenant_id: str = Query(...)):
+    """Email+password login. Returns JWT token."""
+    from backend.auth import verify_password, create_token
+    storage = request.app.state.storage
+    user = await storage.get_user_by_email(tenant_id, body.email)
+    if user is None or not verify_password(body.password, user.password_hash):
+        raise HTTPException(401, {
+            "error": "authentication_failed",
+            "message": "Invalid email or password",
+            "status": 401,
+        })
+    token, expires_in = create_token(user.user_id, user.tenant_id, user.role)
+    # Update last_login_at
+    await storage.update_user(
+        user.tenant_id, user.user_id,
+        last_login_at=datetime.now(timezone.utc),
+    )
+    safe = UserSafe(
+        user_id=user.user_id, tenant_id=user.tenant_id,
+        email=user.email, name=user.name, role=user.role,
+        is_active=user.is_active, created_at=user.created_at,
+        updated_at=user.updated_at, last_login_at=user.last_login_at,
+        settings=user.settings,
+    )
+    return LoginResponse(
+        token=token, expires_in=expires_in, user=safe,
+    ).model_dump(mode="json")
+
+
+@app.post("/v1/auth/register", status_code=201)
+async def register(body: RegisterRequest, request: Request):
+    """Register a new tenant + owner user + default project + API key."""
+    from backend.auth import generate_api_key
+    storage = request.app.state.storage
+    logger = logging.getLogger("hiveboard.auth")
+
+    # Check email not already registered
+    existing = await storage.get_user_by_email_global(body.email)
+    if existing:
+        raise HTTPException(409, {
+            "error": "email_exists",
+            "message": "Email already registered",
+            "status": 409,
+        })
+
+    # Check for pending invite
+    for row in storage._tables.get("invites", []):
+        if (
+            row["email"].lower() == body.email.lower()
+            and not row.get("is_accepted", False)
+        ):
+            from backend.storage_json import _parse_dt as _sj_parse_dt, _now_utc
+            exp = _sj_parse_dt(row["expires_at"])
+            if exp and exp > _now_utc():
+                raise HTTPException(409, {
+                    "error": "pending_invite",
+                    "message": "You have a pending invite. Use accept-invite instead.",
+                    "status": 409,
+                })
+
+    # Generate slug from tenant_name
+    slug = body.tenant_name.lower().replace(" ", "-")
+    tenant_id = str(uuid4())
+    user_id = str(uuid4())
+
+    # Create tenant (auto-creates default project)
+    tenant = await storage.create_tenant(tenant_id, body.tenant_name, slug)
+
+    # Create owner user
+    user = await storage.create_user(
+        user_id=user_id,
+        tenant_id=tenant_id,
+        email=body.email,
+        password_hash="",
+        name=body.name,
+        role="owner",
+    )
+
+    # Generate API key
+    raw_key, key_hash, key_prefix = generate_api_key("live")
+    key_id = str(uuid4())
+    await storage.create_api_key(
+        key_id=key_id,
+        tenant_id=tenant_id,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        key_type="live",
+        label="Default API Key",
+        created_by_user_id=user_id,
+    )
+
+    logger.info("New registration: %s (tenant: %s)", body.email, slug)
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "user": _user_to_safe(user),
+            "tenant": {"tenant_id": tenant_id, "name": body.tenant_name, "slug": slug},
+            "api_key": raw_key,
+        },
+    )
+
+
+@app.post("/v1/auth/send-code")
+async def send_code(body: SendCodeRequest, request: Request):
+    """Send a login code to an email address."""
+    from backend.auth import generate_login_code
+    from shared.enums import AUTH_CODE_EXPIRY_SECONDS, AUTH_CODE_RATE_LIMIT, AUTH_CODE_RATE_WINDOW
+    storage = request.app.state.storage
+    logger = logging.getLogger("hiveboard.auth")
+
+    # Rate limit
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(seconds=AUTH_CODE_RATE_WINDOW)
+    recent = await storage.count_recent_codes(body.email, since)
+    if recent >= AUTH_CODE_RATE_LIMIT:
+        raise HTTPException(429, {
+            "error": "rate_limit_exceeded",
+            "message": "Too many login codes requested. Try again later.",
+            "status": 429,
+        })
+
+    # Lookup user (but don't reveal if they exist)
+    user = await storage.get_user_by_email_global(body.email)
+
+    raw_code = None
+    if user:
+        raw_code_val, code_hash = generate_login_code()
+        raw_code = raw_code_val
+        code_id = str(uuid4())
+        expires_at = now + timedelta(seconds=AUTH_CODE_EXPIRY_SECONDS)
+        await storage.create_auth_code(code_id, body.email, code_hash, expires_at)
+        logger.info("Login code for %s: %s", body.email, raw_code)
+
+    response = {
+        "message": "If registered, a code has been sent.",
+        "expires_in": AUTH_CODE_EXPIRY_SECONDS,
+    }
+    # MVP: return code in response (no real email service)
+    if raw_code:
+        response["code"] = raw_code
+
+    return response
+
+
+@app.post("/v1/auth/verify-code")
+async def verify_code(body: VerifyCodeRequest, request: Request):
+    """Verify a login code and return a JWT."""
+    from backend.auth import create_token
+    from shared.enums import AUTH_CODE_MAX_ATTEMPTS
+    storage = request.app.state.storage
+
+    # Lookup user
+    user = await storage.get_user_by_email_global(body.email)
+    if user is None:
+        raise HTTPException(401, {
+            "error": "authentication_failed",
+            "message": "Invalid email or code",
+            "status": 401,
+        })
+
+    # Get active code
+    code_rec = await storage.get_active_auth_code(body.email)
+    if code_rec is None:
+        raise HTTPException(401, {
+            "error": "authentication_failed",
+            "message": "No active code. Request a new one.",
+            "status": 401,
+        })
+
+    # Check attempts
+    if code_rec.attempts >= AUTH_CODE_MAX_ATTEMPTS:
+        raise HTTPException(401, {
+            "error": "code_expired",
+            "message": "Too many attempts. Request a new code.",
+            "status": 401,
+        })
+
+    # Compare hashes
+    provided_hash = hashlib.sha256(body.code.encode()).hexdigest()
+    if provided_hash != code_rec.code_hash:
+        await storage.increment_auth_code_attempts(code_rec.code_id)
+        raise HTTPException(401, {
+            "error": "authentication_failed",
+            "message": "Invalid code",
+            "status": 401,
+        })
+
+    # Success
+    await storage.mark_auth_code_used(code_rec.code_id)
+    await storage.update_user(
+        user.tenant_id, user.user_id,
+        last_login_at=datetime.now(timezone.utc),
+    )
+    token, expires_in = create_token(user.user_id, user.tenant_id, user.role)
+    safe = UserSafe(
+        user_id=user.user_id, tenant_id=user.tenant_id,
+        email=user.email, name=user.name, role=user.role,
+        is_active=user.is_active, created_at=user.created_at,
+        updated_at=user.updated_at, last_login_at=user.last_login_at,
+        settings=user.settings,
+    )
+    return LoginResponse(
+        token=token, expires_in=expires_in, user=safe,
+    ).model_dump(mode="json")
+
+
+@app.post("/v1/auth/accept-invite")
+async def accept_invite(body: AcceptInviteRequest, request: Request):
+    """Accept an invite and join a tenant."""
+    from backend.auth import create_token
+    storage = request.app.state.storage
+
+    # Hash token and lookup invite
+    token_hash = hashlib.sha256(body.invite_token.encode()).hexdigest()
+    invite = await storage.get_invite_by_token_hash(token_hash)
+    if invite is None:
+        raise HTTPException(404, {
+            "error": "not_found",
+            "message": "Invite not found or expired",
+            "status": 404,
+        })
+
+    # Check email not already registered
+    existing = await storage.get_user_by_email_global(invite.email)
+    if existing:
+        raise HTTPException(409, {
+            "error": "email_exists",
+            "message": "Email already registered",
+            "status": 409,
+        })
+
+    # Create user in invite's tenant
+    user_id = str(uuid4())
+    user = await storage.create_user(
+        user_id=user_id,
+        tenant_id=invite.tenant_id,
+        email=invite.email,
+        password_hash="",
+        name=body.name,
+        role=invite.role,
+    )
+
+    # Mark invite accepted
+    await storage.mark_invite_accepted(invite.invite_id)
+
+    # Create JWT
+    token, expires_in = create_token(user.user_id, user.tenant_id, user.role)
+    safe = UserSafe(
+        user_id=user.user_id, tenant_id=user.tenant_id,
+        email=user.email, name=user.name, role=user.role,
+        is_active=user.is_active, created_at=user.created_at,
+        updated_at=user.updated_at, last_login_at=user.last_login_at,
+        settings=user.settings,
+    )
+    return LoginResponse(
+        token=token, expires_in=expires_in, user=safe,
+    ).model_dump(mode="json")
+
+
+@app.post("/v1/auth/invite", status_code=201)
+async def invite_user(body: InviteRequest, request: Request):
+    """Owner/admin invites a user by email."""
+    from backend.auth import generate_invite_token
+    from shared.enums import INVITE_EXPIRY_SECONDS
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    logger = logging.getLogger("hiveboard.auth")
+
+    # Role escalation check
+    caller_role = getattr(request.state, "user_role", None)
+    auth_type = getattr(request.state, "auth_type", None)
+    if body.role in ("owner", "admin"):
+        if auth_type == "jwt" and caller_role != "owner":
+            raise HTTPException(403, {
+                "error": "role_escalation",
+                "message": "Only owners can invite as owner or admin",
+                "status": 403,
+            })
+
+    # Check email not already in this tenant
+    existing_in_tenant = await storage.get_user_by_email(tenant_id, body.email)
+    if existing_in_tenant:
+        raise HTTPException(409, {
+            "error": "email_exists",
+            "message": "Email already registered in this organization",
+            "status": 409,
+        })
+
+    # Check email not registered elsewhere
+    existing_global = await storage.get_user_by_email_global(body.email)
+    if existing_global:
+        raise HTTPException(409, {
+            "error": "email_exists",
+            "message": "Email registered with another organization",
+            "status": 409,
+        })
+
+    # Check no pending invite
+    pending = await storage.get_pending_invite(tenant_id, body.email)
+    if pending:
+        raise HTTPException(400, {
+            "error": "invite_exists",
+            "message": "A pending invite already exists for this email",
+            "status": 400,
+        })
+
+    # Generate invite token
+    raw_token, token_hash = generate_invite_token()
+    invite_id = str(uuid4())
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(seconds=INVITE_EXPIRY_SECONDS)
+
+    caller_user_id = getattr(request.state, "user_id", None) or "api_key"
+    invite = await storage.create_invite(
+        invite_id=invite_id,
+        tenant_id=tenant_id,
+        email=body.email,
+        role=body.role,
+        name=body.name,
+        invite_token_hash=token_hash,
+        created_by_user_id=caller_user_id,
+        expires_at=expires_at,
+    )
+
+    logger.info("Invite created for %s (token: %s)", body.email, raw_token)
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "invite_id": invite_id,
+            "email": body.email,
+            "role": body.role,
+            "tenant_id": tenant_id,
+            "expires_at": invite.expires_at.isoformat() if hasattr(invite.expires_at, 'isoformat') else str(invite.expires_at),
+            "invite_token": raw_token,
+        },
+    )
+
+
+@app.post("/v1/auth/change-password")
+async def change_password(body: PasswordChangeRequest, request: Request):
+    """Change password for the currently authenticated JWT user."""
+    from backend.auth import verify_password, hash_password
+    auth_type = getattr(request.state, "auth_type", None)
+    if auth_type != "jwt":
+        raise HTTPException(403, {
+            "error": "jwt_required",
+            "message": "Password change requires JWT authentication",
+            "status": 403,
+        })
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user_id = request.state.user_id
+    user = await storage.get_user(tenant_id, user_id)
+    if user is None:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found", "status": 404})
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(401, {
+            "error": "authentication_failed",
+            "message": "Current password is incorrect",
+            "status": 401,
+        })
+    await storage.update_user(
+        tenant_id, user_id,
+        password_hash=hash_password(body.new_password),
+    )
+    return {"status": "password_changed"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  API KEY CRUD ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.get("/v1/api-keys")
+async def list_api_keys_endpoint(request: Request):
+    """List API keys. Owner/admin see all; others see own keys only."""
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user_role = getattr(request.state, "user_role", None)
+    user_id = getattr(request.state, "user_id", None)
+    auth_type = getattr(request.state, "auth_type", None)
+
+    if auth_type == "api_key" or user_role in ("owner", "admin"):
+        keys = await storage.list_api_keys(tenant_id)
+    else:
+        keys = await storage.list_api_keys_by_user(tenant_id, user_id) if user_id else []
+
+    # Omit key_hash, show metadata
+    result = []
+    for k in keys:
+        result.append({
+            "key_id": k.key_id,
+            "key_prefix": k.key_prefix,
+            "key_type": k.key_type,
+            "label": k.label,
+            "created_by_user_id": k.created_by_user_id,
+            "created_at": k.created_at.isoformat() if hasattr(k.created_at, 'isoformat') else str(k.created_at),
+            "last_used_at": k.last_used_at.isoformat() if k.last_used_at and hasattr(k.last_used_at, 'isoformat') else str(k.last_used_at) if k.last_used_at else None,
+            "is_active": k.is_active,
+        })
+    return {"data": result}
+
+
+@app.post("/v1/api-keys", status_code=201)
+async def create_api_key_endpoint(body: ApiKeyCreateRequest, request: Request):
+    """Create a new API key."""
+    from backend.auth import generate_api_key
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user_id = getattr(request.state, "user_id", None)
+    user_role = getattr(request.state, "user_role", None)
+
+    # Validate key_type based on role
+    if user_role == "viewer" and body.key_type != "read":
+        raise HTTPException(403, {
+            "error": "insufficient_permissions",
+            "message": "Viewers can only create read keys",
+            "status": 403,
+        })
+
+    raw_key, key_hash, key_prefix = generate_api_key(body.key_type)
+    key_id = str(uuid4())
+    rec = await storage.create_api_key(
+        key_id=key_id,
+        tenant_id=tenant_id,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        key_type=body.key_type,
+        label=body.label,
+        created_by_user_id=user_id,
+    )
+
+    return JSONResponse(
+        status_code=201,
+        content={
+            "key_id": key_id,
+            "key_prefix": key_prefix,
+            "key_type": body.key_type,
+            "label": body.label,
+            "raw_key": raw_key,
+            "created_at": rec.created_at.isoformat() if hasattr(rec.created_at, 'isoformat') else str(rec.created_at),
+        },
+    )
+
+
+@app.delete("/v1/api-keys/{key_id}")
+async def revoke_api_key_endpoint(key_id: str, request: Request):
+    """Revoke an API key."""
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user_role = getattr(request.state, "user_role", None)
+    user_id = getattr(request.state, "user_id", None)
+    auth_type = getattr(request.state, "auth_type", None)
+
+    # Non-owner/admin can only revoke own keys
+    if auth_type == "jwt" and user_role not in ("owner", "admin"):
+        # Check if key belongs to user
+        user_keys = await storage.list_api_keys_by_user(tenant_id, user_id) if user_id else []
+        if not any(k.key_id == key_id for k in user_keys):
+            raise HTTPException(403, {
+                "error": "insufficient_permissions",
+                "message": "Can only revoke your own keys",
+                "status": 403,
+            })
+
+    ok = await storage.revoke_api_key(tenant_id, key_id)
+    if not ok:
+        raise HTTPException(404, {"error": "not_found", "message": "API key not found", "status": 404})
+    return {"status": "revoked"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  INVITE MANAGEMENT ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+@app.get("/v1/invites")
+async def list_invites_endpoint(request: Request):
+    """List pending invites for tenant (owner/admin only)."""
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    invites = await storage.list_invites(tenant_id)
+    result = []
+    for inv in invites:
+        result.append({
+            "invite_id": inv.invite_id,
+            "email": inv.email,
+            "role": inv.role,
+            "name": inv.name,
+            "is_accepted": inv.is_accepted,
+            "created_at": inv.created_at.isoformat() if hasattr(inv.created_at, 'isoformat') else str(inv.created_at),
+            "expires_at": inv.expires_at.isoformat() if hasattr(inv.expires_at, 'isoformat') else str(inv.expires_at),
+            "accepted_at": inv.accepted_at.isoformat() if inv.accepted_at and hasattr(inv.accepted_at, 'isoformat') else str(inv.accepted_at) if inv.accepted_at else None,
+        })
+    return {"data": result}
+
+
+@app.delete("/v1/invites/{invite_id}")
+async def cancel_invite(invite_id: str, request: Request):
+    """Cancel a pending invite (owner/admin only)."""
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+
+    # Find and remove the invite
+    async with storage._locks["invites"]:
+        before = len(storage._tables["invites"])
+        storage._tables["invites"] = [
+            r for r in storage._tables["invites"]
+            if not (
+                r["tenant_id"] == tenant_id
+                and r["invite_id"] == invite_id
+                and not r.get("is_accepted", False)
+            )
+        ]
+        if len(storage._tables["invites"]) < before:
+            storage._persist("invites")
+            return {"status": "cancelled"}
+    raise HTTPException(404, {"error": "not_found", "message": "Invite not found", "status": 404})
+
+
+@app.get("/v1/users")
+async def list_users(
+    request: Request,
+    role: str | None = None,
+    is_active: bool | None = None,
+):
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    users = await storage.list_users(tenant_id, role=role, is_active=is_active)
+    return {"data": [_user_to_safe(u) for u in users]}
+
+
+@app.post("/v1/users", status_code=201)
+async def create_user(body: UserCreate, request: Request):
+    from backend.auth import hash_password
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+
+    # Role escalation protection: only owner can create owner/admin
+    if body.role in ("owner", "admin"):
+        caller_role = getattr(request.state, "user_role", None)
+        auth_type = getattr(request.state, "auth_type", None)
+        if auth_type == "jwt" and caller_role != "owner":
+            raise HTTPException(403, {
+                "error": "role_escalation",
+                "message": "Only owners can create owner or admin users",
+                "status": 403,
+            })
+
+    user_id = str(uuid4())
+    pw_hash = hash_password(body.password) if body.password else ""
+    try:
+        user = await storage.create_user(
+            user_id=user_id,
+            tenant_id=tenant_id,
+            email=body.email,
+            password_hash=pw_hash,
+            name=body.name,
+            role=body.role,
+        )
+    except ValueError as e:
+        raise HTTPException(409, {
+            "error": "duplicate_email",
+            "message": str(e),
+            "status": 409,
+        })
+    return JSONResponse(content=_user_to_safe(user), status_code=201)
+
+
+@app.get("/v1/users/me")
+async def get_current_user(request: Request):
+    """Get current user profile (JWT only)."""
+    auth_type = getattr(request.state, "auth_type", None)
+    if auth_type != "jwt":
+        raise HTTPException(403, {
+            "error": "jwt_required",
+            "message": "This endpoint requires JWT authentication",
+            "status": 403,
+        })
+    storage = request.app.state.storage
+    user = await storage.get_user(request.state.tenant_id, request.state.user_id)
+    if user is None:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found", "status": 404})
+    return _user_to_safe(user)
+
+
+@app.get("/v1/users/{user_id}")
+async def get_user_endpoint(user_id: str, request: Request):
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user = await storage.get_user(tenant_id, user_id)
+    if user is None:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found", "status": 404})
+    return _user_to_safe(user)
+
+
+@app.put("/v1/users/{user_id}")
+async def update_user_endpoint(user_id: str, body: UserUpdate, request: Request):
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+
+    # Role escalation protection
+    if body.role in ("owner", "admin"):
+        caller_role = getattr(request.state, "user_role", None)
+        auth_type = getattr(request.state, "auth_type", None)
+        if auth_type == "jwt" and caller_role != "owner":
+            raise HTTPException(403, {
+                "error": "role_escalation",
+                "message": "Only owners can assign owner or admin roles",
+                "status": 403,
+            })
+
+    kwargs = {}
+    if body.email is not None:
+        kwargs["email"] = body.email
+    if body.name is not None:
+        kwargs["name"] = body.name
+    if body.role is not None:
+        kwargs["role"] = body.role
+    if body.settings is not None:
+        kwargs["settings"] = body.settings
+
+    try:
+        user = await storage.update_user(tenant_id, user_id, **kwargs)
+    except ValueError as e:
+        raise HTTPException(409, {
+            "error": "duplicate_email",
+            "message": str(e),
+            "status": 409,
+        })
+    if user is None:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found", "status": 404})
+    return _user_to_safe(user)
+
+
+@app.delete("/v1/users/{user_id}")
+async def deactivate_user_endpoint(user_id: str, request: Request):
+    """Soft-delete a user (deactivate). Can't self-deactivate."""
+    _require_role(request, ["owner", "admin"])
+    # Block self-deactivation
+    caller_user_id = getattr(request.state, "user_id", None)
+    if caller_user_id == user_id:
+        raise HTTPException(400, {
+            "error": "self_deactivation",
+            "message": "Cannot deactivate your own account",
+            "status": 400,
+        })
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    ok = await storage.deactivate_user(tenant_id, user_id)
+    if not ok:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found", "status": 404})
+    return {"status": "deactivated"}
+
+
+@app.post("/v1/users/{user_id}/reactivate")
+async def reactivate_user_endpoint(user_id: str, request: Request):
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    ok = await storage.reactivate_user(tenant_id, user_id)
+    if not ok:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found or already active", "status": 404})
+    return {"status": "reactivated"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════

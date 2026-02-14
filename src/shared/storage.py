@@ -40,10 +40,12 @@ from .models import (
     AlertRuleUpdate,
     ApiKeyInfo,
     ApiKeyRecord,
+    AuthCodeRecord,
     CostSummary,
     CostTimeBucket,
     Event,
     FleetPipelineState,
+    InviteRecord,
     LlmCallRecord,
     MetricsResponse,
     Page,
@@ -56,6 +58,7 @@ from .models import (
     TenantRecord,
     TimelineSummary,
     TimeseriesBucket,
+    UserRecord,
 )
 
 
@@ -107,6 +110,7 @@ class StorageBackend(Protocol):
         key_prefix: str,
         key_type: str,
         label: str | None = None,
+        created_by_user_id: str | None = None,
     ) -> ApiKeyRecord:
         ...
 
@@ -128,6 +132,91 @@ class StorageBackend(Protocol):
 
     async def revoke_api_key(self, tenant_id: str, key_id: str) -> bool:
         """Returns True if key was found and revoked."""
+        ...
+
+    # ───────────────────────────────────────────────────────────────────
+    #  USERS
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_user(
+        self,
+        user_id: str,
+        tenant_id: str,
+        email: str,
+        password_hash: str,
+        name: str,
+        role: str = "member",
+    ) -> UserRecord:
+        """Create a new user. Raises ValueError if email already exists globally."""
+        ...
+
+    async def get_user(
+        self, tenant_id: str, user_id: str
+    ) -> UserRecord | None:
+        """Get user by ID.
+
+        Maps to: SELECT ... FROM users
+                 WHERE tenant_id = ? AND user_id = ?
+        """
+        ...
+
+    async def get_user_by_email(
+        self, tenant_id: str, email: str
+    ) -> UserRecord | None:
+        """Get active user by email (for login).
+
+        Maps to: SELECT ... FROM users
+                 WHERE tenant_id = ? AND email = ? AND is_active = 1
+        """
+        ...
+
+    async def list_users(
+        self,
+        tenant_id: str,
+        *,
+        role: str | None = None,
+        is_active: bool | None = None,
+    ) -> list[UserRecord]:
+        """List users with optional filters.
+
+        Maps to: SELECT ... FROM users WHERE tenant_id = ? [AND role = ?] [AND is_active = ?]
+        """
+        ...
+
+    async def update_user(
+        self,
+        tenant_id: str,
+        user_id: str,
+        *,
+        email: str | None = None,
+        name: str | None = None,
+        role: str | None = None,
+        password_hash: str | None = None,
+        settings: dict | None = None,
+        last_login_at: datetime | None = None,
+    ) -> UserRecord | None:
+        """Update user fields. Returns None if not found.
+
+        Maps to: UPDATE users SET ... WHERE tenant_id = ? AND user_id = ?
+        """
+        ...
+
+    async def deactivate_user(
+        self, tenant_id: str, user_id: str
+    ) -> bool:
+        """Soft-delete: set is_active=False. Returns True if found.
+
+        Maps to: UPDATE users SET is_active = 0 WHERE tenant_id = ? AND user_id = ?
+        """
+        ...
+
+    async def reactivate_user(
+        self, tenant_id: str, user_id: str
+    ) -> bool:
+        """Restore a deactivated user. Returns True if found.
+
+        Maps to: UPDATE users SET is_active = 1 WHERE tenant_id = ? AND user_id = ?
+        """
         ...
 
     # ───────────────────────────────────────────────────────────────────
@@ -526,5 +615,149 @@ class StorageBackend(Protocol):
 
         Maps to: SELECT ... FROM alert_history
                  WHERE rule_id = ? ORDER BY fired_at DESC LIMIT 1
+        """
+        ...
+
+    # ───────────────────────────────────────────────────────────────────
+    #  AUTH CODES (email-code login)
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_auth_code(
+        self,
+        code_id: str,
+        email: str,
+        code_hash: str,
+        expires_at: datetime,
+    ) -> AuthCodeRecord:
+        """Store a login code.
+
+        Maps to: INSERT INTO auth_codes (code_id, email, code_hash, ...)
+        """
+        ...
+
+    async def get_active_auth_code(
+        self, email: str
+    ) -> AuthCodeRecord | None:
+        """Get latest unused + unexpired code for an email.
+
+        Maps to: SELECT ... FROM auth_codes
+                 WHERE email = ? AND used = 0 AND expires_at > NOW()
+                 ORDER BY created_at DESC LIMIT 1
+        """
+        ...
+
+    async def mark_auth_code_used(self, code_id: str) -> bool:
+        """Mark code as used after successful verification.
+
+        Maps to: UPDATE auth_codes SET used = 1 WHERE code_id = ?
+        """
+        ...
+
+    async def increment_auth_code_attempts(self, code_id: str) -> int:
+        """Increment failed attempt counter. Returns new count.
+
+        Maps to: UPDATE auth_codes SET attempts = attempts + 1
+                 WHERE code_id = ? RETURNING attempts
+        """
+        ...
+
+    async def count_recent_codes(
+        self, email: str, since: datetime
+    ) -> int:
+        """Count codes sent to this email since a given time.
+
+        Maps to: SELECT COUNT(*) FROM auth_codes
+                 WHERE email = ? AND created_at >= ?
+        """
+        ...
+
+    # ───────────────────────────────────────────────────────────────────
+    #  GLOBAL EMAIL LOOKUP
+    # ───────────────────────────────────────────────────────────────────
+
+    async def get_user_by_email_global(
+        self, email: str
+    ) -> UserRecord | None:
+        """Find user across all tenants (active only).
+
+        Maps to: SELECT ... FROM users
+                 WHERE email = ? AND is_active = 1
+        """
+        ...
+
+    # ───────────────────────────────────────────────────────────────────
+    #  INVITES
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_invite(
+        self,
+        invite_id: str,
+        tenant_id: str,
+        email: str,
+        role: str,
+        name: str | None,
+        invite_token_hash: str,
+        created_by_user_id: str,
+        expires_at: datetime,
+    ) -> InviteRecord:
+        """Store an invite.
+
+        Maps to: INSERT INTO invites (...)
+        """
+        ...
+
+    async def get_invite_by_token_hash(
+        self, invite_token_hash: str
+    ) -> InviteRecord | None:
+        """Lookup pending + unexpired invite by token hash.
+
+        Maps to: SELECT ... FROM invites
+                 WHERE invite_token_hash = ? AND is_accepted = 0
+                   AND expires_at > NOW()
+        """
+        ...
+
+    async def get_pending_invite(
+        self, tenant_id: str, email: str
+    ) -> InviteRecord | None:
+        """Check for existing pending invite.
+
+        Maps to: SELECT ... FROM invites
+                 WHERE tenant_id = ? AND email = ?
+                   AND is_accepted = 0 AND expires_at > NOW()
+        """
+        ...
+
+    async def mark_invite_accepted(self, invite_id: str) -> bool:
+        """Mark invite as accepted.
+
+        Maps to: UPDATE invites SET is_accepted = 1, accepted_at = NOW()
+                 WHERE invite_id = ?
+        """
+        ...
+
+    async def list_invites(
+        self,
+        tenant_id: str,
+        *,
+        is_accepted: bool | None = None,
+    ) -> list[InviteRecord]:
+        """List tenant's invites with optional filter.
+
+        Maps to: SELECT ... FROM invites WHERE tenant_id = ? [AND is_accepted = ?]
+        """
+        ...
+
+    # ───────────────────────────────────────────────────────────────────
+    #  API KEY — USER FILTERED
+    # ───────────────────────────────────────────────────────────────────
+
+    async def list_api_keys_by_user(
+        self, tenant_id: str, user_id: str
+    ) -> list[ApiKeyRecord]:
+        """Keys created by a specific user.
+
+        Maps to: SELECT ... FROM api_keys
+                 WHERE tenant_id = ? AND created_by_user_id = ?
         """
         ...
