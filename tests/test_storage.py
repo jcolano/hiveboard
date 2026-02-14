@@ -45,6 +45,17 @@ class TestTenantAndAuth:
         t = await storage.get_tenant("nonexistent")
         assert t is None
 
+    async def test_get_tenant_by_slug(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme Corp", "acme")
+        t = await storage.get_tenant_by_slug("acme")
+        assert t is not None
+        assert t.tenant_id == "t1"
+        assert t.name == "Acme Corp"
+
+    async def test_get_tenant_by_slug_not_found(self, storage: JsonStorageBackend):
+        t = await storage.get_tenant_by_slug("nonexistent")
+        assert t is None
+
     async def test_default_project_auto_created(self, storage: JsonStorageBackend):
         await storage.create_tenant("t1", "Acme Corp", "acme")
         projects = await storage.list_projects("t1")
@@ -152,6 +163,53 @@ class TestProjects:
             "t1", "fake-id", ProjectUpdate(name="Nope")
         )
         assert result is None
+
+    async def test_create_project_duplicate_slug(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_project(
+            "t1", ProjectCreate(name="First", slug="same-slug")
+        )
+        with pytest.raises(ValueError, match="same-slug"):
+            await storage.create_project(
+                "t1", ProjectCreate(name="Second", slug="same-slug")
+            )
+
+    async def test_create_project_slug_ok_across_tenants(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_tenant("t2", "Beta", "beta")
+        await storage.create_project(
+            "t1", ProjectCreate(name="Sales", slug="sales")
+        )
+        # Same slug in different tenant should succeed
+        p = await storage.create_project(
+            "t2", ProjectCreate(name="Sales", slug="sales")
+        )
+        assert p.slug == "sales"
+
+    async def test_update_project_duplicate_slug(self, storage: JsonStorageBackend):
+        await storage.create_tenant("t1", "Acme", "acme")
+        await storage.create_project(
+            "t1", ProjectCreate(name="Alpha", slug="alpha")
+        )
+        p2 = await storage.create_project(
+            "t1", ProjectCreate(name="Beta", slug="beta")
+        )
+        with pytest.raises(ValueError, match="alpha"):
+            await storage.update_project(
+                "t1", p2.project_id, ProjectUpdate(slug="alpha")
+            )
+
+    async def test_update_project_same_slug_ok(self, storage: JsonStorageBackend):
+        """Updating a project to keep its own slug should not fail."""
+        await storage.create_tenant("t1", "Acme", "acme")
+        p = await storage.create_project(
+            "t1", ProjectCreate(name="Alpha", slug="alpha")
+        )
+        updated = await storage.update_project(
+            "t1", p.project_id, ProjectUpdate(name="Alpha v2", slug="alpha")
+        )
+        assert updated is not None
+        assert updated.name == "Alpha v2"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -966,61 +1024,6 @@ class TestUsers:
                 user_id="u2", tenant_id="t1", email="Alice@Acme.com",
                 password_hash="h2", name="Alice Dup",
             )
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-#  AUTH CODE TESTS
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-class TestAuthCodes:
-    async def test_create_and_get_active(self, storage: JsonStorageBackend):
-        from datetime import timedelta
-        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
-        rec = await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
-        assert rec.code_id == "c1"
-        assert rec.email == "user@test.com"
-        assert rec.used is False
-
-        active = await storage.get_active_auth_code("user@test.com")
-        assert active is not None
-        assert active.code_id == "c1"
-
-    async def test_expired_code_not_returned(self, storage: JsonStorageBackend):
-        from datetime import timedelta
-        expires = datetime.now(timezone.utc) - timedelta(minutes=1)  # Already expired
-        await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
-        active = await storage.get_active_auth_code("user@test.com")
-        assert active is None
-
-    async def test_mark_used(self, storage: JsonStorageBackend):
-        from datetime import timedelta
-        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
-        await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
-        ok = await storage.mark_auth_code_used("c1")
-        assert ok is True
-        active = await storage.get_active_auth_code("user@test.com")
-        assert active is None  # Used code should not be returned
-
-    async def test_increment_attempts(self, storage: JsonStorageBackend):
-        from datetime import timedelta
-        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
-        await storage.create_auth_code("c1", "user@test.com", "hash123", expires)
-        count = await storage.increment_auth_code_attempts("c1")
-        assert count == 1
-        count = await storage.increment_auth_code_attempts("c1")
-        assert count == 2
-
-    async def test_count_recent(self, storage: JsonStorageBackend):
-        from datetime import timedelta
-        expires = datetime.now(timezone.utc) + timedelta(minutes=10)
-        await storage.create_auth_code("c1", "user@test.com", "h1", expires)
-        await storage.create_auth_code("c2", "user@test.com", "h2", expires)
-        await storage.create_auth_code("c3", "other@test.com", "h3", expires)
-
-        since = datetime.now(timezone.utc) - timedelta(minutes=1)
-        count = await storage.count_recent_codes("user@test.com", since)
-        assert count == 2
 
 
 # ═══════════════════════════════════════════════════════════════════════════

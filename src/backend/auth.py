@@ -49,13 +49,6 @@ def decode_token(token: str) -> dict | None:
         return None
 
 
-def generate_login_code(length: int = 6) -> tuple[str, str]:
-    """Generate a numeric login code. Returns (raw_code, code_hash)."""
-    raw_code = "".join(str(secrets.randbelow(10)) for _ in range(length))
-    code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
-    return raw_code, code_hash
-
-
 def generate_api_key(key_type: str) -> tuple[str, str, str]:
     """Generate an API key. Returns (raw_key, key_hash, key_prefix).
 

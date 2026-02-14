@@ -310,7 +310,7 @@ class UserRecord(BaseModel):
 class UserCreate(BaseModel):
     """POST body for creating a user."""
     email: str
-    password: str | None = None
+    password: str
     name: str
     role: str = "member"
 
@@ -365,31 +365,22 @@ class PasswordChangeRequest(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-#  AUTH FLOW MODELS — Registration, Email-Code Login, Invites
+#  AUTH FLOW MODELS — Registration, Invites
 # ═══════════════════════════════════════════════════════════════════════════
 
 class RegisterRequest(BaseModel):
     """POST /v1/auth/register body."""
     email: str
+    password: str
     name: str
     tenant_name: str
-
-
-class SendCodeRequest(BaseModel):
-    """POST /v1/auth/send-code body."""
-    email: str
-
-
-class VerifyCodeRequest(BaseModel):
-    """POST /v1/auth/verify-code body."""
-    email: str
-    code: str
 
 
 class AcceptInviteRequest(BaseModel):
     """POST /v1/auth/accept-invite body."""
     invite_token: str
     name: str
+    password: str
 
 
 class InviteRequest(BaseModel):
@@ -412,17 +403,6 @@ class InviteRecord(BaseModel):
     expires_at: datetime
     accepted_at: datetime | None = None
     is_accepted: bool = False
-
-
-class AuthCodeRecord(BaseModel):
-    """Stored login code."""
-    code_id: str
-    email: str
-    code_hash: str
-    created_at: datetime
-    expires_at: datetime
-    attempts: int = 0
-    used: bool = False
 
 
 class ApiKeyCreateRequest(BaseModel):
