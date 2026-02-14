@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import logging
 import time
 from collections import defaultdict
 
@@ -13,12 +15,19 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from shared.enums import RATE_LIMIT_INGEST, RATE_LIMIT_QUERY
 
 # Paths that skip authentication
-PUBLIC_PATHS = {"/health", "/docs", "/openapi.json", "/dashboard"}
+PUBLIC_PATHS = {
+    "/health", "/docs", "/openapi.json", "/dashboard",
+    "/v1/auth/login",
+    "/v1/auth/register",
+    "/v1/auth/send-code",
+    "/v1/auth/verify-code",
+    "/v1/auth/accept-invite",
+}
 PUBLIC_PREFIXES = ("/v1/stream", "/static")
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    """Extract API key, authenticate, inject tenant_id into request state."""
+    """Dual auth: API key (hb_ prefix) or JWT token."""
 
     async def dispatch(
         self, request: Request, call_next: RequestResponseEndpoint
@@ -34,14 +43,24 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 status_code=401,
                 content={
                     "error": "authentication_failed",
-                    "message": "Missing or invalid Authorization header. Use: Bearer {api_key}",
+                    "message": "Missing or invalid Authorization header. Use: Bearer {api_key_or_jwt}",
                     "status": 401,
                 },
             )
 
-        raw_key = auth_header[7:]  # Strip "Bearer "
-        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
+        token = auth_header[7:]  # Strip "Bearer "
 
+        # Detect auth type by prefix: hb_ = API key, otherwise = JWT
+        if token.startswith("hb_"):
+            return await self._auth_api_key(request, call_next, token)
+        else:
+            return await self._auth_jwt(request, call_next, token)
+
+    async def _auth_api_key(
+        self, request: Request, call_next: RequestResponseEndpoint, raw_key: str
+    ) -> Response:
+        """Existing API key authentication path."""
+        key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
         storage = request.app.state.storage
         info = await storage.authenticate(key_hash)
         if info is None:
@@ -65,15 +84,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        # Inject auth context into request state
+        # Inject auth context
         request.state.tenant_id = info.tenant_id
         request.state.key_type = info.key_type
         request.state.key_id = info.key_id
+        request.state.auth_type = "api_key"
+        request.state.user_id = None
+        request.state.user_role = None
 
         # Fire-and-forget touch
-        import asyncio
-        import logging
-
         def _log_task_exception(t: asyncio.Task) -> None:
             if not t.cancelled() and t.exception():
                 logging.getLogger(__name__).warning(
@@ -83,8 +102,34 @@ class AuthMiddleware(BaseHTTPMiddleware):
         task = asyncio.create_task(storage.touch_api_key(info.key_id))
         task.add_done_callback(_log_task_exception)
 
-        response = await call_next(request)
-        return response
+        return await call_next(request)
+
+    async def _auth_jwt(
+        self, request: Request, call_next: RequestResponseEndpoint, token: str
+    ) -> Response:
+        """JWT token authentication path."""
+        from backend.auth import decode_token
+
+        claims = decode_token(token)
+        if claims is None:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": "authentication_failed",
+                    "message": "Invalid or expired token",
+                    "status": 401,
+                },
+            )
+
+        # Inject auth context
+        request.state.tenant_id = claims["tid"]
+        request.state.key_type = None
+        request.state.key_id = None
+        request.state.auth_type = "jwt"
+        request.state.user_id = claims["sub"]
+        request.state.user_role = claims["role"]
+
+        return await call_next(request)
 
 
 # Module-level rate limit state — can be cleared between tests

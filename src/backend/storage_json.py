@@ -45,11 +45,13 @@ from shared.models import (
     AlertRuleUpdate,
     ApiKeyInfo,
     ApiKeyRecord,
+    AuthCodeRecord,
     CostSummary,
     CostTimeBucket,
     AgentPipelineSummary,
     Event,
     FleetPipelineState,
+    InviteRecord,
     LlmCallRecord,
     MetricsResponse,
     MetricsSummary,
@@ -64,6 +66,7 @@ from shared.models import (
     TenantRecord,
     TimelineSummary,
     TimeseriesBucket,
+    UserRecord,
 )
 
 
@@ -169,12 +172,15 @@ def _now_utc() -> datetime:
 TABLE_FILES = [
     "tenants",
     "api_keys",
+    "users",
     "projects",
     "agents",
     "project_agents",
     "events",
     "alert_rules",
     "alert_history",
+    "auth_codes",
+    "invites",
 ]
 
 
@@ -270,6 +276,7 @@ class JsonStorageBackend:
         key_prefix: str,
         key_type: str,
         label: str | None = None,
+        created_by_user_id: str | None = None,
     ) -> ApiKeyRecord:
         now = _now_utc()
         rec = ApiKeyRecord(
@@ -279,6 +286,7 @@ class JsonStorageBackend:
             key_prefix=key_prefix,
             key_type=key_type,
             label=label,
+            created_by_user_id=created_by_user_id,
             created_at=now,
         )
         async with self._locks["api_keys"]:
@@ -322,6 +330,153 @@ class JsonStorageBackend:
                     row["is_active"] = False
                     row["revoked_at"] = _now_utc().isoformat()
                     self._persist("api_keys")
+                    return True
+        return False
+
+    # ───────────────────────────────────────────────────────────────────
+    #  USERS
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_user(
+        self,
+        user_id: str,
+        tenant_id: str,
+        email: str,
+        password_hash: str,
+        name: str,
+        role: str = "member",
+    ) -> UserRecord:
+        now = _now_utc()
+        async with self._locks["users"]:
+            # Check duplicate email globally (one email = one user = one tenant)
+            for row in self._tables["users"]:
+                if (
+                    row["email"].lower() == email.lower()
+                    and row.get("is_active", True)
+                ):
+                    raise ValueError(f"Email '{email}' already registered")
+            rec = UserRecord(
+                user_id=user_id,
+                tenant_id=tenant_id,
+                email=email,
+                password_hash=password_hash,
+                name=name,
+                role=role,
+                created_at=now,
+                updated_at=now,
+            )
+            self._tables["users"].append(rec.model_dump(mode="json"))
+            self._persist("users")
+        return rec
+
+    async def get_user(
+        self, tenant_id: str, user_id: str
+    ) -> UserRecord | None:
+        for row in self._tables["users"]:
+            if row["tenant_id"] == tenant_id and row["user_id"] == user_id:
+                return UserRecord(**row)
+        return None
+
+    async def get_user_by_email(
+        self, tenant_id: str, email: str
+    ) -> UserRecord | None:
+        for row in self._tables["users"]:
+            if (
+                row["tenant_id"] == tenant_id
+                and row["email"].lower() == email.lower()
+                and row.get("is_active", True)
+            ):
+                return UserRecord(**row)
+        return None
+
+    async def list_users(
+        self,
+        tenant_id: str,
+        *,
+        role: str | None = None,
+        is_active: bool | None = None,
+    ) -> list[UserRecord]:
+        results = []
+        for row in self._tables["users"]:
+            if row["tenant_id"] != tenant_id:
+                continue
+            if role and row.get("role") != role:
+                continue
+            if is_active is not None and row.get("is_active", True) != is_active:
+                continue
+            results.append(UserRecord(**row))
+        return results
+
+    async def update_user(
+        self,
+        tenant_id: str,
+        user_id: str,
+        *,
+        email: str | None = None,
+        name: str | None = None,
+        role: str | None = None,
+        password_hash: str | None = None,
+        settings: dict | None = None,
+        last_login_at: datetime | None = None,
+    ) -> UserRecord | None:
+        async with self._locks["users"]:
+            for row in self._tables["users"]:
+                if row["tenant_id"] == tenant_id and row["user_id"] == user_id:
+                    if email is not None:
+                        # Check duplicate email
+                        for other in self._tables["users"]:
+                            if (
+                                other["tenant_id"] == tenant_id
+                                and other["email"].lower() == email.lower()
+                                and other["user_id"] != user_id
+                                and other.get("is_active", True)
+                            ):
+                                raise ValueError(f"Email '{email}' already exists in tenant")
+                        row["email"] = email
+                    if name is not None:
+                        row["name"] = name
+                    if role is not None:
+                        row["role"] = role
+                    if password_hash is not None:
+                        row["password_hash"] = password_hash
+                    if settings is not None:
+                        row["settings"] = settings
+                    if last_login_at is not None:
+                        row["last_login_at"] = last_login_at.isoformat()
+                    row["updated_at"] = _now_utc().isoformat()
+                    self._persist("users")
+                    return UserRecord(**row)
+        return None
+
+    async def deactivate_user(
+        self, tenant_id: str, user_id: str
+    ) -> bool:
+        async with self._locks["users"]:
+            for row in self._tables["users"]:
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row["user_id"] == user_id
+                    and row.get("is_active", True)
+                ):
+                    row["is_active"] = False
+                    row["updated_at"] = _now_utc().isoformat()
+                    self._persist("users")
+                    return True
+        return False
+
+    async def reactivate_user(
+        self, tenant_id: str, user_id: str
+    ) -> bool:
+        async with self._locks["users"]:
+            for row in self._tables["users"]:
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row["user_id"] == user_id
+                    and not row.get("is_active", True)
+                ):
+                    row["is_active"] = True
+                    row["updated_at"] = _now_utc().isoformat()
+                    self._persist("users")
                     return True
         return False
 
@@ -1811,3 +1966,191 @@ class JsonStorageBackend:
             return True
         age = (now - ts).total_seconds()
         return age <= max_age_seconds
+
+    # ───────────────────────────────────────────────────────────────────
+    #  AUTH CODES
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_auth_code(
+        self,
+        code_id: str,
+        email: str,
+        code_hash: str,
+        expires_at: datetime,
+    ) -> AuthCodeRecord:
+        now = _now_utc()
+        rec = AuthCodeRecord(
+            code_id=code_id,
+            email=email,
+            code_hash=code_hash,
+            created_at=now,
+            expires_at=expires_at,
+        )
+        async with self._locks["auth_codes"]:
+            self._tables["auth_codes"].append(rec.model_dump(mode="json"))
+            self._persist("auth_codes")
+        return rec
+
+    async def get_active_auth_code(
+        self, email: str
+    ) -> AuthCodeRecord | None:
+        now = _now_utc()
+        candidates = []
+        for row in self._tables["auth_codes"]:
+            if (
+                row["email"].lower() == email.lower()
+                and not row.get("used", False)
+            ):
+                exp = _parse_dt(row["expires_at"])
+                if exp and exp > now:
+                    candidates.append(row)
+        if not candidates:
+            return None
+        candidates.sort(key=lambda r: r["created_at"], reverse=True)
+        return AuthCodeRecord(**candidates[0])
+
+    async def mark_auth_code_used(self, code_id: str) -> bool:
+        async with self._locks["auth_codes"]:
+            for row in self._tables["auth_codes"]:
+                if row["code_id"] == code_id:
+                    row["used"] = True
+                    self._persist("auth_codes")
+                    return True
+        return False
+
+    async def increment_auth_code_attempts(self, code_id: str) -> int:
+        async with self._locks["auth_codes"]:
+            for row in self._tables["auth_codes"]:
+                if row["code_id"] == code_id:
+                    row["attempts"] = row.get("attempts", 0) + 1
+                    self._persist("auth_codes")
+                    return row["attempts"]
+        return 0
+
+    async def count_recent_codes(
+        self, email: str, since: datetime
+    ) -> int:
+        count = 0
+        for row in self._tables["auth_codes"]:
+            if row["email"].lower() == email.lower():
+                created = _parse_dt(row["created_at"])
+                if created and created >= since:
+                    count += 1
+        return count
+
+    # ───────────────────────────────────────────────────────────────────
+    #  GLOBAL EMAIL LOOKUP
+    # ───────────────────────────────────────────────────────────────────
+
+    async def get_user_by_email_global(
+        self, email: str
+    ) -> UserRecord | None:
+        for row in self._tables["users"]:
+            if (
+                row["email"].lower() == email.lower()
+                and row.get("is_active", True)
+            ):
+                return UserRecord(**row)
+        return None
+
+    # ───────────────────────────────────────────────────────────────────
+    #  INVITES
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_invite(
+        self,
+        invite_id: str,
+        tenant_id: str,
+        email: str,
+        role: str,
+        name: str | None,
+        invite_token_hash: str,
+        created_by_user_id: str,
+        expires_at: datetime,
+    ) -> InviteRecord:
+        now = _now_utc()
+        rec = InviteRecord(
+            invite_id=invite_id,
+            tenant_id=tenant_id,
+            email=email,
+            role=role,
+            name=name,
+            invite_token_hash=invite_token_hash,
+            created_by_user_id=created_by_user_id,
+            created_at=now,
+            expires_at=expires_at,
+        )
+        async with self._locks["invites"]:
+            self._tables["invites"].append(rec.model_dump(mode="json"))
+            self._persist("invites")
+        return rec
+
+    async def get_invite_by_token_hash(
+        self, invite_token_hash: str
+    ) -> InviteRecord | None:
+        now = _now_utc()
+        for row in self._tables["invites"]:
+            if (
+                row["invite_token_hash"] == invite_token_hash
+                and not row.get("is_accepted", False)
+            ):
+                exp = _parse_dt(row["expires_at"])
+                if exp and exp > now:
+                    return InviteRecord(**row)
+        return None
+
+    async def get_pending_invite(
+        self, tenant_id: str, email: str
+    ) -> InviteRecord | None:
+        now = _now_utc()
+        for row in self._tables["invites"]:
+            if (
+                row["tenant_id"] == tenant_id
+                and row["email"].lower() == email.lower()
+                and not row.get("is_accepted", False)
+            ):
+                exp = _parse_dt(row["expires_at"])
+                if exp and exp > now:
+                    return InviteRecord(**row)
+        return None
+
+    async def mark_invite_accepted(self, invite_id: str) -> bool:
+        async with self._locks["invites"]:
+            for row in self._tables["invites"]:
+                if row["invite_id"] == invite_id:
+                    row["is_accepted"] = True
+                    row["accepted_at"] = _now_utc().isoformat()
+                    self._persist("invites")
+                    return True
+        return False
+
+    async def list_invites(
+        self,
+        tenant_id: str,
+        *,
+        is_accepted: bool | None = None,
+    ) -> list[InviteRecord]:
+        results = []
+        for row in self._tables["invites"]:
+            if row["tenant_id"] != tenant_id:
+                continue
+            if is_accepted is not None and row.get("is_accepted", False) != is_accepted:
+                continue
+            results.append(InviteRecord(**row))
+        return results
+
+    # ───────────────────────────────────────────────────────────────────
+    #  API KEY — USER FILTERED
+    # ───────────────────────────────────────────────────────────────────
+
+    async def list_api_keys_by_user(
+        self, tenant_id: str, user_id: str
+    ) -> list[ApiKeyRecord]:
+        return [
+            ApiKeyRecord(**row)
+            for row in self._tables["api_keys"]
+            if (
+                row["tenant_id"] == tenant_id
+                and row.get("created_by_user_id") == user_id
+            )
+        ]

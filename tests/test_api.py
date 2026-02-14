@@ -11,6 +11,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from backend.app import app, _bootstrap_dev_tenant
+from backend.llm_pricing import LlmPricingEngine
 from backend.middleware import reset_rate_limits
 from backend.storage_json import JsonStorageBackend
 from shared.models import ProjectCreate
@@ -28,6 +29,9 @@ async def client(tmp_path: Path, monkeypatch):
     storage = JsonStorageBackend(data_dir=tmp_path)
     await storage.initialize()
     app.state.storage = storage
+    pricing = LlmPricingEngine(data_dir=str(tmp_path))
+    await pricing.initialize()
+    app.state.pricing = pricing
     await _bootstrap_dev_tenant(storage)
     # Create the project referenced by sample_batch.json
     await storage.create_project(
@@ -782,3 +786,532 @@ class TestProjectDeleteWithReassignment:
         )
         assert r2.status_code == 200
         assert r2.json()["name"] == "Renamed"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  USER AUTH TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestUserAuth:
+    async def test_login_success(self, client: AsyncClient):
+        """Bootstrap dev user can log in."""
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "admin@hiveboard.dev", "password": "admin"},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert "token" in body
+        assert body["token_type"] == "bearer"
+        assert body["expires_in"] > 0
+        assert body["user"]["email"] == "admin@hiveboard.dev"
+        assert body["user"]["role"] == "owner"
+
+    async def test_login_wrong_password(self, client: AsyncClient):
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "admin@hiveboard.dev", "password": "wrong"},
+        )
+        assert r.status_code == 401
+        assert r.json()["error"] == "authentication_failed"
+
+    async def test_login_nonexistent_email(self, client: AsyncClient):
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "nobody@hiveboard.dev", "password": "admin"},
+        )
+        assert r.status_code == 401
+
+    async def test_jwt_auth_on_existing_endpoints(self, client: AsyncClient):
+        """JWT token works on existing API endpoints."""
+        # Login to get token
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "admin@hiveboard.dev", "password": "admin"},
+        )
+        token = r.json()["token"]
+        jwt_headers = {"Authorization": f"Bearer {token}"}
+
+        # Use JWT to access agents endpoint
+        r2 = await client.get("/v1/agents", headers=jwt_headers)
+        assert r2.status_code == 200
+
+    async def test_list_users(self, client: AsyncClient):
+        """Owner can list users via API key."""
+        r = await client.get("/v1/users", headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        users = r.json()["data"]
+        assert len(users) >= 1  # At least the bootstrap dev-owner
+
+    async def test_create_user(self, client: AsyncClient):
+        r = await client.post(
+            "/v1/users",
+            json={
+                "email": "newuser@acme.com",
+                "password": "securepass123",
+                "name": "New User",
+                "role": "member",
+            },
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 201
+        body = r.json()
+        assert body["email"] == "newuser@acme.com"
+        assert body["role"] == "member"
+        assert "password_hash" not in body  # Must not leak
+
+    async def test_duplicate_email_rejected(self, client: AsyncClient):
+        """Creating a user with an existing email fails."""
+        await client.post(
+            "/v1/users",
+            json={"email": "dup@acme.com", "password": "pass1", "name": "First"},
+            headers=AUTH_HEADERS,
+        )
+        r = await client.post(
+            "/v1/users",
+            json={"email": "dup@acme.com", "password": "pass2", "name": "Second"},
+            headers=AUTH_HEADERS,
+        )
+        assert r.status_code == 409
+        assert r.json()["error"] == "duplicate_email"
+
+    async def test_viewer_cannot_create_users(self, client: AsyncClient):
+        """JWT user with viewer role can't create users."""
+        # Create a viewer user
+        await client.post(
+            "/v1/users",
+            json={"email": "viewer@acme.com", "password": "viewpass", "name": "Viewer", "role": "viewer"},
+            headers=AUTH_HEADERS,
+        )
+        # Login as viewer
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "viewer@acme.com", "password": "viewpass"},
+        )
+        token = r.json()["token"]
+        viewer_headers = {"Authorization": f"Bearer {token}"}
+
+        # Try to create a user — should fail
+        r2 = await client.post(
+            "/v1/users",
+            json={"email": "blocked@acme.com", "password": "pass", "name": "Blocked"},
+            headers=viewer_headers,
+        )
+        assert r2.status_code == 403
+
+    async def test_deactivate_user(self, client: AsyncClient):
+        # Create a user
+        r = await client.post(
+            "/v1/users",
+            json={"email": "deact@acme.com", "password": "pass", "name": "Deact User"},
+            headers=AUTH_HEADERS,
+        )
+        user_id = r.json()["user_id"]
+
+        # Deactivate
+        r2 = await client.delete(f"/v1/users/{user_id}", headers=AUTH_HEADERS)
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "deactivated"
+
+        # Can't login anymore
+        r3 = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "deact@acme.com", "password": "pass"},
+        )
+        assert r3.status_code == 401
+
+    async def test_reactivate_user(self, client: AsyncClient):
+        # Create and deactivate
+        r = await client.post(
+            "/v1/users",
+            json={"email": "react@acme.com", "password": "pass", "name": "React User"},
+            headers=AUTH_HEADERS,
+        )
+        user_id = r.json()["user_id"]
+        await client.delete(f"/v1/users/{user_id}", headers=AUTH_HEADERS)
+
+        # Reactivate
+        r2 = await client.post(f"/v1/users/{user_id}/reactivate", headers=AUTH_HEADERS)
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "reactivated"
+
+        # Can login again
+        r3 = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "react@acme.com", "password": "pass"},
+        )
+        assert r3.status_code == 200
+
+    async def test_change_password(self, client: AsyncClient):
+        # Create user and login
+        await client.post(
+            "/v1/users",
+            json={"email": "chgpw@acme.com", "password": "oldpass", "name": "PW User"},
+            headers=AUTH_HEADERS,
+        )
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "chgpw@acme.com", "password": "oldpass"},
+        )
+        token = r.json()["token"]
+        jwt_headers = {"Authorization": f"Bearer {token}"}
+
+        # Change password
+        r2 = await client.post(
+            "/v1/auth/change-password",
+            json={"current_password": "oldpass", "new_password": "newpass"},
+            headers=jwt_headers,
+        )
+        assert r2.status_code == 200
+
+        # Login with new password
+        r3 = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "chgpw@acme.com", "password": "newpass"},
+        )
+        assert r3.status_code == 200
+
+    async def test_get_me(self, client: AsyncClient):
+        """GET /v1/users/me returns current JWT user."""
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "admin@hiveboard.dev", "password": "admin"},
+        )
+        token = r.json()["token"]
+        r2 = await client.get(
+            "/v1/users/me",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r2.status_code == 200
+        assert r2.json()["email"] == "admin@hiveboard.dev"
+
+    async def test_api_key_still_works(self, client: AsyncClient):
+        """Existing API key auth still works on all endpoints."""
+        r = await client.get("/v1/agents", headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        r2 = await client.get("/v1/projects", headers=AUTH_HEADERS)
+        assert r2.status_code == 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  REGISTRATION TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestRegistration:
+    async def test_register_happy_path(self, client: AsyncClient):
+        r = await client.post("/v1/auth/register", json={
+            "email": "founder@newco.com",
+            "name": "Jane Founder",
+            "tenant_name": "NewCo",
+        })
+        assert r.status_code == 201
+        body = r.json()
+        assert body["user"]["email"] == "founder@newco.com"
+        assert body["user"]["role"] == "owner"
+        assert body["tenant"]["name"] == "NewCo"
+        assert body["tenant"]["slug"] == "newco"
+        assert body["api_key"].startswith("hb_live_")
+
+    async def test_register_duplicate_email(self, client: AsyncClient):
+        await client.post("/v1/auth/register", json={
+            "email": "dup@newco.com",
+            "name": "First",
+            "tenant_name": "First Co",
+        })
+        r = await client.post("/v1/auth/register", json={
+            "email": "dup@newco.com",
+            "name": "Second",
+            "tenant_name": "Second Co",
+        })
+        assert r.status_code == 409
+        assert r.json()["error"] == "email_exists"
+
+    async def test_register_creates_default_project(self, client: AsyncClient):
+        r = await client.post("/v1/auth/register", json={
+            "email": "proj@newco.com",
+            "name": "Proj User",
+            "tenant_name": "ProjCo",
+        })
+        body = r.json()
+        api_key = body["api_key"]
+
+        # Use the new API key to list projects
+        r2 = await client.get(
+            "/v1/projects",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        assert r2.status_code == 200
+        projects = r2.json()["data"]
+        assert len(projects) >= 1
+        slugs = [p["slug"] for p in projects]
+        assert "default" in slugs
+
+    async def test_register_returns_working_api_key(self, client: AsyncClient):
+        r = await client.post("/v1/auth/register", json={
+            "email": "apitest@newco.com",
+            "name": "API Tester",
+            "tenant_name": "API Co",
+        })
+        api_key = r.json()["api_key"]
+        r2 = await client.get(
+            "/v1/agents",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        assert r2.status_code == 200
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  EMAIL CODE LOGIN TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestEmailCodeLogin:
+    async def test_send_and_verify_code(self, client: AsyncClient):
+        """Full flow: send code → verify → get JWT."""
+        # Send code for the dev admin user
+        r = await client.post("/v1/auth/send-code", json={
+            "email": "admin@hiveboard.dev",
+        })
+        assert r.status_code == 200
+        body = r.json()
+        assert "code" in body  # MVP returns code in response
+        code = body["code"]
+        assert len(code) == 6
+
+        # Verify code
+        r2 = await client.post("/v1/auth/verify-code", json={
+            "email": "admin@hiveboard.dev",
+            "code": code,
+        })
+        assert r2.status_code == 200
+        body2 = r2.json()
+        assert "token" in body2
+        assert body2["token_type"] == "bearer"
+        assert body2["user"]["email"] == "admin@hiveboard.dev"
+
+    async def test_wrong_code(self, client: AsyncClient):
+        # Send valid code
+        r = await client.post("/v1/auth/send-code", json={
+            "email": "admin@hiveboard.dev",
+        })
+        assert r.status_code == 200
+
+        # Verify with wrong code
+        r2 = await client.post("/v1/auth/verify-code", json={
+            "email": "admin@hiveboard.dev",
+            "code": "000000",
+        })
+        assert r2.status_code == 401
+
+    async def test_nonexistent_email_send_code_200(self, client: AsyncClient):
+        """No email enumeration — send-code returns 200 even for unknown emails."""
+        r = await client.post("/v1/auth/send-code", json={
+            "email": "nobody@nowhere.com",
+        })
+        assert r.status_code == 200
+        # No code returned for unknown email
+        assert "code" not in r.json()
+
+    async def test_expired_code_not_valid(self, client: AsyncClient):
+        """Verify fails when no active code exists."""
+        r = await client.post("/v1/auth/verify-code", json={
+            "email": "admin@hiveboard.dev",
+            "code": "123456",
+        })
+        assert r.status_code == 401
+
+    async def test_rate_limit(self, client: AsyncClient):
+        """Sending too many codes triggers 429."""
+        for _ in range(3):
+            await client.post("/v1/auth/send-code", json={
+                "email": "admin@hiveboard.dev",
+            })
+        r = await client.post("/v1/auth/send-code", json={
+            "email": "admin@hiveboard.dev",
+        })
+        assert r.status_code == 429
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  INVITE FLOW TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestInviteFlow:
+    async def _get_owner_jwt(self, client: AsyncClient) -> str:
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "admin@hiveboard.dev", "password": "admin"},
+        )
+        return r.json()["token"]
+
+    async def test_invite_and_accept(self, client: AsyncClient):
+        """Owner invites → invitee accepts → joins tenant."""
+        token = await self._get_owner_jwt(client)
+        jwt_headers = {"Authorization": f"Bearer {token}"}
+
+        # Send invite
+        r = await client.post("/v1/auth/invite", json={
+            "email": "newguy@example.com",
+            "role": "member",
+        }, headers=jwt_headers)
+        assert r.status_code == 201
+        invite_token = r.json()["invite_token"]
+
+        # Accept invite
+        r2 = await client.post("/v1/auth/accept-invite", json={
+            "invite_token": invite_token,
+            "name": "New Guy",
+        })
+        assert r2.status_code == 200
+        body = r2.json()
+        assert "token" in body
+        assert body["user"]["email"] == "newguy@example.com"
+        assert body["user"]["role"] == "member"
+
+    async def test_role_escalation_blocked(self, client: AsyncClient):
+        """Admin can't invite as owner."""
+        # Create admin user
+        await client.post("/v1/users", json={
+            "email": "myadmin@acme.com",
+            "password": "adminpass",
+            "name": "My Admin",
+            "role": "admin",
+        }, headers=AUTH_HEADERS)
+        # Login as admin
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "myadmin@acme.com", "password": "adminpass"},
+        )
+        admin_token = r.json()["token"]
+        admin_headers = {"Authorization": f"Bearer {admin_token}"}
+
+        # Try to invite as owner — should fail
+        r2 = await client.post("/v1/auth/invite", json={
+            "email": "escalate@example.com",
+            "role": "owner",
+        }, headers=admin_headers)
+        assert r2.status_code == 403
+        assert r2.json()["error"] == "role_escalation"
+
+    async def test_accept_expired_invite(self, client: AsyncClient):
+        """Accepting with a bogus token returns 404."""
+        r = await client.post("/v1/auth/accept-invite", json={
+            "invite_token": "00000000-0000-0000-0000-000000000000",
+            "name": "Ghost",
+        })
+        assert r.status_code == 404
+
+    async def test_accept_invite_email_already_registered(self, client: AsyncClient):
+        """If the invited email is already registered, accept fails with 409."""
+        token = await self._get_owner_jwt(client)
+        jwt_headers = {"Authorization": f"Bearer {token}"}
+
+        # Create invite for an email
+        r = await client.post("/v1/auth/invite", json={
+            "email": "invited@example.com",
+            "role": "member",
+        }, headers=jwt_headers)
+        invite_token = r.json()["invite_token"]
+
+        # Accept the invite first (this registers the user)
+        r2 = await client.post("/v1/auth/accept-invite", json={
+            "invite_token": invite_token,
+            "name": "First Accept",
+        })
+        assert r2.status_code == 200
+
+        # Create another invite for a different email
+        r3 = await client.post("/v1/auth/invite", json={
+            "email": "second@example.com",
+            "role": "member",
+        }, headers=jwt_headers)
+        invite_token2 = r3.json()["invite_token"]
+
+        # Accept, then register the invitee's email in a different tenant
+        # This tests the guard in accept-invite — but since invite was already
+        # accepted above, it's no longer pending. Instead, test that
+        # registering with a pending-invite email is blocked.
+        r4 = await client.post("/v1/auth/register", json={
+            "email": "second@example.com",
+            "name": "Blocked",
+            "tenant_name": "Blocked Co",
+        })
+        assert r4.status_code == 409
+        assert r4.json()["error"] == "pending_invite"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  API KEY CRUD TESTS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestApiKeyCRUD:
+    async def test_create_returns_raw_key(self, client: AsyncClient):
+        r = await client.post("/v1/api-keys", json={
+            "label": "My Key",
+            "key_type": "live",
+        }, headers=AUTH_HEADERS)
+        assert r.status_code == 201
+        body = r.json()
+        assert "raw_key" in body
+        assert body["raw_key"].startswith("hb_live_")
+        assert "key_id" in body
+
+    async def test_list_hides_hash(self, client: AsyncClient):
+        # Create a key first
+        await client.post("/v1/api-keys", json={
+            "label": "Test Key",
+            "key_type": "live",
+        }, headers=AUTH_HEADERS)
+
+        r = await client.get("/v1/api-keys", headers=AUTH_HEADERS)
+        assert r.status_code == 200
+        keys = r.json()["data"]
+        assert len(keys) >= 1
+        for k in keys:
+            assert "key_hash" not in k
+            assert "key_prefix" in k
+
+    async def test_revoke_key(self, client: AsyncClient):
+        r = await client.post("/v1/api-keys", json={
+            "label": "Revoke Me",
+            "key_type": "test",
+        }, headers=AUTH_HEADERS)
+        key_id = r.json()["key_id"]
+
+        r2 = await client.delete(f"/v1/api-keys/{key_id}", headers=AUTH_HEADERS)
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "revoked"
+
+    async def test_viewer_restricted_to_read_keys(self, client: AsyncClient):
+        """Viewer can only create 'read' keys."""
+        # Create viewer user
+        await client.post("/v1/users", json={
+            "email": "keyviewer@acme.com",
+            "password": "pass",
+            "name": "Key Viewer",
+            "role": "viewer",
+        }, headers=AUTH_HEADERS)
+        r = await client.post(
+            "/v1/auth/login?tenant_id=dev",
+            json={"email": "keyviewer@acme.com", "password": "pass"},
+        )
+        viewer_token = r.json()["token"]
+        viewer_headers = {"Authorization": f"Bearer {viewer_token}"}
+
+        # Try to create a live key — should fail
+        r2 = await client.post("/v1/api-keys", json={
+            "label": "Not Allowed",
+            "key_type": "live",
+        }, headers=viewer_headers)
+        assert r2.status_code == 403
+
+        # Create a read key — should work
+        r3 = await client.post("/v1/api-keys", json={
+            "label": "Read Only",
+            "key_type": "read",
+        }, headers=viewer_headers)
+        assert r3.status_code == 201

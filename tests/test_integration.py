@@ -23,6 +23,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from backend.app import app, _bootstrap_dev_tenant
+from backend.llm_pricing import LlmPricingEngine
 from backend.storage_json import JsonStorageBackend
 from backend.middleware import reset_rate_limits
 
@@ -38,6 +39,9 @@ async def server(tmp_path: Path, monkeypatch):
     storage = JsonStorageBackend(data_dir=tmp_path / "data")
     await storage.initialize()
     app.state.storage = storage
+    pricing = LlmPricingEngine(data_dir=str(tmp_path / "data"))
+    await pricing.initialize()
+    app.state.pricing = pricing
     await _bootstrap_dev_tenant(storage)
     # Create project used by simulator
     from shared.models import ProjectCreate

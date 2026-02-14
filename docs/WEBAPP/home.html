@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HiveBoard — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --error: #dc2626;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slide-down { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 16px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+/* ─── USER MENU ─── */
+.user-menu-wrapper { position: relative; }
+.user-trigger {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 12px 5px 5px;
+    border: 1px solid var(--border); border-radius: 28px;
+    background: var(--bg-primary); cursor: pointer; transition: all 0.15s;
+}
+.user-trigger:hover { background: var(--bg-hover); border-color: #ccc; }
+.user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: var(--font-sans); font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.user-name {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); max-width: 140px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.user-chevron { color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; }
+.user-trigger.open .user-chevron { transform: rotate(180deg); }
+
+/* ─── DROPDOWN ─── */
+.user-dropdown {
+    position: absolute; top: calc(100% + 8px); right: 0; width: 260px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.04);
+    display: none; z-index: 200; overflow: hidden; animation: slide-down 0.2s ease;
+}
+.user-dropdown.open { display: block; }
+
+.dropdown-user-info { padding: 16px; border-bottom: 1px solid var(--border); }
+.dropdown-user-name { font-family: var(--font-sans); font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+.dropdown-user-email { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+.dropdown-user-role {
+    display: inline-block; margin-top: 6px;
+    font-family: var(--font-sans); font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 8px; border-radius: 4px;
+}
+
+.dropdown-section { padding: 6px; }
+.dropdown-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: var(--radius-sm);
+    cursor: pointer; transition: background 0.1s;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 500;
+    color: var(--text-secondary); border: none; background: none; width: 100%; text-align: left;
+}
+.dropdown-item:hover { background: var(--bg-hover); }
+.dropdown-item svg { color: var(--text-muted); flex-shrink: 0; }
+.dropdown-divider { height: 1px; background: var(--border); }
+.dropdown-item.danger { color: var(--error); }
+.dropdown-item.danger svg { color: var(--error); }
+
+/* ═══════════════════════════════════════
+   PROFILE MODAL (read-only for now)
+   ═══════════════════════════════════════ */
+.modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4); z-index: 500;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+
+.modal-card {
+    background: var(--bg-primary); border-radius: 12px;
+    width: 100%; max-width: 440px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    animation: fade-in-up 0.3s ease; overflow: hidden;
+}
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-family: var(--font-sans); font-size: 17px; font-weight: 700; }
+.modal-close {
+    width: 32px; height: 32px; border: none; background: var(--bg-deep);
+    border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); transition: all 0.15s;
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.modal-body { padding: 24px; }
+.profile-field { margin-bottom: 18px; }
+.profile-label {
+    display: block; font-family: var(--font-sans); font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); margin-bottom: 4px;
+}
+.profile-value {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 500;
+    color: var(--text-primary); padding: 8px 0;
+}
+.profile-value.mono { font-family: var(--font-mono); font-size: 13px; }
+
+.profile-row { display: flex; gap: 24px; }
+.profile-row .profile-field { flex: 1; }
+
+.modal-footer {
+    display: flex; justify-content: flex-end; gap: 10px;
+    padding: 16px 24px; border-top: 1px solid var(--border);
+}
+.btn-close-modal {
+    font-family: var(--font-sans); font-size: 14px; font-weight: 600;
+    color: var(--text-secondary); background: var(--bg-deep);
+    border: 1px solid var(--border); padding: 9px 20px;
+    border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s;
+}
+.btn-close-modal:hover { background: var(--bg-hover); }
+
+/* ═══════════════════════════════════════
+   MAIN CONTENT
+   ═══════════════════════════════════════ */
+.main-content {
+    padding: 32px 24px; max-width: 1200px; margin: 0 auto;
+    animation: fade-in 0.4s ease;
+}
+.welcome-section { margin-bottom: 32px; }
+.welcome-greeting {
+    font-family: var(--font-sans); font-size: 24px; font-weight: 800;
+    letter-spacing: -0.5px; margin-bottom: 4px;
+}
+.welcome-greeting .hl-accent { color: var(--accent); }
+.welcome-sub { font-family: var(--font-sans); font-size: 15px; color: var(--text-muted); }
+
+.empty-state {
+    background: var(--bg-primary); border: 2px dashed var(--border);
+    border-radius: 12px; padding: 80px 40px; text-align: center;
+}
+.empty-hex {
+    width: 56px; height: 56px; background: var(--accent-dim);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+}
+.empty-hex-inner {
+    width: 34px; height: 34px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 18px;
+}
+.empty-title {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 8px;
+}
+.empty-text {
+    font-family: var(--font-sans); font-size: 14px; color: var(--text-muted);
+    max-width: 400px; margin: 0 auto 24px; line-height: 1.5;
+}
+.empty-code {
+    display: inline-block; font-family: var(--font-mono); font-size: 13px;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 10px 20px; border-radius: var(--radius-sm);
+    border: 1px solid rgba(194,65,12,0.12);
+}
+
+@media (max-width: 640px) {
+    .topbar { padding: 0 16px; }
+    .user-name { display: none; }
+    .user-trigger { padding: 4px; }
+    .main-content { padding: 24px 16px; }
+    .welcome-greeting { font-size: 20px; }
+    .profile-row { flex-direction: column; gap: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     TOP BAR
+     ═══════════════════════════════════════ -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="home.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+    </div>
+    <div class="topbar-right">
+        <div class="user-menu-wrapper">
+            <button class="user-trigger" id="userTrigger">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <span class="user-name" id="userNameDisplay">Loading…</span>
+                <svg class="user-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="dropdown-user-info">
+                    <div class="dropdown-user-name" id="dropdownName">—</div>
+                    <div class="dropdown-user-email" id="dropdownEmail">—</div>
+                    <div class="dropdown-user-role" id="dropdownRole">—</div>
+                </div>
+                <div class="dropdown-section">
+                    <button class="dropdown-item" id="openProfile">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 14c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        Profile
+                    </button>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-section">
+                    <button class="dropdown-item danger" id="logoutBtn">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 14H3.5A1.5 1.5 0 012 12.5v-9A1.5 1.5 0 013.5 2H6M10.5 11.5L14 8l-3.5-3.5M14 8H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Sign out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════ -->
+<div class="main-content">
+    <div class="welcome-section">
+        <h1 class="welcome-greeting">Welcome, <span class="hl-accent" id="welcomeName">—</span></h1>
+        <p class="welcome-sub">Here's what your agents are up to.</p>
+    </div>
+    <div class="empty-state">
+        <div class="empty-hex"><div class="empty-hex-inner">⬡</div></div>
+        <div class="empty-title">No agents connected yet</div>
+        <div class="empty-text">Install HiveLoop in your agent project to start seeing real-time observability data here.</div>
+        <code class="empty-code">pip install hiveloop</code>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PROFILE MODAL (read-only — no update endpoint in spec yet)
+     ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="profileModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-title">Profile</div>
+            <button class="modal-close" id="closeModal">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="profile-field">
+                <span class="profile-label">Name</span>
+                <div class="profile-value" id="profileName">—</div>
+            </div>
+            <div class="profile-field">
+                <span class="profile-label">Email</span>
+                <div class="profile-value mono" id="profileEmail">—</div>
+            </div>
+            <div class="profile-row">
+                <div class="profile-field">
+                    <span class="profile-label">Role</span>
+                    <div class="profile-value" id="profileRole">—</div>
+                </div>
+                <div class="profile-field">
+                    <span class="profile-label">Tenant</span>
+                    <div class="profile-value mono" id="profileTenant">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-close-modal" id="closeProfileBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// API CONFIG & AUTH
+// ═══════════════════════════════════════
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:8000'
+    : 'https://api.hiveboard.ai';
+
+// ─── JWT helpers (client-side decode, no verification) ───
+function decodeJwtPayload(token) {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(payload));
+    } catch { return null; }
+}
+
+function isTokenExpired(token) {
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.exp) return true;
+    // Add 30s buffer
+    return Date.now() >= (payload.exp * 1000) - 30000;
+}
+
+// ─── Authenticated API call ───
+async function apiCall(endpoint, data = {}, method = 'POST') {
+    const token = localStorage.getItem('hb_token');
+    if (!token || isTokenExpired(token)) {
+        logout();
+        throw new Error('Token expired');
+    }
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+    };
+
+    const opts = { method: method, headers: headers };
+    if (method !== 'GET') {
+        opts.body = JSON.stringify(data);
+    }
+
+    const resp = await fetch(API_BASE + endpoint, opts);
+
+    // 401 → token rejected server-side
+    if (resp.status === 401) {
+        logout();
+        throw new Error('Unauthorized');
+    }
+
+    const body = await resp.json().catch(() => ({}));
+    return { status: resp.status, ok: resp.ok, data: body };
+}
+
+// ═══════════════════════════════════════
+// AUTH CHECK ON LOAD
+// ═══════════════════════════════════════
+const token = localStorage.getItem('hb_token');
+
+if (!token || isTokenExpired(token)) {
+    logout();
+} else {
+    populateUI();
+}
+
+function getUserData() {
+    try { return JSON.parse(localStorage.getItem('hb_user')) || {}; }
+    catch { return {}; }
+}
+
+function populateUI() {
+    const user = getUserData();
+
+    // Derive display name and initials
+    const name = user.name || user.email || 'User';
+    const nameParts = name.split(' ');
+    const initials = nameParts.length >= 2
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+        : name.slice(0, 2).toUpperCase();
+    const firstName = nameParts[0] || 'there';
+
+    document.getElementById('userAvatar').textContent = initials;
+    document.getElementById('userNameDisplay').textContent = firstName;
+    document.getElementById('dropdownName').textContent = name;
+    document.getElementById('dropdownEmail').textContent = user.email || '';
+    document.getElementById('dropdownRole').textContent = user.role || 'member';
+    document.getElementById('welcomeName').textContent = firstName;
+
+    // Profile modal
+    document.getElementById('profileName').textContent = name;
+    document.getElementById('profileEmail').textContent = user.email || '—';
+    document.getElementById('profileRole').textContent = user.role || '—';
+    document.getElementById('profileTenant').textContent = user.tenant_id || '—';
+}
+
+// ═══════════════════════════════════════
+// USER DROPDOWN
+// ═══════════════════════════════════════
+const userTrigger = document.getElementById('userTrigger');
+const userDropdown = document.getElementById('userDropdown');
+
+userTrigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const isOpen = userDropdown.classList.toggle('open');
+    userTrigger.classList.toggle('open', isOpen);
+});
+
+document.addEventListener('click', function(e) {
+    if (!userDropdown.contains(e.target) && !userTrigger.contains(e.target)) {
+        userDropdown.classList.remove('open');
+        userTrigger.classList.remove('open');
+    }
+});
+
+// ═══════════════════════════════════════
+// LOGOUT
+// ═══════════════════════════════════════
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+function logout() {
+    localStorage.removeItem('hb_token');
+    localStorage.removeItem('hb_token_type');
+    localStorage.removeItem('hb_user');
+    sessionStorage.clear();
+    window.location.href = 'login.html';
+}
+
+// ═══════════════════════════════════════
+// PROFILE MODAL
+// ═══════════════════════════════════════
+const profileModal = document.getElementById('profileModal');
+
+document.getElementById('openProfile').addEventListener('click', function() {
+    userDropdown.classList.remove('open');
+    userTrigger.classList.remove('open');
+    profileModal.classList.add('open');
+});
+
+document.getElementById('closeModal').addEventListener('click', closeProfile);
+document.getElementById('closeProfileBtn').addEventListener('click', closeProfile);
+profileModal.addEventListener('click', function(e) { if (e.target === profileModal) closeProfile(); });
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && profileModal.classList.contains('open')) closeProfile(); });
+
+function closeProfile() { profileModal.classList.remove('open'); }
+</script>
+</body>
+</html>

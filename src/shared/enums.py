@@ -99,6 +99,17 @@ class KeyType(StrEnum):
     READ = "read"
 
 
+# ---------------------------------------------------------------------------
+# User Roles — Auth System
+# ---------------------------------------------------------------------------
+
+class UserRole(StrEnum):
+    OWNER = "owner"      # Full tenant access, can manage billing/settings
+    ADMIN = "admin"      # Can manage users, API keys, projects
+    MEMBER = "member"    # Read/write, can create own API keys
+    VIEWER = "viewer"    # Read-only dashboard access
+
+
 # Prefix → KeyType mapping
 KEY_PREFIX_MAP: dict[str, KeyType] = {
     "hb_live_": KeyType.LIVE,
@@ -193,6 +204,16 @@ class TenantPlan(StrEnum):
 # ---------------------------------------------------------------------------
 
 PRUNE_INTERVAL_SECONDS = 300  # 5 minutes — background prune cycle
+
+# ---------------------------------------------------------------------------
+# Auth Code & Invite Constants
+# ---------------------------------------------------------------------------
+
+AUTH_CODE_EXPIRY_SECONDS = 600       # 10 minutes
+AUTH_CODE_MAX_ATTEMPTS = 5
+AUTH_CODE_RATE_LIMIT = 3             # max codes per email per window
+AUTH_CODE_RATE_WINDOW = 300          # 5 minutes
+INVITE_EXPIRY_SECONDS = 604800      # 7 days
 
 COLD_EVENT_RETENTION: dict[str, int] = {
     EventType.HEARTBEAT: 600,          # 10 minutes
