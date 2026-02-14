@@ -24,7 +24,6 @@ src/data/*.json
 # Internal docs — not part of OSS delivery
 TO-DO/
 docs/old_versions/
-docs/PRESENTATION/
 docs/implementation-audits/
 docs/issues/complete/
 docs/UI_UX_design/
