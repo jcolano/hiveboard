@@ -24,6 +24,11 @@ sys.modules["hiveloop"] = _hiveloop_mod
 sys.modules["hiveloop._transport"] = _hiveloop_mod._transport  # type: ignore[attr-defined]
 sys.modules["hiveloop._agent"] = _hiveloop_mod._agent  # type: ignore[attr-defined]
 
+import sdk.hiveloop.contrib as _contrib_mod  # noqa: E402
+import sdk.hiveloop.contrib.log_handler as _log_handler_mod  # noqa: E402
+sys.modules["hiveloop.contrib"] = _contrib_mod
+sys.modules["hiveloop.contrib.log_handler"] = _log_handler_mod
+
 # ---------------------------------------------------------------------------
 # Team 1: Backend storage fixtures
 # ---------------------------------------------------------------------------

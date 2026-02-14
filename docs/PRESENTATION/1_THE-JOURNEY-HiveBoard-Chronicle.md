@@ -351,6 +351,9 @@ The simulator was useful for development, but real agent data revealed the entir
 **6. Multiple minds, better answers.**
 The CLI/Cloud personality difference was a feature, not a bug. Technical + functional perspectives on the same problems consistently produced more complete solutions than either alone.
 
+**7. Respect the context window — build in sections.**
+AI agents have finite memory. Large complex artifacts (full websites, multi-section specs) will exceed it. The technique that saved hours of lost work: instruct agents to build one section at a time, deliver it, then proceed. The specs serve as external memory; the agent only needs to hold the current section. Never let an agent attempt a full complex build in a single pass.
+
 ---
 
 ## One-Liners That Tell the Story
