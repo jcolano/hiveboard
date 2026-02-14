@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HiveBoard — Section 3.5: The Cost Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+    --idle: #94a3b8; --active: #2563eb; --success: #16a34a; --warning: #d97706;
+    --error: #dc2626; --stuck: #b91c1c; --llm: #7c3aed;
+    --bg-deep: #f5f3ef; --bg-primary: #ffffff; --bg-card: #ffffff;
+    --bg-elevated: #fafaf8; --bg-hover: #f0eeea;
+    --border: #e2e0db; --border-subtle: #eceae5;
+    --text-primary: #1a1a1a; --text-secondary: #4a4a4a; --text-muted: #8a8a8a;
+    --accent: #c2410c; --accent-dim: rgba(194, 65, 12, 0.06);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px; --radius-md: 10px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: var(--font-sans);
+    background: #0e0c0b;
+    color: #fff;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════
+   ANIMATIONS
+   ════════════════════════════════════════ */
+@keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float-arrow {
+    0%, 100% { transform: translateY(0); opacity: 0.5; }
+    50% { transform: translateY(6px); opacity: 1; }
+}
+@keyframes glow-ambient-cost {
+    0%, 100% { box-shadow: 0 -20px 80px rgba(124,58,237,0.04), 0 4px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05); }
+    50% { box-shadow: 0 -20px 80px rgba(124,58,237,0.07), 0 4px 50px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.05); }
+}
+
+/* ════════════════════════════════════════
+   SECTION 3.5 — THE COST EXPLORER
+   ════════════════════════════════════════ */
+.costx-section {
+    padding: 100px 0 80px;
+    position: relative;
+    overflow: hidden;
+}
+
+.costx-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 60% 40% at 50% 30%, rgba(124,58,237,0.04), transparent),
+        radial-gradient(ellipse 40% 30% at 20% 70%, rgba(194,65,12,0.03), transparent);
+    pointer-events: none;
+}
+
+/* ─── Narrative bridge ─── */
+.narrative-bridge {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 48px;
+    padding: 0 40px;
+    position: relative;
+    z-index: 1;
+}
+.narrative-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: var(--llm);
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+.narrative-headline {
+    font-family: var(--font-sans);
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1.2px;
+    line-height: 1.2;
+    color: #fff;
+    margin-bottom: 16px;
+}
+.narrative-headline .nh-dim { color: rgba(255,255,255,0.3); }
+.narrative-headline .nh-purple { color: var(--llm); }
+.narrative-headline .nh-accent { color: var(--accent); }
+.narrative-body {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    color: rgba(255,255,255,0.35);
+    line-height: 1.65;
+}
+
+/* ─── Discovery cards ─── */
+.discovery-strip {
+    max-width: 1060px;
+    margin: 0 auto 40px;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+}
+
+.disc-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius-md);
+    padding: 20px 18px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s;
+}
+.disc-card:hover {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+}
+.disc-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+}
+.disc-card:nth-child(1)::before { background: var(--llm); }
+.disc-card:nth-child(2)::before { background: var(--accent); }
+.disc-card:nth-child(3)::before { background: var(--success); }
+
+.disc-step {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+}
+.disc-card:nth-child(1) .disc-step { color: var(--llm); }
+.disc-card:nth-child(2) .disc-step { color: var(--accent); }
+.disc-card:nth-child(3) .disc-step { color: var(--success); }
+
+.disc-title {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -0.3px;
+}
+
+.disc-body {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.5;
+}
+.disc-body strong {
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+}
+
+.disc-example {
+    margin-top: 10px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: rgba(255,255,255,0.3);
+    line-height: 1.5;
+}
+.disc-example .ex-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.15);
+    margin-bottom: 4px;
+}
+.disc-example .ex-hl { color: var(--llm); font-weight: 600; }
+.disc-example .ex-accent { color: var(--accent); font-weight: 600; }
+.disc-example .ex-green { color: var(--success); font-weight: 600; }
+
+/* ─── THE IFRAME EMBED ─── */
+.costx-frame-wrap {
+    position: relative;
+    z-index: 1;
+    width: 94%;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.costx-frame {
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-bottom: none;
+    animation: glow-ambient-cost 4s ease infinite;
+    box-shadow:
+        0 -20px 80px rgba(124,58,237,0.04),
+        0 4px 40px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.costx-frame iframe {
+    display: block;
+    width: 100%;
+    height: 640px;
+    border: none;
+    background: var(--bg-deep);
+}
+
+/* Fade-out mask at the bottom */
+.costx-fade {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, #0e0c0b);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ─── Bottom callout ─── */
+.costx-callout {
+    max-width: 660px;
+    margin: 0 auto;
+    padding: 0 40px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.callout-rule {
+    width: 40px; height: 2px;
+    background: rgba(124,58,237,0.3);
+    margin: 40px auto 28px;
+}
+.callout-text {
+    font-family: var(--font-sans);
+    font-size: 18px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.6;
+}
+.callout-text strong {
+    color: rgba(255,255,255,0.8);
+    font-weight: 600;
+}
+.callout-text .ct-purple {
+    color: var(--llm);
+    font-weight: 600;
+}
+.callout-text .ct-accent {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* ─── Scroll cue ─── */
+.scroll-cue {
+    padding: 48px 0 0;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+.scroll-cue-text {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(255,255,255,0.22);
+    letter-spacing: 0.3px;
+    margin-bottom: 12px;
+}
+.scroll-arrow {
+    display: inline-block;
+    color: rgba(255,255,255,0.18);
+    font-size: 24px;
+    animation: float-arrow 2s ease infinite;
+}
+
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     SECTION 3.5 — THE COST EXPLORER
+     ════════════════════════════════════════ -->
+<section class="costx-section">
+
+    <!-- Narrative bridge -->
+    <div class="narrative-bridge">
+        <div class="narrative-eyebrow">Cost Explorer</div>
+        <h2 class="narrative-headline">
+            <span class="nh-dim">The $40/hr was hidden in</span><br>
+            <span class="nh-purple">842 Opus calls</span> <span class="nh-dim">doing</span> <span class="nh-accent">Haiku's job.</span>
+        </h2>
+        <p class="narrative-body">Click a model row. See every call. Spot the pattern. Opus was running classify_intent — a task Haiku handles at 1/10th the cost. That's $370/week found in 30 seconds.</p>
+    </div>
+
+    <!-- Discovery cards — three-step optimization story -->
+    <div class="discovery-strip">
+        <div class="disc-card">
+            <div class="disc-step">Step 1 · See</div>
+            <div class="disc-title">Cost by Model breakdown</div>
+            <div class="disc-body">Total spend split by model. <strong>One bar dominates.</strong> Opus at $412 — nearly half the total. That's where you look first.</div>
+            <div class="disc-example">
+                <div class="ex-label">What you see</div>
+                <span class="ex-hl">claude-opus-4-6</span> · 842 calls · <span class="ex-hl">$412.60</span>
+            </div>
+        </div>
+        <div class="disc-card">
+            <div class="disc-step">Step 2 · Drill</div>
+            <div class="disc-title">Click the row. See every call.</div>
+            <div class="disc-body">Expand to individual LLM calls. Name, agent, tokens, cost. <strong>Same function, repeated 842 times.</strong></div>
+            <div class="disc-example">
+                <div class="ex-label">The pattern</div>
+                <span class="ex-accent">classify_intent</span> · 4,200 in / 120 out · <span class="ex-hl">$0.49</span><br>
+                <span class="ex-accent">classify_intent</span> · 4,180 in / 115 out · <span class="ex-hl">$0.49</span><br>
+                <span class="ex-accent">classify_intent</span> · 4,210 in / 118 out · <span class="ex-hl">$0.49</span>
+            </div>
+        </div>
+        <div class="disc-card">
+            <div class="disc-step">Step 3 · Fix</div>
+            <div class="disc-title">Switch model. Save $370/week.</div>
+            <div class="disc-body">classify_intent is simple routing. <strong>Haiku handles it at 1/10th the cost</strong> with identical accuracy. One config change.</div>
+            <div class="disc-example">
+                <div class="ex-label">The result</div>
+                Opus: <span class="ex-hl">$0.49/call</span> → Haiku: <span class="ex-green">$0.05/call</span><br>
+                842 calls × $0.44 saved = <span class="ex-green">$370/week</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- THE IFRAME — live Cost Explorer embed -->
+    <div class="costx-frame-wrap">
+        <div class="costx-frame">
+            <iframe src="cost-explorer-embed.html" title="HiveBoard Cost Explorer"></iframe>
+            <div class="costx-fade"></div>
+        </div>
+    </div>
+
+    <!-- Bottom callout -->
+    <div class="costx-callout">
+        <div class="callout-rule"></div>
+        <div class="callout-text">
+            The most expensive line item in your AI stack isn't the model.<br>
+            <strong>It's using <span class="ct-purple">the wrong model</span> for <span class="ct-accent">the right task.</span></strong>
+        </div>
+    </div>
+
+    <!-- Scroll cue -->
+    <div class="scroll-cue">
+        <div class="scroll-cue-text">Three lines of code to get here</div>
+        <div class="scroll-arrow">↓</div>
+    </div>
+
+</section>
+
+</body>
+</html>

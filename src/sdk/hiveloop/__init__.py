@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
-from ._agent import Agent, Task, HiveLoopError, SDK_VERSION
+from ._agent import Agent, Task, HiveLoopError, SDK_VERSION, tool_payload
 from ._transport import Transport
 
 __all__ = [
@@ -32,6 +32,7 @@ __all__ = [
     "Task",
     "HiveLoopError",
     "SDK_VERSION",
+    "tool_payload",
 ]
 
 logger = logging.getLogger("hiveloop")

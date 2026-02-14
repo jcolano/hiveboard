@@ -1158,6 +1158,60 @@ class Agent:
 
 # -- Helpers --
 
+def tool_payload(
+    *,
+    args: dict[str, Any] | None = None,
+    result: Any = None,
+    success: bool = True,
+    error: str | None = None,
+    duration_ms: int | None = None,
+    tool_category: str | None = None,
+    http_status: int | None = None,
+    result_size_bytes: int | None = None,
+    args_max_len: int = 500,
+    result_max_len: int = 1000,
+) -> dict[str, Any]:
+    """Build a standardized tool payload dict for use with ctx.set_payload().
+
+    Truncates arg values and result strings to keep payloads within size
+    limits.  Strips None fields so only populated fields appear.
+
+    Usage::
+
+        with agent.track_context("search_contacts") as ctx:
+            result = crm.search(query)
+            ctx.set_payload(tool_payload(
+                args={"query": query},
+                result=result.data,
+                success=result.ok,
+            ))
+    """
+    payload: dict[str, Any] = {"success": success}
+
+    if args is not None:
+        payload["args"] = {
+            k: (str(v)[:args_max_len] if len(str(v)) > args_max_len else v)
+            for k, v in args.items()
+        }
+
+    if result is not None:
+        result_str = str(result)
+        payload["result"] = result_str[:result_max_len] if len(result_str) > result_max_len else result_str
+
+    if error is not None:
+        payload["error"] = error
+    if duration_ms is not None:
+        payload["duration_ms"] = duration_ms
+    if tool_category is not None:
+        payload["tool_category"] = tool_category
+    if http_status is not None:
+        payload["http_status"] = http_status
+    if result_size_bytes is not None:
+        payload["result_size_bytes"] = result_size_bytes
+
+    return payload
+
+
 def _build_llm_summary(
     name: str,
     model: str,

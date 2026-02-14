@@ -249,6 +249,18 @@ FormsFlow — a complete product concept with specs, mock UI/UX, and a running p
 
 No amount of cross-auditing against specs catches everything. The moment real data flows through a real system, new truths emerge. The HiveBoard UI/UX passed every spec audit and still failed the "I don't get it" test with real data. **Plan for at least one redesign cycle after real-world integration.** Budget the time. Expect it. Welcome it.
 
+### Context Windows Are a Hard Constraint — Build in Sections
+
+AI agents have finite context windows, and long complex builds will exceed them. When this happens, agents compact their context and lose details — or worse, the session breaks entirely and work is lost.
+
+The workaround, discovered through painful experience during the HiveBoard website build:
+
+> *"Since this is a big build, please build it section by section in separate files but keeping the continuity. Build one section, stop, give it to me. Then next and next and so on. Do not attempt to build all in one single file, nor develop all different files in one go. Your context will not hold it. One by one. Keeping visual continuity. At the end we discuss how to integrate."*
+
+This is not a suggestion — it's a survival technique. For any artifact longer than a few hundred lines (a complex HTML page, a detailed specification, a multi-section codebase), **instruct the agent to build incrementally**: one section at a time, delivered and reviewed before the next begins. The human maintains the master vision across sections; the agent focuses on executing one section well within its context limits.
+
+The principle generalizes: **design your work units to fit inside an agent's context window.** If a task is too large for one context, break it into sequential deliverables. The agent doesn't need to hold the whole building in memory — it needs to lay one brick at a time, guided by specs that describe the whole building.
+
 ---
 
 ## Failure Modes
@@ -284,6 +296,14 @@ The Hive Method works when its principles are followed. Here's what happens when
 **What happens:** You get a solution that works but is one-dimensional. During the HiveBoard redesign, if Juan had only consulted the CLI team, the redesign would have optimized architecture without fixing the user experience. If he'd only consulted Cloud, the UX would have improved but performance considerations would have been missed. The product would have been worse in either case.
 
 **Prevention:** For any significant design decision, deliberately solicit input from at least two agents in different environments or roles. The cost is one additional conversation; the value is a perspective you didn't know you were missing.
+
+### Failure Mode 5: Context Overload
+
+**What happens:** You ask an agent to build a large, complex artifact in a single pass — a full website, a comprehensive specification, or a multi-section codebase. The agent's context window fills up. Two things can happen, both bad: the agent silently compacts its context and loses critical details from earlier in the conversation (subtly degrading quality without warning), or the session breaks entirely and work is lost with no recovery path.
+
+**The signal:** The agent starts contradicting earlier decisions, forgetting constraints you specified, or producing output that doesn't match what was agreed. Or the session simply dies mid-output.
+
+**Prevention:** For any artifact that will exceed a few hundred lines, instruct the agent to build section by section — one delivered and reviewed before the next begins. Never let an agent attempt to hold an entire complex build in a single context. The specs serve as the external memory; the agent only needs to hold the current section plus the spec. This is not inefficiency — it's the only reliable way to produce large artifacts with current context window limits.
 
 ---
 

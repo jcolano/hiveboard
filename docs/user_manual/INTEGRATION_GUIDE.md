@@ -13,6 +13,8 @@ The integration follows a layered approach. Each layer builds on the previous on
 | 2a | LLM call tracking | Cost explorer, token usage, model breakdown | ~10 lines per LLM call site |
 | 2b | Tool execution tracking | Tool nodes in timeline with inputs/outputs | ~15 lines at tool dispatch |
 | 2c | Rich events | Plans, escalations, approvals, issues, TODOs, queue state | ~5 lines per event site |
+| 3 | Advanced observability events | Insights tab: learning, compaction, config, memory ops | ~10 lines per event site |
+| 4 | Client-side detectors | Insights tab: cycle detection, prompt bloat, state drift | ~50 lines per detector |
 
 ---
 
@@ -103,6 +105,53 @@ _hiveloop_agents[agent.id] = hb.agent(agent_id=agent.id, ...)
 | `stuck_threshold` | int | `300` | Seconds. Agent shows STUCK badge if no heartbeat within this window |
 | `heartbeat_payload` | Callable | `None` | `() -> dict` called each heartbeat, included in payload |
 | `queue_provider` | Callable | `None` | `() -> dict` returning queue state each heartbeat |
+
+### Heartbeat payload: Rich agent telemetry
+
+The `heartbeat_payload` callback is called every heartbeat cycle (default 30s). Use it to attach runtime metrics that flow into the dashboard's agent cards and the Insights tab. The callback must return a `dict` — keep it small (under 2KB) and fast (under 10ms).
+
+```python
+def make_heartbeat_payload(agent_obj):
+    """Build a heartbeat payload callback for an agent."""
+    _boot_time = time.time()
+
+    def payload():
+        return {
+            # Uptime and lifecycle
+            "uptime_seconds": int(time.time() - _boot_time),
+            "version": agent_obj.config.version,
+
+            # Cumulative token/cost counters (since boot)
+            "total_tokens_in": agent_obj.metrics.total_tokens_in,
+            "total_tokens_out": agent_obj.metrics.total_tokens_out,
+            "total_cost_usd": round(agent_obj.metrics.total_cost, 4),
+
+            # Error counters
+            "total_errors": agent_obj.metrics.error_count,
+            "consecutive_failures": agent_obj.metrics.consecutive_failures,
+            "last_error": agent_obj.metrics.last_error_message,
+
+            # Current state
+            "current_model": agent_obj.current_model,
+            "tasks_completed": agent_obj.metrics.tasks_completed,
+            "tasks_failed": agent_obj.metrics.tasks_failed,
+        }
+    return payload
+
+# At agent registration
+hiveloop_agent = hb.agent(
+    agent_id="sales",
+    type="sales",
+    version="claude-sonnet-4-5",
+    framework="my-framework",
+    heartbeat_payload=make_heartbeat_payload(agent_obj),
+    queue_provider=make_queue_provider("sales"),
+)
+```
+
+**What this unlocks:** The Insights tab uses heartbeat payload fields for fleet-wide health views — total cost across all agents, error rate trends, uptime monitoring, and context pressure metrics. Without a rich heartbeat payload, these views show empty or incomplete data.
+
+**Keep it lean.** The callback runs every 30 seconds per agent. Don't call external APIs, read files, or do anything that could block or fail. Read from in-memory counters only. If a field isn't available yet, omit it rather than returning `None`.
 
 ### What you see on the dashboard after Layer 0
 
@@ -415,6 +464,68 @@ _task.llm_call(
 | `response_preview` | str | no | Truncated response for debugging |
 | `metadata` | dict | no | Arbitrary key-value pairs |
 
+### LLM call metadata: Unlocking advanced analytics
+
+The `metadata` parameter on `task.llm_call()` accepts an arbitrary `dict`. Use it to capture dimensions that power the Insights tab's optimization views — cache efficiency, context window pressure, turn-level cost tracking, and stop reason analysis.
+
+```python
+_task = get_current_task()
+if _task:
+    try:
+        _task.llm_call(
+            "reasoning",
+            model=response.model,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            cost=estimate_cost(response.model, tokens_in, tokens_out),
+            duration_ms=round(_elapsed_ms),
+            metadata={
+                # Turn tracking — which turn of the agentic loop is this?
+                "turn_number": turn_count,
+
+                # Cache tokens — how much prompt was cached by the provider?
+                "cache_creation_input_tokens": getattr(
+                    response.usage, "cache_creation_input_tokens", 0
+                ),
+                "cache_read_input_tokens": getattr(
+                    response.usage, "cache_read_input_tokens", 0
+                ),
+
+                # Stop reason — did the model finish, hit max tokens, or use a tool?
+                "stop_reason": response.stop_reason,  # "end_turn", "max_tokens", "tool_use"
+
+                # Context window utilization — how full is the context?
+                "context_window_size": model_context_limit,   # e.g., 200000
+                "context_used_tokens": tokens_in,
+                "context_utilization_pct": round(
+                    tokens_in / model_context_limit * 100, 1
+                ),
+
+                # Prompt composition — what makes up the input tokens?
+                "system_prompt_tokens": count_tokens(system_prompt),
+                "history_tokens": count_tokens(messages),
+                "tool_results_tokens": count_tokens(tool_results),
+            },
+        )
+    except Exception:
+        pass
+```
+
+**Field conventions:** Use snake_case keys. The Insights tab looks for these specific field names in metadata:
+
+| Metadata field | Insights tab usage |
+|---------------|-------------------|
+| `turn_number` | Turn-level cost and token charts (Q14) |
+| `cache_read_input_tokens` | Cache hit ratio analysis (Q12) |
+| `cache_creation_input_tokens` | Cache efficiency trends (Q12) |
+| `stop_reason` | Max-token truncation detection (Q20) |
+| `context_utilization_pct` | Context pressure monitoring (Q16) |
+| `context_window_size` | Context capacity analysis (Q16) |
+| `system_prompt_tokens` | Prompt composition breakdown (Q19) |
+| `history_tokens` | Prompt growth analysis (Q19) |
+
+**Don't over-instrument.** Start with `turn_number` and `stop_reason` — they're the most universally useful. Add cache and context fields only if your LLM provider exposes them. Anthropic's API returns cache token counts directly; OpenAI requires separate calculation.
+
 ### What you see on the dashboard after Layer 2a
 
 - **Cost Explorer** is fully functional: cost by model, cost by agent, total spend
@@ -494,6 +605,50 @@ if _ctx is not None:
 ```
 
 This avoids the double-execute bug where a naive `with`-based fallback could run the tool twice if `track_context()` succeeds but the tool fails.
+
+### Standardized tool payloads with `tool_payload()`
+
+Building the payload dict for `ctx.set_payload()` requires deciding which fields to include, how long to let strings grow, and stripping empty values. The `tool_payload()` helper standardizes this:
+
+```python
+from hiveloop import tool_payload
+
+def execute_tool(tool_name, parameters):
+    _agent = get_hiveloop_agent()
+
+    if _agent is not None:
+        with _agent.track_context(tool_name) as ctx:
+            result = tool_registry.execute(tool_name, parameters)
+            ctx.set_payload(tool_payload(
+                args=parameters,
+                result=result.data,
+                success=result.ok,
+                error=result.error,
+                tool_category="crm",
+                http_status=result.status_code,
+                result_size_bytes=len(result.raw),
+            ))
+        return result
+    else:
+        return tool_registry.execute(tool_name, parameters)
+```
+
+`tool_payload()` parameters:
+
+| Parameter | Type | Default | Notes |
+|-----------|------|---------|-------|
+| `args` | dict | `None` | Tool arguments. Values truncated to `args_max_len` |
+| `result` | Any | `None` | Tool result (stringified & truncated to `result_max_len`) |
+| `success` | bool | `True` | Whether the call succeeded |
+| `error` | str | `None` | Error message on failure |
+| `duration_ms` | int | `None` | Elapsed milliseconds |
+| `tool_category` | str | `None` | Grouping label (e.g. `"crm"`, `"search"`) |
+| `http_status` | int | `None` | HTTP status code for API-backed tools |
+| `result_size_bytes` | int | `None` | Size of the raw result |
+| `args_max_len` | int | `500` | Max chars per arg value before truncation |
+| `result_max_len` | int | `1000` | Max chars for the result string |
+
+The function strips all `None`-valued optional fields from the output so payloads stay compact.
 
 ### What you see on the dashboard after Layer 2b
 
@@ -754,6 +909,35 @@ Severity guidelines:
 
 ---
 
+### Log forwarding with `HiveBoardLogHandler`
+
+Every Python project uses `logging`. Instead of manually calling `agent.report_issue()` at every log site, attach a `HiveBoardLogHandler` and let WARNING+ log records flow to HiveBoard automatically.
+
+```python
+from hiveloop.contrib.log_handler import HiveBoardLogHandler
+
+agent = hb.agent("my-agent", ...)
+logging.getLogger("my_app").addHandler(HiveBoardLogHandler(agent))
+```
+
+**Level mapping:** WARNING → `medium`, ERROR → `high`, CRITICAL → `critical`. INFO and below are ignored by default (configurable via `level`).
+
+**Deduplication:** Each log record gets a stable `issue_id` of `f"log-{logger_name}-{level_name}"`, so repeated warnings from the same logger deduplicate naturally on the dashboard.
+
+**Context:** Each forwarded record includes `logger`, `filename`, `lineno`, and `funcName` in the issue context dict, so operators can jump straight to the source.
+
+**Safety:** `emit()` never raises — it inherits the SDK's safety contract.
+
+`HiveBoardLogHandler` constructor parameters:
+
+| Parameter | Type | Default | Notes |
+|-----------|------|---------|-------|
+| `agent` | Agent | required | The HiveLoop agent handle from `hb.agent()` |
+| `level` | int | `logging.WARNING` | Minimum log level to forward |
+| `category` | str | `"log"` | Issue category string |
+
+---
+
 ### Retries
 
 When a failed task creates a follow-up for retry.
@@ -777,6 +961,62 @@ if _task:
 | `reason` | str | yes | Why the retry is happening |
 | `attempt` | int | yes | 1-based attempt number |
 | `backoff_seconds` | float | no | Wait time before next attempt |
+
+#### Retry patterns for common failure modes
+
+**Structured output parse failure:** When the LLM returns malformed JSON or doesn't follow the required schema, retry with the error message fed back into the prompt.
+
+```python
+MAX_PARSE_RETRIES = 3
+
+for attempt in range(1, MAX_PARSE_RETRIES + 1):
+    response = llm_client.complete(prompt=prompt, system=system)
+
+    try:
+        result = json.loads(response.content)
+        validate_schema(result)
+        break  # success
+    except (json.JSONDecodeError, ValidationError) as e:
+        _task = get_current_task()
+        if _task:
+            try:
+                _task.retry(
+                    f"Parse failure (attempt {attempt}): {type(e).__name__}: {str(e)[:100]}",
+                    attempt=attempt,
+                )
+            except Exception:
+                pass
+
+        if attempt == MAX_PARSE_RETRIES:
+            raise  # all retries exhausted
+
+        # Feed the error back into the prompt for the next attempt
+        prompt += f"\n\nYour previous response was invalid: {e}. Please fix and try again."
+```
+
+**API rate limit / transient failure:** When an external API returns 429 or 5xx.
+
+```python
+for attempt in range(1, 4):
+    try:
+        result = external_api.call(params)
+        break
+    except RateLimitError as e:
+        backoff = 2 ** attempt  # 2s, 4s, 8s
+        _task = get_current_task()
+        if _task:
+            try:
+                _task.retry(
+                    f"Rate limited by {api_name}: {e}",
+                    attempt=attempt,
+                    backoff_seconds=backoff,
+                )
+            except Exception:
+                pass
+        time.sleep(backoff)
+```
+
+**Dashboard effect:** Retry events appear as nodes in the Timeline. The Insights tab aggregates retry rates per agent and per failure type, helping identify agents with chronic parse failures or unreliable external dependencies.
 
 ---
 
@@ -902,6 +1142,429 @@ if _agent:
 ```
 
 **Where to put this:** In your agent start/boot function, after scheduled work is configured.
+
+**Update on completion.** After each scheduled job runs, call `scheduled()` again with `last_status` set to `"success"` or `"failed"` and `last_run` set to the ISO timestamp. This lets the dashboard show when each job last ran and whether it succeeded.
+
+```python
+# After a scheduled job completes
+if _agent:
+    try:
+        _agent.scheduled(items=[
+            {
+                "id": "hb_crm_sync",
+                "name": "CRM Sync",
+                "interval": "10m",
+                "enabled": True,
+                "last_status": "success",
+                "last_run": datetime.utcnow().isoformat() + "Z",
+            },
+            # ... other scheduled items unchanged ...
+        ])
+    except Exception:
+        pass
+```
+
+**Note for frameworks with built-in schedulers:** If your framework already has a scheduler (e.g., APScheduler, Celery Beat, or a custom timer loop), you already know all the schedule metadata. Just call `scheduled()` once at boot with the full list, then again after each job runs. You don't need to change how your scheduler works — just report what it already knows.
+
+---
+
+## Layer 3: Advanced Observability Patterns
+
+**Goal:** Unlock Insights tab analytics with custom events that capture agent behavior patterns — learning, context management, errors, runtime lifecycle, and configuration.
+
+All patterns in this layer use `agent.event()` or `task.event()` — the same generic event methods listed in Layer 2c. The SDK doesn't need any changes. You're simply emitting custom events with specific `event_type` values and structured payloads.
+
+**Key principle:** `task.event()` is for events that happen *during* a task (context compaction, parse errors, learning moments). `agent.event()` is for events that happen *outside* any task (startup, config changes, session lifecycle).
+
+---
+
+### Learning and self-correction events
+
+When your agent detects it made a mistake and corrects itself, or when your reflection module identifies a pattern for future improvement, emit a learning event. These power the Insights tab's "self-correction rate" metric.
+
+```python
+_task = get_current_task()
+if _task:
+    try:
+        _task.event("custom", payload={
+            "kind": "learning",
+            "data": {
+                "trigger": "reflection",           # what triggered the learning
+                "category": "tool_selection",      # what was learned about
+                "description": "Selected search_contacts instead of search_deals",
+                "correction_applied": True,
+                "turn_number": turn_count,
+            },
+        })
+    except Exception:
+        pass
+```
+
+**When to emit:** After your reflection module identifies an error and the agent adjusts its approach. Also when the agent backtracks on a plan step or changes strategy mid-task.
+
+---
+
+### Context compaction tracking
+
+When your framework compresses, summarizes, or truncates the conversation history to fit within the context window, emit a compaction event. These power the Insights tab's "context pressure" and "prompt bloat" analysis.
+
+```python
+_task = get_current_task()
+if _task:
+    try:
+        _task.event("custom", payload={
+            "kind": "context_compaction",
+            "data": {
+                "tokens_before": tokens_before_compaction,
+                "tokens_after": tokens_after_compaction,
+                "tokens_removed": tokens_before_compaction - tokens_after_compaction,
+                "compression_ratio": round(tokens_after_compaction / tokens_before_compaction, 2),
+                "method": "summary",        # "summary", "truncation", "sliding_window"
+                "turn_number": turn_count,
+                "messages_removed": num_messages_dropped,
+            },
+        })
+    except Exception:
+        pass
+```
+
+**Where to put this:** In your context window management function — the code that runs when the prompt is about to exceed the model's context limit.
+
+---
+
+### Rich error context
+
+Tool failures and task failures are already captured by `track_context()` and `task()`. But some failures carry important diagnostic context that deserves its own event — the specific API response, the validation error, the state that led to the failure.
+
+```python
+# When an external API returns an error with useful diagnostic data
+_task = get_current_task()
+if _task:
+    try:
+        _task.event("custom", payload={
+            "kind": "error_context",
+            "data": {
+                "error_type": type(exc).__name__,       # "ValidationError", "HTTPError"
+                "error_message": str(exc)[:500],
+                "api_name": "crm",
+                "status_code": response.status_code,
+                "response_body": response.text[:200],
+                "retry_eligible": is_retryable(exc),
+                "turn_number": turn_count,
+                "action_name": current_tool_name,
+            },
+        })
+    except Exception:
+        pass
+```
+
+**When to emit:** Don't emit this for every error — `track_context()` already captures tool failures. Emit `error_context` when you have *additional* diagnostic information that wouldn't fit in the action payload, or for errors that happen outside a tool call (e.g., prompt construction failures, response parsing failures).
+
+---
+
+### Runtime lifecycle events
+
+Emit events at key moments in your agent's lifecycle — startup, shutdown, configuration reloads, model switches. These power the Insights tab's "agent lifecycle" timeline and help correlate behavior changes with configuration changes.
+
+```python
+# At agent startup
+_agent = getattr(agent_obj, "_hiveloop", None)
+if _agent:
+    try:
+        _agent.event("custom", payload={
+            "kind": "runtime",
+            "data": {
+                "event": "agent_started",
+                "config": {
+                    "model": agent_obj.config.model,
+                    "max_turns": agent_obj.config.max_turns,
+                    "temperature": agent_obj.config.temperature,
+                    "tools_enabled": [t.name for t in agent_obj.tools],
+                },
+                "environment": {
+                    "python_version": sys.version.split()[0],
+                    "framework_version": framework.__version__,
+                },
+            },
+        })
+    except Exception:
+        pass
+
+# When the model changes mid-session (e.g., fallback to cheaper model)
+if _agent:
+    try:
+        _agent.event("custom", payload={
+            "kind": "runtime",
+            "data": {
+                "event": "model_switched",
+                "from_model": previous_model,
+                "to_model": new_model,
+                "reason": "cost_optimization",  # or "rate_limit", "fallback", "user_request"
+            },
+        })
+    except Exception:
+        pass
+```
+
+---
+
+### Session and memory operations
+
+If your agents maintain persistent memory (vector stores, conversation histories, knowledge bases), emit events when memory is read or written. These help diagnose stale memory issues and track memory utilization.
+
+```python
+# After writing to persistent memory
+_task = get_current_task()
+if _task:
+    try:
+        _task.event("custom", payload={
+            "kind": "memory_op",
+            "data": {
+                "operation": "write",              # "read", "write", "delete", "search"
+                "store": "vector_db",              # "vector_db", "session_history", "knowledge_base"
+                "key_or_query": memory_key[:100],
+                "result_count": num_results,       # for reads/searches
+                "latency_ms": round(elapsed_ms),
+            },
+        })
+    except Exception:
+        pass
+```
+
+---
+
+### Configuration snapshots
+
+Emit the full agent configuration at startup and whenever it changes. This lets operators compare "what was the config when this agent was working" vs "what changed when it broke."
+
+```python
+# At agent boot or after config reload
+_agent = getattr(agent_obj, "_hiveloop", None)
+if _agent:
+    try:
+        _agent.event("custom", payload={
+            "kind": "config_snapshot",
+            "data": {
+                "model": agent_obj.config.model,
+                "temperature": agent_obj.config.temperature,
+                "max_turns": agent_obj.config.max_turns,
+                "max_tokens": agent_obj.config.max_tokens,
+                "tools": [t.name for t in agent_obj.tools],
+                "system_prompt_hash": hashlib.md5(
+                    system_prompt.encode()
+                ).hexdigest()[:8],
+                "system_prompt_tokens": count_tokens(system_prompt),
+                "guardrails_enabled": agent_obj.config.guardrails_enabled,
+                "version": agent_obj.config.version,
+            },
+        })
+    except Exception:
+        pass
+```
+
+**When to emit:** At agent startup, and again whenever configuration changes at runtime (model switch, tool list change, temperature adjustment). The `system_prompt_hash` lets operators detect prompt changes without logging the full prompt.
+
+---
+
+## Layer 4: Client-Side Detection Patterns
+
+**Goal:** Detect behavioral anomalies in your agentic loop and report them to HiveBoard.
+
+These patterns require logic that runs *in your framework*, not in the SDK. The SDK is the reporting channel — you implement the detection, then emit the findings via `task.event()` or `agent.event()`. These patterns power the Insights tab's "Smart Detectors" (contradiction detector, silent drop detector, prompt bloat detector, etc.).
+
+---
+
+### Loop and cycle detection
+
+Agentic loops can get stuck — calling the same tool with the same arguments, or alternating between two tools without making progress. Detect this by tracking recent actions and looking for repetition.
+
+```python
+# Cycle detection state — maintain per task
+_recent_actions = []  # list of (tool_name, args_hash) tuples
+MAX_HISTORY = 20
+CYCLE_THRESHOLD = 3   # same action 3+ times = probable loop
+
+def detect_cycle(tool_name: str, arguments: dict) -> bool:
+    """Returns True if a cycle is detected."""
+    args_hash = hashlib.md5(
+        json.dumps(arguments, sort_keys=True).encode()
+    ).hexdigest()[:8]
+
+    _recent_actions.append((tool_name, args_hash))
+    if len(_recent_actions) > MAX_HISTORY:
+        _recent_actions.pop(0)
+
+    # Check for exact repetition
+    recent = _recent_actions[-CYCLE_THRESHOLD:]
+    if len(recent) == CYCLE_THRESHOLD and len(set(recent)) == 1:
+        return True
+
+    # Check for A-B-A-B alternation
+    if len(_recent_actions) >= 4:
+        last4 = _recent_actions[-4:]
+        if last4[0] == last4[2] and last4[1] == last4[3] and last4[0] != last4[1]:
+            return True
+
+    return False
+
+# In your tool dispatch function
+def execute_tool(tool_name, arguments):
+    if detect_cycle(tool_name, arguments):
+        _task = get_current_task()
+        if _task:
+            try:
+                _task.event("custom", payload={
+                    "kind": "anomaly",
+                    "data": {
+                        "detector": "cycle",
+                        "tool_name": tool_name,
+                        "args_hash": hashlib.md5(
+                            json.dumps(arguments, sort_keys=True).encode()
+                        ).hexdigest()[:8],
+                        "cycle_length": CYCLE_THRESHOLD,
+                        "turn_number": turn_count,
+                        "message": f"Agent called {tool_name} {CYCLE_THRESHOLD}x with same args",
+                    },
+                })
+            except Exception:
+                pass
+
+        # Optional: break the cycle by failing the task or injecting guidance
+        # raise CycleDetectedError(f"Loop detected: {tool_name}")
+
+    result = tool_registry.execute(tool_name, arguments)
+    return result
+```
+
+**What to do when a cycle is detected:** Reporting the anomaly is mandatory. Breaking the cycle is your design choice — you can raise an exception to fail the task, inject a system message ("you are repeating yourself"), reduce max_turns, or let it continue but alert the operator.
+
+---
+
+### Prompt composition breakdown
+
+Track what percentage of the context window is consumed by each component: system prompt, conversation history, tool results, and user message. This detects "prompt bloat" — when one component grows to dominate the context window.
+
+```python
+def analyze_prompt_composition(
+    system_prompt: str,
+    messages: list,
+    tool_results: list | None = None,
+    model_context_limit: int = 200_000,
+) -> dict:
+    """Analyze token distribution across prompt components."""
+    sys_tokens = count_tokens(system_prompt)
+    history_tokens = count_tokens(messages)
+    tool_tokens = count_tokens(tool_results) if tool_results else 0
+    total = sys_tokens + history_tokens + tool_tokens
+
+    breakdown = {
+        "system_prompt_tokens": sys_tokens,
+        "history_tokens": history_tokens,
+        "tool_results_tokens": tool_tokens,
+        "total_input_tokens": total,
+        "context_utilization_pct": round(total / model_context_limit * 100, 1),
+        "largest_component": max(
+            [("system", sys_tokens), ("history", history_tokens), ("tools", tool_tokens)],
+            key=lambda x: x[1],
+        )[0],
+    }
+
+    # Detect bloat: any single component > 60% of total
+    for name, tokens in [("system", sys_tokens), ("history", history_tokens), ("tools", tool_tokens)]:
+        pct = (tokens / total * 100) if total > 0 else 0
+        breakdown[f"{name}_pct"] = round(pct, 1)
+        if pct > 60:
+            breakdown["bloat_warning"] = f"{name} is {pct:.0f}% of prompt"
+
+    return breakdown
+
+# Before each LLM call
+composition = analyze_prompt_composition(system_prompt, messages, tool_results)
+
+_task = get_current_task()
+if _task and composition.get("context_utilization_pct", 0) > 50:
+    try:
+        _task.event("custom", payload={
+            "kind": "prompt_composition",
+            "data": {
+                **composition,
+                "turn_number": turn_count,
+            },
+        })
+    except Exception:
+        pass
+```
+
+**When to emit:** Every turn is too noisy. Emit when context utilization exceeds 50%, or when the composition changes significantly (e.g., tool results jump from 10% to 40% of the prompt). The Insights tab aggregates these to show how prompt composition evolves across turns within a task.
+
+---
+
+### State mutation tracking
+
+If your agents maintain mutable state (working memory, scratchpads, accumulated results), track significant mutations. This helps diagnose "the agent forgot what it learned" or "the state silently changed."
+
+```python
+import copy
+
+class StateMutationTracker:
+    """Track changes to agent working state and report significant mutations."""
+
+    def __init__(self):
+        self._previous_state = {}
+        self._mutation_count = 0
+
+    def check_mutation(self, current_state: dict, turn_number: int) -> dict | None:
+        """Compare current state to previous. Returns diff if changed."""
+        if not self._previous_state:
+            self._previous_state = copy.deepcopy(current_state)
+            return None
+
+        changes = {}
+        all_keys = set(list(self._previous_state.keys()) + list(current_state.keys()))
+
+        for key in all_keys:
+            old_val = self._previous_state.get(key)
+            new_val = current_state.get(key)
+            if old_val != new_val:
+                changes[key] = {
+                    "action": "added" if old_val is None else "removed" if new_val is None else "modified",
+                    "old_type": type(old_val).__name__ if old_val is not None else None,
+                    "new_type": type(new_val).__name__ if new_val is not None else None,
+                }
+
+        if changes:
+            self._mutation_count += 1
+            self._previous_state = copy.deepcopy(current_state)
+            return {
+                "mutation_number": self._mutation_count,
+                "turn_number": turn_number,
+                "keys_changed": list(changes.keys()),
+                "changes": changes,
+                "state_size": len(current_state),
+            }
+
+        return None
+
+# Usage — at the end of each turn
+_tracker = StateMutationTracker()  # one per task
+
+def after_turn(agent_state: dict, turn_number: int):
+    mutation = _tracker.check_mutation(agent_state, turn_number)
+    if mutation:
+        _task = get_current_task()
+        if _task:
+            try:
+                _task.event("custom", payload={
+                    "kind": "state_mutation",
+                    "data": mutation,
+                })
+            except Exception:
+                pass
+```
+
+**What to track:** Track your agent's working memory, not internal SDK state. Good candidates: accumulated search results, extracted entities, plan progress, user preferences collected during conversation. Don't track conversation history (that's covered by prompt composition) or transient loop variables.
+
+**Privacy note:** Don't include actual state *values* in the mutation event — only keys, types, and whether they were added/modified/removed. State values may contain PII or sensitive data.
 
 ---
 
@@ -1093,6 +1756,16 @@ Don't do everything at once. Ship in tiers:
 
 **Result:** Pipeline tab fully populated. Complete operational picture.
 
+### Tier 5 (advanced analytics)
+- LLM call `metadata` with cache tokens, turn numbers, stop reasons (Layer 2a)
+- Context compaction and learning events (Layer 3)
+- Configuration snapshots at startup (Layer 3)
+- Loop/cycle detection in tool dispatch (Layer 4)
+- Prompt composition breakdown (Layer 4)
+- State mutation tracking (Layer 4)
+
+**Result:** Insights tab fully powered. Anomaly detection, cost optimization recommendations, context pressure monitoring, and behavioral analysis all active.
+
 ---
 
 ## Common Mistakes
@@ -1147,6 +1820,7 @@ def on_shutdown():
 | `hiveloop.shutdown(timeout=10)` | Flush and stop |
 | `hiveloop.flush()` | Force flush without stopping |
 | `hiveloop.reset()` | Flush, stop, clear singleton (testing) |
+| `hiveloop.tool_payload(**kw)` | Build standardized tool payload dict |
 
 ### Agent-level (`hb.agent()` returns this)
 
@@ -1185,3 +1859,25 @@ def on_shutdown():
 | Method | Purpose |
 |--------|---------|
 | `ctx.set_payload(dict)` | Attach metadata to the action_completed event |
+
+### Contrib (`hiveloop.contrib`)
+
+| Class | Purpose |
+|-------|---------|
+| `HiveBoardLogHandler(agent, level, category)` | `logging.Handler` that forwards WARNING+ to `report_issue()` |
+
+### Custom event `kind` values (Layer 3 & 4)
+
+Use `agent.event("custom", payload={"kind": "...", "data": {...}})` or `task.event(...)` with these kinds:
+
+| Kind | Layer | Purpose |
+|------|-------|---------|
+| `learning` | 3 | Self-correction or strategy change detected |
+| `context_compaction` | 3 | Context window compressed/summarized |
+| `error_context` | 3 | Rich diagnostic data for a failure |
+| `runtime` | 3 | Agent startup, shutdown, model switch |
+| `memory_op` | 3 | Read/write to persistent memory store |
+| `config_snapshot` | 3 | Full configuration at boot or change |
+| `anomaly` | 4 | Loop/cycle detected in tool dispatch |
+| `prompt_composition` | 4 | Token breakdown by prompt component |
+| `state_mutation` | 4 | Working state keys changed between turns |
