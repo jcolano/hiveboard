@@ -34,6 +34,7 @@ docs/AWS_WEBSOCKET_SETUP_GUIDE.md
 docs/loopcore-hiveboard-observability-deep-dive.md
 
 src/dashboard/
+src/llm_client.py
 
 # Build artifacts
 src/sdk/dist/
