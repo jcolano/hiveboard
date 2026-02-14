@@ -56,6 +56,22 @@
 
 ---
 
+## Website
+
+**🌐 [Visit hiveboard.net →](https://hiveboard.net/)**
+
+Product overview, architecture, and the story behind HiveBoard.
+
+---
+
+## Documentation
+
+**📖 [Read the full SDK manual →](https://hiveboard.net/docs/user-manual.html)**
+
+Everything you need to instrument your agents: Quick Start, 3-layer instrumentation guide, integration patterns, configuration reference, and troubleshooting.
+
+---
+
 ## The Problem
 
 Every team deploying AI agents goes blind the moment they move past demo day.
