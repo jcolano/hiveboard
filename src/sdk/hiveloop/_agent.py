@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Callable
 
-from shared.enums import (
+from ._enums import (
     EventType, PayloadKind, Severity, SEVERITY_DEFAULTS,
     MAX_AGENT_ID_CHARS, MAX_TASK_ID_CHARS, MAX_SUMMARY_CHARS,
     MAX_ENVIRONMENT_CHARS, MAX_GROUP_CHARS, MAX_PAYLOAD_BYTES,

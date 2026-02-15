@@ -20,7 +20,7 @@ from typing import Any
 
 import requests
 
-from shared.enums import MAX_BATCH_EVENTS
+from ._enums import MAX_BATCH_EVENTS
 
 logger = logging.getLogger("hiveloop.transport")
 
