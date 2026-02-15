@@ -692,6 +692,8 @@ async def _agent_to_summary(agent: AgentRecord, now: datetime, storage=None) -> 
         stuck_threshold_seconds=agent.stuck_threshold_seconds,
         first_seen=_normalize_ts(agent.first_seen.isoformat()) if agent.first_seen else None,
         last_seen=_normalize_ts(agent.last_seen.isoformat()) if agent.last_seen else None,
+        last_event_type=agent.last_event_type,
+        last_event_at=_normalize_ts(agent.last_seen.isoformat()) if agent.last_seen else None,
         stats_1h=stats,
     )
 
@@ -1551,6 +1553,8 @@ async def insights_errors(
     agent_errors: dict[str, dict] = {}
     by_type_global: dict[str, int] = {}
     by_category_global: dict[str, int] = {}
+    by_task_type_global: dict[str, int] = {}
+    by_action_global: dict[str, int] = {}
     hourly_errors: dict[str, int] = {}
 
     for b in buckets:
@@ -1559,6 +1563,8 @@ async def insights_errors(
 
         ebt = b.get("errors_by_type", {})
         ebc = b.get("errors_by_category", {})
+        ebtt = b.get("errors_by_task_type", {})
+        eba = b.get("errors_by_action", {})
         tf = b.get("tasks_failed", 0)
         af = b.get("actions_failed", 0)
         error_count = sum(ebt.values()) if ebt else (tf + af)
@@ -1572,6 +1578,8 @@ async def insights_errors(
                     "action_failure_count": 0,
                     "by_type": {},
                     "by_category": {},
+                    "by_task_type": {},
+                    "by_action": {},
                 }
             ae = agent_errors[aid]
             ae["error_count"] += error_count
@@ -1579,9 +1587,13 @@ async def insights_errors(
             ae["action_failure_count"] += af
             _merge_dict_counters(ae["by_type"], ebt)
             _merge_dict_counters(ae["by_category"], ebc)
+            _merge_dict_counters(ae["by_task_type"], ebtt)
+            _merge_dict_counters(ae["by_action"], eba)
 
         _merge_dict_counters(by_type_global, ebt)
         _merge_dict_counters(by_category_global, ebc)
+        _merge_dict_counters(by_task_type_global, ebtt)
+        _merge_dict_counters(by_action_global, eba)
         hourly_errors[hour] = hourly_errors.get(hour, 0) + error_count
 
     total_errors = sum(ae["error_count"] for ae in agent_errors.values())
@@ -1610,6 +1622,8 @@ async def insights_errors(
         by_agent=by_agent,
         by_type_global=by_type_global,
         by_category_global=by_category_global,
+        by_task_type_global=by_task_type_global,
+        by_action_global=by_action_global,
         error_timeseries=error_ts,
     ).model_dump(mode="json")
 
@@ -1744,7 +1758,7 @@ async def insights_actions(
     # Aggregate actions_by_name across buckets
     action_agg: dict[str, dict] = {}
     action_agents: dict[str, dict[str, int]] = {}
-    action_hourly: dict[str, dict[str, int]] = {}  # action_name -> {hour: count}
+    action_hourly: dict[str, dict[str, dict[str, int]]] = {}  # action_name -> {hour: {started, completed, failed}}
 
     for b in buckets:
         aid = b.get("agent_id", "")
@@ -1754,16 +1768,19 @@ async def insights_actions(
             if name not in action_agg:
                 action_agg[name] = {}
             agg = action_agg[name]
-            for field in ("started", "completed", "failed"):
+            for field in ("started", "completed", "failed", "duration_sum_ms", "duration_count"):
                 agg[field] = agg.get(field, 0) + stats.get(field, 0)
 
             # Track agents using
             action_agents.setdefault(name, {})
             action_agents[name][aid] = action_agents[name].get(aid, 0) + stats.get("started", 0)
 
-            # Track hourly counts for peak detection
+            # Track hourly counts for peak detection and heatmap
             action_hourly.setdefault(name, {})
-            action_hourly[name][hour] = action_hourly[name].get(hour, 0) + stats.get("started", 0)
+            h_entry = action_hourly[name].setdefault(hour, {"started": 0, "completed": 0, "failed": 0})
+            h_entry["started"] += stats.get("started", 0)
+            h_entry["completed"] += stats.get("completed", 0)
+            h_entry["failed"] += stats.get("failed", 0)
 
     # Count unique hours in range for hourly_avg
     range_secs = RANGE_SECONDS.get(range, 86400)
@@ -1783,8 +1800,29 @@ async def insights_actions(
         peak_hour = ""
         peak_count = 0
         if hourly:
-            peak_hour = max(hourly, key=hourly.get)
-            peak_count = hourly[peak_hour]
+            peak_hour = max(hourly, key=lambda h: hourly[h]["started"])
+            peak_count = hourly[peak_hour]["started"]
+
+        dur_sum = agg.get("duration_sum_ms", 0)
+        dur_count = agg.get("duration_count", 0)
+        avg_duration_ms = int(dur_sum / dur_count) if dur_count > 0 else None
+
+        # Build zero-gap-filled hourly_buckets for heatmap
+        now = datetime.now(timezone.utc)
+        start_hour = (now - timedelta(seconds=range_secs)).replace(minute=0, second=0, microsecond=0)
+        end_hour = now.replace(minute=0, second=0, microsecond=0)
+        action_buckets: list[dict[str, Any]] = []
+        cur = start_hour
+        while cur <= end_hour:
+            h_str = cur.strftime("%Y-%m-%dT%H:%M:%SZ")
+            h_data = hourly.get(h_str, {})
+            action_buckets.append({
+                "hour": h_str,
+                "started": h_data.get("started", 0),
+                "completed": h_data.get("completed", 0),
+                "failed": h_data.get("failed", 0),
+            })
+            cur += timedelta(hours=1)
 
         actions_list.append(InsightsActionDetail(
             name=name,
@@ -1796,6 +1834,8 @@ async def insights_actions(
             hourly_avg=hourly_avg,
             peak_hour=peak_hour,
             peak_count=peak_count,
+            avg_duration_ms=avg_duration_ms,
+            hourly_buckets=action_buckets,
         ))
 
     actions_list.sort(key=lambda a: a.total_started, reverse=True)

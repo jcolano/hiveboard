@@ -111,6 +111,8 @@ def update_agent_hourly(bucket: dict[str, Any], event: Any) -> None:
         task_type = event.task_type
         if task_type:
             _inc_nested(bucket, "tasks_by_type", task_type, "failed")
+            ebt = bucket.setdefault("errors_by_task_type", {})
+            ebt[task_type] = ebt.get(task_type, 0) + 1
 
     # ── Action events ──
     elif et == "action_started":
@@ -124,12 +126,20 @@ def update_agent_hourly(bucket: dict[str, Any], event: Any) -> None:
         action_name = _extract_action_name(payload)
         if action_name:
             _inc_nested(bucket, "actions_by_name", action_name, "completed")
+            if event.duration_ms:
+                _inc_nested(bucket, "actions_by_name", action_name, "duration_sum_ms", event.duration_ms)
+                _inc_nested(bucket, "actions_by_name", action_name, "duration_count")
 
     elif et == "action_failed":
         _inc(bucket, "actions_failed")
         action_name = _extract_action_name(payload)
         if action_name:
             _inc_nested(bucket, "actions_by_name", action_name, "failed")
+            if event.duration_ms:
+                _inc_nested(bucket, "actions_by_name", action_name, "duration_sum_ms", event.duration_ms)
+                _inc_nested(bucket, "actions_by_name", action_name, "duration_count")
+            eba = bucket.setdefault("errors_by_action", {})
+            eba[action_name] = eba.get(action_name, 0) + 1
 
     # ── Operational events ──
     elif et == "retry_started":
