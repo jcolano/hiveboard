@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from shared.enums import MAX_SUMMARY_CHARS
+from hiveloop._enums import MAX_SUMMARY_CHARS
 
 # Map Python log levels to HiveBoard severity strings.
 _LEVEL_MAP: dict[int, str] = {
