@@ -60,6 +60,7 @@ from shared.models import (
     LoginResponse,
     Page,
     PaginationInfo,
+    AdminResetPasswordRequest,
     PasswordChangeRequest,
     ProjectCreate,
     ProjectMergeRequest,
@@ -756,6 +757,24 @@ async def get_agent(
 
     summary = await _agent_to_summary(agent, now, storage)
     return summary.model_dump(mode="json")
+
+
+# --- DELETE /v1/agents/{agent_id} ---
+
+@app.delete("/v1/agents/{agent_id}", status_code=204)
+async def delete_agent(agent_id: str, request: Request):
+    """Delete an agent and its project-agent associations."""
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    deleted = await storage.delete_agent(tenant_id, agent_id)
+    if not deleted:
+        raise HTTPException(404, {
+            "error": "not_found",
+            "message": f"Agent '{agent_id}' not found",
+            "status": 404,
+        })
+    return JSONResponse(content=None, status_code=204)
 
 
 # --- B2.3.3: GET /v1/agents/{agent_id}/pipeline ---
@@ -2519,6 +2538,23 @@ async def change_password(body: PasswordChangeRequest, request: Request):
         password_hash=hash_password(body.new_password),
     )
     return {"status": "password_changed"}
+
+
+@app.post("/v1/auth/reset-password/{user_id}")
+async def admin_reset_password(user_id: str, body: AdminResetPasswordRequest, request: Request):
+    """Owner/admin force-resets a user's password. No current password needed."""
+    from backend.auth import hash_password
+    _require_role(request, ["owner", "admin"])
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user = await storage.get_user(tenant_id, user_id)
+    if user is None:
+        raise HTTPException(404, {"error": "not_found", "message": "User not found", "status": 404})
+    await storage.update_user(
+        tenant_id, user_id,
+        password_hash=hash_password(body.new_password),
+    )
+    return {"status": "password_reset", "user_id": user_id, "email": user.email}
 
 
 # ═══════════════════════════════════════════════════════════════════════════

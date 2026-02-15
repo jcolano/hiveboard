@@ -732,6 +732,25 @@ class JsonStorageBackend:
                 return AgentRecord(**row)
         return None
 
+    async def delete_agent(
+        self, tenant_id: str, agent_id: str
+    ) -> bool:
+        before = len(self._tables["agents"])
+        self._tables["agents"] = [
+            row for row in self._tables["agents"]
+            if not (row["tenant_id"] == tenant_id and row["agent_id"] == agent_id)
+        ]
+        # Also remove project-agent associations
+        self._tables["project_agents"] = [
+            row for row in self._tables["project_agents"]
+            if not (row["tenant_id"] == tenant_id and row["agent_id"] == agent_id)
+        ]
+        deleted = len(self._tables["agents"]) < before
+        if deleted:
+            self._persist("agents")
+            self._persist("project_agents")
+        return deleted
+
     async def list_agents(
         self,
         tenant_id: str,

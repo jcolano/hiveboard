@@ -366,6 +366,11 @@ class PasswordChangeRequest(BaseModel):
     new_password: str
 
 
+class AdminResetPasswordRequest(BaseModel):
+    """POST body for admin password reset (no current password needed)."""
+    new_password: str
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 #  AUTH FLOW MODELS — Registration, Invites
 # ═══════════════════════════════════════════════════════════════════════════

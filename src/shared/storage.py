@@ -353,6 +353,16 @@ class StorageBackend(Protocol):
         """
         ...
 
+    async def delete_agent(
+        self, tenant_id: str, agent_id: str
+    ) -> bool:
+        """Delete an agent and its project-agent associations.
+
+        Returns True if deleted, False if not found.
+        Maps to: DELETE FROM agents WHERE tenant_id=? AND agent_id=?
+        """
+        ...
+
     # ───────────────────────────────────────────────────────────────────
     #  PROJECT-AGENT JUNCTION
     # ───────────────────────────────────────────────────────────────────
