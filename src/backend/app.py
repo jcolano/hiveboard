@@ -22,6 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend import __version__ as BACKEND_VERSION
 from backend.middleware import AuthMiddleware, RateLimitMiddleware
 from backend.storage_json import JsonStorageBackend, derive_agent_status
 from backend.llm_pricing import LlmPricingEngine
@@ -204,7 +205,7 @@ async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
 
 app = FastAPI(
     title="HiveBoard API",
-    version="0.1.0",
+    version=BACKEND_VERSION,
     description="Observability platform for AI agents",
     lifespan=lifespan,
 )
@@ -285,7 +286,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "0.1.0"}
+    return {"status": "ok", "version": BACKEND_VERSION}
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -2257,8 +2258,11 @@ async def login(body: LoginRequest, request: Request, tenant_id: str = Query(...
         updated_at=user.updated_at, last_login_at=user.last_login_at,
         settings=user.settings,
     )
+    tenant = await storage.get_tenant(user.tenant_id)
     return LoginResponse(
         token=token, expires_in=expires_in, user=safe,
+        tenant_name=tenant.name if tenant else None,
+        tenant_slug=tenant.slug if tenant else None,
     ).model_dump(mode="json")
 
 

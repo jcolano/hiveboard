@@ -356,6 +356,8 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserSafe
+    tenant_name: str | None = None
+    tenant_slug: str | None = None
 
 
 class PasswordChangeRequest(BaseModel):
