@@ -28,7 +28,7 @@
 </p>
 
 <p align="center">
-  <strong>🔴 <a href="https://hiveboard.net/static/index.html?apiKey=hb_live_dev000000000000000000000000000000">Try It Live</a></strong> &nbsp;·&nbsp;
+  <strong>🔴 <a href="https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000">Try It Live</a></strong> &nbsp;·&nbsp;
   <strong>📖 <a href="https://hiveboard.net/docs/user-manual.html">Documentation</a></strong> &nbsp;·&nbsp;
   <strong>🎬 <a href="#demo-video">Watch the Demo</a></strong>
 </p>
@@ -43,7 +43,7 @@
 
 ## Live Demo
 
-**🔴 [Try the live dashboard →](https://hiveboard.net/static/index.html?apiKey=hb_live_dev000000000000000000000000000000)**
+**🔴 [Try the live dashboard →](https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000)**
 
 5 AI agents running a simulated company (BrightPath Digital) — live heartbeats, real-time tasks, cost data flowing. No signup required.
 
@@ -398,7 +398,7 @@ The gap: none of these think in terms of agents-as-workers with tasks, actions, 
 - **Problem Statement One:** Build a Tool That Should Exist
 - Built entirely using **Claude Opus 4.6** (Claude Chat + Claude Code CLI + Claude Code Cloud)
 - Demonstrates both the product and **The Hive Method** — a novel multi-agent development methodology
-- **🔴 [Live Demo](https://hiveboard.net/static/index.html?apiKey=hb_live_dev000000000000000000000000000000)** — 5 AI agents running live, fed by the BrightPath Digital simulator
+- **🔴 [Live Demo](https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000)** — 5 AI agents running live, fed by the BrightPath Digital simulator
 - **📖 [Full Documentation](https://hiveboard.net/docs/user-manual.html)** — SDK manual, integration guide, dashboard guide
 
 ---

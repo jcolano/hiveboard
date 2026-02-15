@@ -292,7 +292,7 @@ async def health():
 async def dashboard():
     """Redirect to the Team 2 dashboard served from /static/."""
     static_dir = Path(__file__).parent.parent / "static"
-    index = static_dir / "index.html"
+    index = static_dir / "fleet.html"
     if index.exists():
         return HTMLResponse(content=index.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Dashboard not found</h1>", status_code=404)
