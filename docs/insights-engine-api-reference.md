@@ -256,11 +256,15 @@ Authorization: Bearer hb_live_dev000000000000000000000000000000
       "task_failure_count": 1,
       "action_failure_count": 2,
       "by_type": { "RateLimitError": 2, "TimeoutError": 1 },
-      "by_category": { "rate_limit": 2, "connectivity": 1 }
+      "by_category": { "rate_limit": 2, "connectivity": 1 },
+      "by_task_type": { "lead_qualification": 2, "data_enrichment": 1 },
+      "by_action": { "enrich_company_data": 2, "search_kb": 1 }
     }
   ],
   "by_type_global": { "RateLimitError": 3, "TimeoutError": 2 },
   "by_category_global": { "rate_limit": 3, "connectivity": 2 },
+  "by_task_type_global": { "lead_qualification": 3, "data_enrichment": 2 },
+  "by_action_global": { "enrich_company_data": 3, "search_kb": 2 },
   "error_timeseries": [
     { "hour": "2026-02-14T05:00:00Z", "value": 0 },
     { "hour": "2026-02-14T06:00:00Z", "value": 3 },
@@ -280,8 +284,12 @@ Authorization: Bearer hb_live_dev000000000000000000000000000000
 | `by_agent[].action_failure_count` | int | `action_failed` events |
 | `by_agent[].by_type` | dict | `{ "RateLimitError": N }` — from exception/error type |
 | `by_agent[].by_category` | dict | `{ "rate_limit": N }` — from issue category |
+| `by_agent[].by_task_type` | dict | `{ "lead_qualification": N }` — errors broken down by task type |
+| `by_agent[].by_action` | dict | `{ "enrich_company_data": N }` — errors broken down by action/tool name |
 | `by_type_global` | dict | Merged across all agents |
 | `by_category_global` | dict | Merged across all agents |
+| `by_task_type_global` | dict | Task type error counts merged across all agents |
+| `by_action_global` | dict | Action/tool error counts merged across all agents |
 | `error_timeseries` | list | Hourly error counts with zero-gap filling |
 
 ---
@@ -382,7 +390,13 @@ Authorization: Bearer hb_live_dev000000000000000000000000000000
       "agents_using": { "scout": 8 },
       "hourly_avg": 8.0,
       "peak_hour": "2026-02-15T04:00:00Z",
-      "peak_count": 8
+      "peak_count": 8,
+      "avg_duration_ms": 1240,
+      "hourly_buckets": [
+        { "hour": "2026-02-14T05:00:00Z", "started": 0, "completed": 0, "failed": 0 },
+        { "hour": "2026-02-14T06:00:00Z", "started": 3, "completed": 3, "failed": 0 },
+        { "hour": "2026-02-14T07:00:00Z", "started": 5, "completed": 5, "failed": 0 }
+      ]
     },
     {
       "name": "search_kb",
@@ -393,7 +407,13 @@ Authorization: Bearer hb_live_dev000000000000000000000000000000
       "agents_using": { "harper": 8 },
       "hourly_avg": 8.0,
       "peak_hour": "2026-02-15T04:00:00Z",
-      "peak_count": 8
+      "peak_count": 8,
+      "avg_duration_ms": 890,
+      "hourly_buckets": [
+        { "hour": "2026-02-14T05:00:00Z", "started": 0, "completed": 0, "failed": 0 },
+        { "hour": "2026-02-14T06:00:00Z", "started": 4, "completed": 4, "failed": 0 },
+        { "hour": "2026-02-14T07:00:00Z", "started": 4, "completed": 4, "failed": 0 }
+      ]
     }
   ]
 }
@@ -412,6 +432,8 @@ Authorization: Bearer hb_live_dev000000000000000000000000000000
 | `actions[].hourly_avg` | float | Average starts per hour over the range |
 | `actions[].peak_hour` | string | Hour with most activity (ISO 8601) |
 | `actions[].peak_count` | int | Count during peak hour |
+| `actions[].avg_duration_ms` | int\|null | Average duration of completed actions in ms. Null if no completions with duration data. |
+| `actions[].hourly_buckets` | list | Zero-gap-filled hourly breakdown. Each: `{ hour, started, completed, failed }`. Same pattern as timeseries endpoint — every hour in range is present, ready for heatmap rendering. |
 
 ---
 
@@ -531,6 +553,8 @@ The insights page will also need these **existing** endpoints for context data (
       "stuck_threshold_seconds": 300,
       "first_seen": "2026-02-10T00:00:00Z",
       "last_seen": "2026-02-15T04:58:00Z",
+      "last_event_type": "task_completed",
+      "last_event_at": "2026-02-15T04:57:48Z",
       "stats_1h": {
         "tasks_completed": 3,
         "tasks_failed": 0,
@@ -549,6 +573,8 @@ The insights page will also need these **existing** endpoints for context data (
 **Key fields for insights page:**
 - `agent_id` — used as the value for `?agent_id=` filter on insights endpoints
 - `derived_status` — show status badge in agent comparison table
+- `last_event_type` — most recent event type for this agent (e.g. `"task_completed"`, `"llm_call_end"`)
+- `last_event_at` — ISO 8601 timestamp of the most recent event
 - `stats_1h` — quick 1-hour stats for agent cards (before user clicks into full insights)
 
 ---
@@ -698,6 +724,7 @@ The insights page will also need these **existing** endpoints for context data (
 
 | UI Component | Primary Endpoint | Supporting Endpoint |
 |-------------|-----------------|---------------------|
+| **Fleet Status Table** | `GET /v1/agents` (status, heartbeat, `last_event_type`, `last_event_at`) | `GET /v1/insights/agents` (cost per agent for join) |
 | **Fleet Overview Table** | `GET /v1/insights/agents` | `GET /v1/projects` (project filter dropdown) |
 | **Agent Detail Panel** | `GET /v1/insights/agents?sort=cost` | `GET /v1/agents/{agent_id}` (header: status, version, heartbeat) |
 | **Cost Trend Chart** | `GET /v1/insights/timeseries?metric=cost` | — |
@@ -705,9 +732,9 @@ The insights page will also need these **existing** endpoints for context data (
 | **Error Trend Chart** | `GET /v1/insights/timeseries?metric=errors` | — |
 | **Token Trend Chart** | `GET /v1/insights/timeseries?metric=tokens` | — |
 | **Model Comparison Table** | `GET /v1/insights/models` | `GET /v1/admin/pricing` (unit prices) |
-| **Error Breakdown Panel** | `GET /v1/insights/errors` | — |
+| **Error Breakdown Panel** | `GET /v1/insights/errors` (`by_type`, `by_category`, `by_task_type`, `by_action`) | — |
 | **Prompt Analysis Table** | `GET /v1/insights/prompts` | — |
-| **Action/Tool Usage Table** | `GET /v1/insights/actions` | — |
+| **Action/Tool Usage Table** | `GET /v1/insights/actions` (`hourly_buckets` for heatmaps, `avg_duration_ms` for skill table) | — |
 | **Agent Filter Dropdown** | `GET /v1/agents` | — |
 | **Project Filter Dropdown** | `GET /v1/projects` | — |
 | **Range Selector** | *(client-side, pass to all endpoints)* | — |
