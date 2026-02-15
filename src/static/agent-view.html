@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HiveBoard — Agent View</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/css/hiveboard.css" rel="stylesheet" />
+    <link href="/static/css/agent-view.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════
+         TOP BAR — shared structure with main dashboard
+         ═══════════════════════════════════════════ -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="logo"><div class="logo-hex"><div class="logo-hex-inner"></div></div>Hive<span>Board</span></div>
+            <div class="workspace-badge" id="workspaceBadge">—</div>
+            <div class="view-tabs">
+                <a class="view-tab" href="/static/index.html" data-view="fleet">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Fleet
+                </a>
+                <a class="view-tab" href="/static/analytics.html" data-view="analytics">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    Analytics
+                </a>
+                <button class="view-tab active" data-view="agent-view">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Agent View
+                </button>
+                <a class="view-tab" href="/static/insights.html" data-view="insights">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    Insights
+                </a>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="status-pill">
+                <div class="status-dot" id="connectionDot"></div>
+                <span id="connectionText">Connecting…</span>
+            </div>
+            <select class="av-agent-selector" id="agentSelector" onchange="onAgentChange()">
+                <option value="">Select agent…</option>
+            </select>
+            <select class="env-selector" id="envSelector" onchange="onEnvChange()">
+                <option>production</option>
+                <option>staging</option>
+            </select>
+            <select class="av-range-selector" id="rangeSelector" onchange="onRangeChange()">
+                <option value="1h">1h</option>
+                <option value="6h">6h</option>
+                <option value="24h" selected>24h</option>
+                <option value="7d">7d</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════
+         MAIN SCROLLABLE CONTENT
+         ═══════════════════════════════════════════ -->
+    <div class="av-page" id="avPage">
+
+        <!-- Empty state -->
+        <div class="av-empty-state" id="avEmptyState">
+            <div class="av-empty-hex"></div>
+            <div class="av-empty-title">Select an agent</div>
+            <div class="av-empty-sub">Choose an agent from the dropdown above to see its full story.</div>
+        </div>
+
+        <!-- Agent content (hidden until agent selected) -->
+        <div class="av-content" id="avContent" style="display:none;">
+
+            <!-- ═══ A. IDENTITY BAR ═══ -->
+            <div class="av-identity" id="avIdentity">
+                <div class="av-identity-left">
+                    <div class="av-agent-name" id="avAgentName">—</div>
+                    <div class="av-agent-tags" id="avAgentTags"></div>
+                </div>
+                <div class="av-identity-right">
+                    <div class="av-identity-stat" id="avStatus">
+                        <span class="av-identity-label">STATUS</span>
+                        <span class="av-identity-value" id="avStatusValue">—</span>
+                    </div>
+                    <div class="av-identity-divider"></div>
+                    <div class="av-identity-stat" id="avHeartbeat">
+                        <span class="av-identity-label">HEARTBEAT</span>
+                        <span class="av-identity-value" id="avHeartbeatValue">—</span>
+                    </div>
+                    <div class="av-identity-divider"></div>
+                    <div class="av-identity-stat">
+                        <span class="av-identity-label">FIRST SEEN</span>
+                        <span class="av-identity-value" id="avFirstSeen">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══ B. RIGHT NOW ═══ -->
+            <div class="av-section" id="avRightNow">
+                <div class="av-section-header">
+                    <div class="av-section-title">Right Now</div>
+                    <div class="av-live-badge"><div class="av-live-dot"></div> Live</div>
+                </div>
+                <div class="av-rightnow-body" id="avRightNowBody">
+                    <!-- Filled dynamically based on status -->
+                </div>
+            </div>
+
+            <!-- ═══ C. PERFORMANCE STORY ═══ -->
+            <div class="av-section">
+                <div class="av-section-header">
+                    <div class="av-section-title">Performance</div>
+                    <div class="av-range-pill" id="avRangePill">24h</div>
+                </div>
+                <div class="av-perf-grid" id="avPerfGrid">
+                    <!-- 8 metric cards -->
+                </div>
+                <div class="av-perf-insights" id="avPerfInsights"></div>
+            </div>
+
+            <!-- ═══ D. LLM INTELLIGENCE ═══ -->
+            <div class="av-section">
+                <div class="av-section-header">
+                    <div class="av-section-title">LLM Intelligence</div>
+                </div>
+                <div class="av-llm-tabs">
+                    <button class="av-llm-tab active" data-tab="patterns" onclick="switchLlmTab('patterns')">Call Patterns</button>
+                    <button class="av-llm-tab" data-tab="models" onclick="switchLlmTab('models')">Model Breakdown</button>
+                    <button class="av-llm-tab" data-tab="log" onclick="switchLlmTab('log')">Call Log</button>
+                </div>
+                <div class="av-llm-content active" id="avLlmPatterns"></div>
+                <div class="av-llm-content" id="avLlmModels"></div>
+                <div class="av-llm-content" id="avLlmLog">
+                    <div class="av-log-filters" id="avLogFilters"></div>
+                    <div class="av-log-list" id="avLogList"></div>
+                </div>
+            </div>
+
+            <!-- ═══ E + F. PIPELINE & RECENT TASKS (side by side) ═══ -->
+            <div class="av-two-col">
+                <!-- E. Work Pipeline -->
+                <div class="av-section av-col-left">
+                    <div class="av-section-header">
+                        <div class="av-section-title">Pipeline</div>
+                    </div>
+                    <div class="av-pipeline-body" id="avPipelineBody"></div>
+                </div>
+
+                <!-- F. Recent Tasks -->
+                <div class="av-section av-col-right">
+                    <div class="av-section-header">
+                        <div class="av-section-title">Recent Tasks</div>
+                        <div class="av-task-count" id="avTaskCount"></div>
+                    </div>
+                    <div class="av-tasks-body" id="avTasksBody"></div>
+                </div>
+            </div>
+
+            <!-- ═══ G. ATTENTION ═══ -->
+            <div class="av-section av-attention-section" id="avAttention" style="display:none;">
+                <div class="av-section-header">
+                    <div class="av-section-title av-attention-title">⚠ Attention</div>
+                    <div class="av-attention-count" id="avAttentionCount"></div>
+                </div>
+                <div class="av-attention-body" id="avAttentionBody"></div>
+            </div>
+
+            <!-- ═══ HEALTHY INDICATOR (replaces Attention when no issues) ═══ -->
+            <div class="av-healthy" id="avHealthy">
+                <span class="av-healthy-check">✓</span> No attention items — agent is healthy
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LLM Detail Modal (reused from main dashboard) -->
+    <div class="llm-modal-overlay" id="llmModalOverlay" onclick="if(event.target===this) closeLlmModal()">
+        <div class="llm-modal" id="llmModalContent"></div>
+    </div>
+
+    <!-- Task Expand Modal -->
+    <div class="av-task-modal-overlay" id="avTaskModal" onclick="if(event.target===this) closeTaskModal()">
+        <div class="av-task-modal">
+            <div class="av-task-modal-header">
+                <div class="av-task-modal-title" id="avTaskModalTitle">—</div>
+                <button class="av-task-modal-close" onclick="closeTaskModal()">✕ Close</button>
+            </div>
+            <div class="av-task-modal-body" id="avTaskModalBody"></div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/common.js?v=20260214"></script>
+    <script src="/static/js/agent-view.js?v=20260215"></script>
+</body>
+</html>

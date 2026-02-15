@@ -68,15 +68,18 @@ function stateHtml(cls,msg) {
 // ── API layer ────────────────────────────────────────
 
 function api(path, params) {
-    var url = '/v1/' + path;
+    var base = (typeof CONFIG !== 'undefined' && CONFIG.endpoint) ? CONFIG.endpoint : '';
+    var url = base + '/v1/' + path;
     var qs = [];
     if (params) Object.keys(params).forEach(function(k){
         if (params[k]!=null) qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));
     });
     if (qs.length) url += '?' + qs.join('&');
+    var apiKey = (typeof CONFIG !== 'undefined' && CONFIG.apiKey) ? CONFIG.apiKey
+        : (window.HB_API_KEY || localStorage.getItem('hb_api_key') || '');
     return fetch(url, {
         headers: {
-            'Authorization': 'Bearer ' + (window.HB_API_KEY || localStorage.getItem('hb_api_key') || ''),
+            'Authorization': 'Bearer ' + apiKey,
             'Content-Type': 'application/json'
         }
     }).then(function(r){
