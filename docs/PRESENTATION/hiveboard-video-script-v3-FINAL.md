@@ -131,6 +131,42 @@
 
 ---
 
+🆕 NEW BEAT — ZERO-FRICTION ONBOARDING
+
+⏱ 2:33–2:48 (15 seconds)
+
+On Camera (primary)
+Optional quick flash of Docs or REPO if needed, but not required.
+
+“And here’s what makes this real for other teams.”
+
+“I built a Claude Code Skill.”
+
+“If you already have an agentic codebase, you don’t read a setup guide.
+You don’t wire logs manually.
+You don’t refactor.”
+
+“You type one slash command.”
+
+(Brief beat.)
+
+“Claude reads your architecture.
+Understands your framework.
+And walks you through integration —
+from discovery
+to minimal instrumentation
+to enhanced sensors
+to verification.”
+
+“What used to be a thirty-minute integration document
+becomes a five-minute interactive session.”
+
+“Observability becomes a pull request.”
+
+That line is the collapse moment.
+
+---
+
 ## BEAT 6 — INEVITABLE CLOSE
 ⏱ **2:38–2:53** (15 sec) · On Camera + Quick Asset Flashes
 
