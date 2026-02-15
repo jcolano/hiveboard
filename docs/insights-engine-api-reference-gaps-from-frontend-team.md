@@ -1,3 +1,498 @@
+# Analytics Deep Dive — Backend Implementation Brief
+
+**From:** Frontend / Product  
+**To:** Backend Team  
+**Date:** February 15, 2026  
+**Status:** Ready for review  
+**Visual Reference:** `analytics-deep-dive.html` (attached mockup with dummy data)
+
+---
+
+## What This Is
+
+We're building a new **Analytics Deep Dive** page — 7 sections of ranked agent comparisons, error drilldowns, prompt analysis, tool/skill usage heatmaps, and fleet status. The mockup is fully built with dummy data and matches the existing HiveBoard design system.
+
+This document maps every UI component to its API endpoint, identifies **8 gaps** where the current Insights Engine API doesn't provide what the frontend needs, and proposes concrete response shape changes for each.
+
+**The goal:** after reading this, the backend team can turn each gap into a ticket with a clear spec.
+
+---
+
+## Data-Flow Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    ANALYTICS DEEP DIVE PAGE                     │
+│                                                                 │
+│  ┌─── Toolbar ──────────────────────────────────────────────┐   │
+│  │  Range selector (1h|6h|24h|7d|30d) → passed to ALL calls│   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S0: Fleet Status ────────────────────────────────────┐   │
+│  │  GET /v1/agents ─────────────── status, heartbeat, name  │   │
+│  │  GET /v1/insights/agents ────── cost per agent (join)    │   │
+│  │  ⚠️  GAP #1: last_event_type                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S1: Cost Rankings ───────────────────────────────────┐   │
+│  │  GET /v1/insights/agents?sort=cost ──── fully covered ✅  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S2: Activity Rankings ───────────────────────────────┐   │
+│  │  GET /v1/insights/agents?sort=tasks ─── agent ranking    │   │
+│  │  GET /v1/insights/timeseries?metric=tasks ── peak hour   │   │
+│  │  GET /v1/insights/actions?agent_id=X ── tool drilldown   │   │
+│  │  ⚠️  GAP #2: cost per action                             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S3: Error Analysis ──────────────────────────────────┐   │
+│  │  GET /v1/insights/errors ──────── by_agent, by_type      │   │
+│  │  GET /v1/insights/agents ──────── task totals (for rate)  │   │
+│  │  ⚠️  GAP #3: errors by_action                            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S4: Prompt Analysis ─────────────────────────────────┐   │
+│  │  GET /v1/insights/prompts?sort=tokens ── fully covered ✅ │   │
+│  │  (GAP #4 is cosmetic — call name ≈ prompt identity)      │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S5: Tool Usage Tracker ──────────────────────────────┐   │
+│  │  GET /v1/insights/actions ──────── summary pills          │   │
+│  │  ⚠️  GAP #5: hourly_buckets per action (heatmap)         │   │
+│  │  ⚠️  GAP #6: daily aggregation per action (weekly table) │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌─── S6: Skill Usage Tracker ─────────────────────────────┐   │
+│  │  GET /v1/insights/actions ──────── reuses same endpoint   │   │
+│  │  ⚠️  GAP #7: skills vs actions distinction               │   │
+│  │  ⚠️  GAP #8: avg_duration_ms per action                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Endpoint Call Plan (Per Page Load)
+
+On initial load, the frontend makes **5 parallel requests** (all with the selected `range`):
+
+| # | Endpoint | Purpose |
+|---|----------|---------|
+| 1 | `GET /v1/agents` | Fleet status rows (S0) + agent dropdown |
+| 2 | `GET /v1/insights/agents?sort=cost` | Cost rankings (S1), Activity rankings (S2), error rates |
+| 3 | `GET /v1/insights/errors` | Error analysis (S3) |
+| 4 | `GET /v1/insights/prompts?sort=tokens` | Prompt analysis (S4) |
+| 5 | `GET /v1/insights/actions` | Tool usage (S5) + Skill usage (S6) |
+
+**On drilldown** (user clicks an agent for deeper investigation):
+
+| # | Endpoint | Purpose |
+|---|----------|---------|
+| 6 | `GET /v1/insights/actions?agent_id=X` | Tool/task breakdown for that agent |
+| 7 | `GET /v1/insights/errors?agent_id=X` | Error breakdown for that agent |
+| 8 | `GET /v1/insights/timeseries?metric=tasks` | Peak hour for activity section |
+
+Total: **5 calls on load**, up to **3 more on drilldown**. Very manageable.
+
+---
+
+## Section-by-Endpoint Mapping (Detail)
+
+### S0: Fleet Status — "Who's Alive Right Now?"
+
+| UI Component | Endpoint | Fields Used |
+|---|---|---|
+| Status strip (3 Running / 2 Idle / 1 Stopped) | `GET /v1/agents` | Group by `derived_status`, count |
+| Agent rows: name | same | `agent_id` |
+| Agent rows: heartbeat dot + age | same | `last_heartbeat`, `heartbeat_age_seconds`, `is_stuck` |
+| Agent rows: status badge | same | `derived_status` |
+| Agent rows: last event type + time | **⚠️ GAP #1** | — |
+| Agent rows: 24h cost | `GET /v1/insights/agents` | `agents[].llm_cost` (joined client-side by `agent_id`) |
+| Agent rows: cost-per-task | derived | `llm_cost / tasks_completed` |
+| Cost by Status summary cards | both above | Group insights costs by agent status |
+
+---
+
+### S1: Cost Rankings — ✅ Fully Covered
+
+**Single call:** `GET /v1/insights/agents?sort=cost`
+
+| UI Component | Fields Used |
+|---|---|
+| Most Expensive card | `comparisons.cost.max_agent`, `max_value` |
+| Least Expensive card | `comparisons.cost.min_agent`, `min_value` |
+| Fleet Average | `fleet_totals.total_cost / agents.length` |
+| Cost Spread (max/min ratio) | `comparisons.cost.max_vs_min`, `max_vs_avg` |
+| Distribution strip | `agents[].llm_cost / fleet_totals.total_cost` → % |
+| Ranked bar chart | `agents[].agent_id`, `agents[].llm_cost` |
+| Commentary (model used) | `agents[0].top_models[0].model` (most expensive agent's primary model) |
+| LLM calls + tokens | `agents[].llm_call_count`, `llm_tokens_in + llm_tokens_out` |
+
+No backend changes needed.
+
+---
+
+### S2: Activity Rankings
+
+| UI Component | Endpoint | Fields Used |
+|---|---|---|
+| Most/Least Active | `/v1/insights/agents?sort=tasks` | `comparisons.tasks.*` |
+| Fleet total tasks | same | `fleet_totals.total_tasks` |
+| Tasks/hr avg | derived | `tasks_completed / hours_in_range` |
+| Peak hour | `/v1/insights/timeseries?metric=tasks` | `summary.peak_hour` |
+| Ranked bars | `/v1/insights/agents?sort=tasks` | `agents[].tasks_completed` |
+| Drilldown: By Task Type | same | `agents[X].tasks_by_type` |
+| Drilldown: By Tool | `/v1/insights/actions?agent_id=X` | `actions[].name`, `total_started` |
+| Commentary: cost per task type | **⚠️ GAP #2** | — |
+
+---
+
+### S3: Error Analysis
+
+| UI Component | Endpoint | Fields Used |
+|---|---|---|
+| Most/Fewest Errors cards | `/v1/insights/errors` | `by_agent[0]`, `by_agent[last]` |
+| Fleet Error Rate | derived | `total_errors / fleet_totals.total_tasks` (from agents endpoint) |
+| Top Error Type | `/v1/insights/errors` | `by_type_global` → key with max count |
+| Ranked error bars by agent | same | `by_agent[].agent_id`, `error_count` |
+| Drilldown: By Error Type | same or `?agent_id=X` | `by_agent[].by_type` |
+| Drilldown: By Category | same | `by_agent[].by_category` |
+| Drilldown: By Task | **⚠️ GAP #3** | — |
+| Drilldown: By Tool | **⚠️ GAP #3** | — |
+
+---
+
+### S4: Prompt Analysis — ✅ Fully Covered
+
+**Single call:** `GET /v1/insights/prompts?sort=tokens`
+
+| UI Component | Fields Used |
+|---|---|
+| Table: Prompt name | `calls[].name` |
+| Table: Avg Tokens | `calls[].avg_tokens_in` |
+| Table: Calls count | `calls[].total_count` |
+| Table: Agent(s) | `calls[].agents_using` |
+| Table: Model | `calls[].primary_model` |
+| Table: Est. Cost | `calls[].total_cost` |
+| Biggest prompt highlight | `biggest_prompt.*` |
+
+Note on **GAP #4**: the mockup shows a "Task / Tool" column (e.g. "diff_review · git_diff"). The call `name` (e.g. `draft_outreach_email`) effectively *is* the prompt identity and is sufficient. Treat as cosmetic — no backend change needed unless you want an explicit `triggered_by_action` field later.
+
+---
+
+### S5: Tool Usage Tracker
+
+| UI Component | Endpoint | Fields Used |
+|---|---|---|
+| Usage summary pills | `/v1/insights/actions` | `actions[].name`, `total_started`, `hourly_avg` |
+| Hourly heatmap (24 cols × N tools) | **⚠️ GAP #5** | — |
+| Weekly aggregation table (Mon–Sun) | **⚠️ GAP #6** | — |
+| Trend badges | derived | Compare current vs previous range (2 calls) |
+
+---
+
+### S6: Skill Usage Tracker
+
+| UI Component | Endpoint | Fields Used |
+|---|---|---|
+| Skill table: uses, agents, success rate | `/v1/insights/actions` | `total_started`, `agents_using`, `success_rate` |
+| Skill table: avg duration | **⚠️ GAP #8** | — |
+| Skill table: peak hours | `/v1/insights/actions` | `peak_hour` |
+| Hourly heatmap | **⚠️ GAP #5** (same as S5) | — |
+| Skills vs Actions distinction | **⚠️ GAP #7** | — |
+
+---
+
+## Gap Specifications
+
+### GAP #1: Last Event Type on Agent Status
+
+**Severity:** Low  
+**Section:** S0 (Fleet Status)  
+**Endpoint:** `GET /v1/agents`
+
+**Problem:** The mockup shows "Last event: `task_completed` · 00:00:12 ago" per agent. The current response has `last_heartbeat` and `heartbeat_age_seconds` but not the most recent event type or timestamp.
+
+**Proposed addition** — add 2 fields to each agent object:
+
+```json
+{
+  "agent_id": "scout",
+  "derived_status": "processing",
+  "last_heartbeat": "2026-02-15T04:58:00Z",
+  "heartbeat_age_seconds": 12,
+  
+  "last_event_type": "task_completed",      // ← NEW
+  "last_event_at": "2026-02-15T04:57:48Z"   // ← NEW
+  
+  // ... rest unchanged
+}
+```
+
+**Implementation hint:** This is the most recent event for that `agent_id` — a simple `ORDER BY timestamp DESC LIMIT 1` on the events table filtered by `agent_id`. It could also be cached/updated during event ingestion (Step 7b) for zero-query cost.
+
+**Fallback if skipped:** Frontend shows heartbeat age only. Acceptable but less informative.
+
+---
+
+### GAP #2: Cost per Action
+
+**Severity:** Low  
+**Section:** S2 (Activity Rankings — commentary)  
+**Endpoint:** `GET /v1/insights/actions`
+
+**Problem:** The commentary says "web_search costs $0.14/call avg." Actions endpoint has counts and success rates but no cost data.
+
+**Proposed addition** — add 2 fields to each action object:
+
+```json
+{
+  "name": "enrich_company_data",
+  "total_started": 8,
+  "total_completed": 8,
+  "total_failed": 0,
+  "success_rate": 100.0,
+  "agents_using": { "scout": 8 },
+  "hourly_avg": 8.0,
+  "peak_hour": "2026-02-15T04:00:00Z",
+  "peak_count": 8,
+  
+  "total_cost": 0.0842,         // ← NEW: sum of LLM costs during this action
+  "avg_cost_per_start": 0.0105  // ← NEW: total_cost / total_started
+}
+```
+
+**Implementation hint:** The `agent_hourly` table tracks costs by agent. If action events carry `agent_id` + timestamps, the cost attribution can be derived by summing LLM costs that fall within action start/end windows. Alternatively, if actions trigger LLM calls with a known `call_name`, sum `cost` from `model_hourly` grouped by that call name.
+
+**Fallback if skipped:** Frontend derives approximate cost from `top_llm_calls` on the agents endpoint. Less accurate but workable.
+
+---
+
+### GAP #3: Errors by Action/Task
+
+**Severity:** Medium  
+**Section:** S3 (Error Analysis — drilldowns)  
+**Endpoint:** `GET /v1/insights/errors`
+
+**Problem:** The mockup shows error counts broken down by task (e.g. "lint_check: 28") and by tool (e.g. "ast_parser: 24"). The errors endpoint gives `by_type` and `by_category` per agent, but not `by_action` or `by_task`.
+
+**Proposed addition** — add 2 dicts to each `by_agent` object:
+
+```json
+{
+  "by_agent": [
+    {
+      "agent_id": "scout",
+      "error_count": 3,
+      "task_failure_count": 1,
+      "action_failure_count": 2,
+      "by_type": { "RateLimitError": 2, "TimeoutError": 1 },
+      "by_category": { "rate_limit": 2, "connectivity": 1 },
+      
+      "by_task_type": {                    // ← NEW
+        "lead_qualification": 2,
+        "data_enrichment": 1
+      },
+      "by_action": {                       // ← NEW
+        "enrich_company_data": 2,
+        "search_kb": 1
+      }
+    }
+  ]
+}
+```
+
+**Implementation hint:** During aggregation, when a `task_failed` or `action_failed` event is processed, increment counters keyed by `task_type` and `action_name` in the same `agent_hourly` bucket. These are already available in the event payload.
+
+**Fallback if skipped:** Frontend shows only by-type and by-category drilldowns (both fully supported). The "by task" and "by tool" columns would be removed from the mockup. Acceptable but loses a valuable "where exactly is it breaking?" signal.
+
+---
+
+### GAP #4: Triggered-by-Action for Prompts
+
+**Severity:** Very Low — cosmetic  
+**Section:** S4 (Prompt Analysis)  
+**Endpoint:** `GET /v1/insights/prompts`
+
+**Problem:** Mockup shows a "Task / Tool" column next to each prompt. The API gives `calls[].name` which is effectively the prompt identity (e.g. `draft_outreach_email`), and `primary_model`.
+
+**Decision:** No backend change needed. The frontend will use `calls[].name` as both the prompt label and the implicit task/tool reference. If we later want explicit linkage, a `triggered_by_actions: ["action_name"]` field could be added.
+
+---
+
+### GAP #5: Hourly Buckets per Action (Heatmap Data)
+
+**Severity:** High — blocks the heatmaps in S5 and S6  
+**Section:** S5 (Tool Usage), S6 (Skill Usage)  
+**Endpoint:** `GET /v1/insights/actions`
+
+**Problem:** The mockup renders a 24-column heatmap showing call counts per hour per tool/skill. The actions endpoint gives `peak_hour` and `peak_count` (single values) but not the full hourly distribution.
+
+**Proposed addition — Option A (preferred):** Add `hourly_buckets` to each action:
+
+```json
+{
+  "name": "enrich_company_data",
+  "total_started": 8,
+  "total_completed": 8,
+  // ... existing fields ...
+  
+  "hourly_buckets": [                      // ← NEW
+    { "hour": "2026-02-14T05:00:00Z", "started": 0, "completed": 0, "failed": 0 },
+    { "hour": "2026-02-14T06:00:00Z", "started": 3, "completed": 3, "failed": 0 },
+    { "hour": "2026-02-14T07:00:00Z", "started": 5, "completed": 5, "failed": 0 }
+  ]
+}
+```
+
+**Proposed addition — Option B:** Implement the reserved `group_by=hour` parameter:
+
+```
+GET /v1/insights/actions?range=24h&group_by=hour
+```
+
+Returns a restructured response with actions nested under each hour bucket. Richer but harder to render as a heatmap.
+
+**Recommendation:** Option A. The frontend already expects action-level objects — adding `hourly_buckets[]` to each one means no restructuring. Zero-gap filling (same as timeseries endpoint) makes it directly renderable as heatmap cells.
+
+**Implementation hint:** The `agent_hourly` table already has hourly granularity. If action names are tracked in those buckets, this is a simple GROUP BY. If not, a new `action_hourly` counter (or a JSONB column in `agent_hourly`) would be needed.
+
+**Fallback if skipped:** Frontend shows the summary pills and peak-hour badge only. The heatmaps are replaced with a simpler "peak hours" bar visualization. Significant loss of value — the heatmaps are a differentiating feature.
+
+---
+
+### GAP #6: Daily Aggregation per Action (Weekly Table)
+
+**Severity:** Medium — but solved automatically if GAP #5 is implemented  
+**Section:** S5 (Tool Usage — weekly table)
+
+**Problem:** The mockup shows a Mon–Sun table with per-tool counts for each day.
+
+**If GAP #5 is implemented:** Frontend rolls up `hourly_buckets` into daily totals client-side. **No additional backend work needed.** Call with `range=7d`, get 168 hourly buckets per action, aggregate into 7 daily columns.
+
+**If GAP #5 is NOT implemented:** Would need a separate `GET /v1/insights/actions?range=7d&group_by=day` or similar. Not recommended as a standalone effort — better to solve via GAP #5.
+
+---
+
+### GAP #7: Skills vs Actions Distinction
+
+**Severity:** Decision required — affects data model  
+**Section:** S6 (Skill Usage)
+
+**Problem:** The mockup has separate sections for "tools" (brave_search, pdf_reader, ast_parser) and "skills" (web_research, code_review, content_writing). The API has a single `/v1/insights/actions` endpoint.
+
+**Question for backend team:** How do we distinguish skills from tools?
+
+**Option A — Same endpoint, tagged:** Add a `type` field to action events (`type: "tool"` vs `type: "skill"`) and a `?type=` filter on the actions endpoint:
+
+```
+GET /v1/insights/actions?type=tool    → tools only
+GET /v1/insights/actions?type=skill   → skills only
+GET /v1/insights/actions              → all (default, backwards compatible)
+```
+
+Response adds:
+```json
+{
+  "name": "web_research",
+  "type": "skill",           // ← NEW
+  // ... rest unchanged
+}
+```
+
+**Option B — Skills = task types:** Treat skills as a grouping of `tasks_by_type` from `/v1/insights/agents`. Frontend maps task types to skill names. No backend change, but less flexible.
+
+**Option C — Collapse into one section:** Remove the skill/tool distinction in the mockup. Show all actions in one table. Simplest, no backend change.
+
+**Recommendation:** Option A if skills are a first-class HiveLoop concept. Option C if they're not tracked separately today.
+
+---
+
+### GAP #8: Duration per Action
+
+**Severity:** Low  
+**Section:** S6 (Skill Usage — Avg Duration column)  
+**Endpoint:** `GET /v1/insights/actions`
+
+**Problem:** The mockup shows avg duration per skill (3.2s, 8.1s, etc.). The actions endpoint doesn't include timing.
+
+**Proposed addition:**
+
+```json
+{
+  "name": "enrich_company_data",
+  "total_started": 8,
+  "total_completed": 8,
+  // ... existing fields ...
+  
+  "avg_duration_ms": 1240,    // ← NEW: avg(completed_at - started_at)
+  "p95_duration_ms": 2890     // ← NEW (optional): 95th percentile
+}
+```
+
+**Implementation hint:** Computed from `action_started` / `action_completed` event pairs. If aggregated hourly, store sum of durations + count, then derive avg at query time.
+
+**Fallback if skipped:** Frontend hides the duration column. Acceptable — it's nice-to-have context.
+
+---
+
+## Priority Summary
+
+### Must-have for v1 launch
+
+| Gap | Change | Effort Estimate |
+|---|---|---|
+| **#5** | `hourly_buckets[]` on `/v1/insights/actions` | Medium — may need new aggregation counter |
+| **#3** | `by_task_type` + `by_action` on `/v1/insights/errors` | Small — extend existing aggregation |
+
+### Should-have (improves quality significantly)
+
+| Gap | Change | Effort Estimate |
+|---|---|---|
+| **#1** | `last_event_type` + `last_event_at` on `/v1/agents` | Small — single query or ingest-time cache |
+| **#8** | `avg_duration_ms` on `/v1/insights/actions` | Small — action event pairs |
+| **#2** | `total_cost` on `/v1/insights/actions` | Small — sum LLM costs during actions |
+
+### Nice-to-have / Deferred
+
+| Gap | Change | Effort Estimate |
+|---|---|---|
+| **#7** | Skills vs actions distinction | Decision + possible schema addition |
+| **#6** | Weekly aggregation | Free if #5 is done |
+| **#4** | Triggered-by-action on prompts | Cosmetic — skip for now |
+
+---
+
+## Frontend Commitments
+
+Once the backend ships these changes, the frontend will:
+
+1. Replace all dummy data with live API calls (5 parallel on load + 3 on drilldown)
+2. Wire the range selector to pass `?range=` to all endpoints
+3. Implement client-side joins (agent status + cost data for S0)
+4. Build client-side daily rollup from hourly buckets (S5 weekly table)
+5. Generate HiveMind commentary from `comparisons` object + derived ratios
+6. Handle empty states using the standard `agents: []` / `actions: []` patterns
+
+---
+
+## Files for Reference
+
+| File | Description |
+|---|---|
+| `analytics-deep-dive.html` | Full mockup with dummy data — open in browser to see all 7 sections |
+| `insights-engine-api-reference.md` | Current API spec (the source doc for this analysis) |
+| This document | The gap analysis + proposed changes |
+
+---
+
+*Questions? Tag the frontend team. We're ready to wire things up as soon as the endpoints are updated.*
+
+
+
+
+DETAILED REPORT FROM FRONT END TEAM:
 
 ## Section-to-Endpoint Mapping
 

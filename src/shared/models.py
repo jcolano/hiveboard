@@ -586,6 +586,8 @@ class AgentSummary(BaseModel):
     stuck_threshold_seconds: int = 300
     first_seen: str | None = None
     last_seen: str | None = None
+    last_event_type: str | None = None
+    last_event_at: str | None = None
     stats_1h: AgentStats1h = Field(default_factory=AgentStats1h)
 
 
@@ -859,6 +861,8 @@ class InsightsErrorAgent(BaseModel):
     action_failure_count: int = 0
     by_type: dict[str, int] = Field(default_factory=dict)
     by_category: dict[str, int] = Field(default_factory=dict)
+    by_task_type: dict[str, int] = Field(default_factory=dict)
+    by_action: dict[str, int] = Field(default_factory=dict)
 
 
 class InsightsErrorsResponse(BaseModel):
@@ -867,6 +871,8 @@ class InsightsErrorsResponse(BaseModel):
     by_agent: list[InsightsErrorAgent] = Field(default_factory=list)
     by_type_global: dict[str, int] = Field(default_factory=dict)
     by_category_global: dict[str, int] = Field(default_factory=dict)
+    by_task_type_global: dict[str, int] = Field(default_factory=dict)
+    by_action_global: dict[str, int] = Field(default_factory=dict)
     error_timeseries: list[InsightsTimeseriesBucket] = Field(default_factory=list)
 
 
@@ -898,6 +904,8 @@ class InsightsActionDetail(BaseModel):
     hourly_avg: float = 0.0
     peak_hour: str = ""
     peak_count: int = 0
+    avg_duration_ms: int | None = None
+    hourly_buckets: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class InsightsActionsResponse(BaseModel):
