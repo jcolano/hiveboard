@@ -761,3 +761,145 @@ class WsAgentStuck(BaseModel):
 class WsPong(BaseModel):
     type: str = "pong"
     server_time: str
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  INSIGHTS ENGINE RESPONSE MODELS — Pre-Aggregated Analytics
+# ═══════════════════════════════════════════════════════════════════════════
+
+class InsightsAgentDetail(BaseModel):
+    agent_id: str
+    tasks_completed: int = 0
+    tasks_failed: int = 0
+    success_rate: float | None = None
+    avg_task_duration_ms: int | None = None
+    llm_call_count: int = 0
+    llm_cost: float = 0.0
+    llm_tokens_in: int = 0
+    llm_tokens_out: int = 0
+    error_count: int = 0
+    errors_by_type: dict[str, int] = Field(default_factory=dict)
+    errors_by_category: dict[str, int] = Field(default_factory=dict)
+    top_models: list[dict[str, Any]] = Field(default_factory=list)
+    top_actions: list[dict[str, Any]] = Field(default_factory=list)
+    top_llm_calls: list[dict[str, Any]] = Field(default_factory=list)
+    tasks_by_type: dict[str, dict[str, Any]] = Field(default_factory=dict)
+
+
+class InsightsFleetTotals(BaseModel):
+    total_cost: float = 0.0
+    total_tasks: int = 0
+    total_errors: int = 0
+    total_llm_calls: int = 0
+
+
+class InsightsComparison(BaseModel):
+    max_agent: str = ""
+    min_agent: str = ""
+    max_value: float = 0.0
+    min_value: float = 0.0
+    avg_value: float = 0.0
+    max_vs_avg: float = 0.0
+    max_vs_min: float = 0.0
+
+
+class InsightsAgentsResponse(BaseModel):
+    range: str
+    agents: list[InsightsAgentDetail] = Field(default_factory=list)
+    fleet_totals: InsightsFleetTotals = Field(default_factory=InsightsFleetTotals)
+    comparisons: dict[str, InsightsComparison] = Field(default_factory=dict)
+
+
+class InsightsModelDetail(BaseModel):
+    model: str
+    call_count: int = 0
+    tokens_in: int = 0
+    tokens_out: int = 0
+    cost: float = 0.0
+    avg_duration_ms: int | None = None
+    max_tokens_in: int = 0
+    max_tokens_in_agent: str = ""
+    max_tokens_in_name: str = ""
+    agents_using: list[dict[str, Any]] = Field(default_factory=list)
+    top_calls: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class InsightsModelsResponse(BaseModel):
+    range: str
+    models: list[InsightsModelDetail] = Field(default_factory=list)
+    fleet_totals: InsightsFleetTotals = Field(default_factory=InsightsFleetTotals)
+
+
+class InsightsTimeseriesBucket(BaseModel):
+    hour: str
+    value: float = 0.0
+
+
+class InsightsTimeseriesSummary(BaseModel):
+    total: float = 0.0
+    avg_per_hour: float = 0.0
+    peak_hour: str = ""
+    peak_value: float = 0.0
+    trough_hour: str = ""
+    trough_value: float = 0.0
+
+
+class InsightsTimeseriesResponse(BaseModel):
+    range: str
+    agent_id: str | None = None
+    metric: str
+    buckets: list[InsightsTimeseriesBucket] = Field(default_factory=list)
+    summary: InsightsTimeseriesSummary = Field(default_factory=InsightsTimeseriesSummary)
+
+
+class InsightsErrorAgent(BaseModel):
+    agent_id: str
+    error_count: int = 0
+    task_failure_count: int = 0
+    action_failure_count: int = 0
+    by_type: dict[str, int] = Field(default_factory=dict)
+    by_category: dict[str, int] = Field(default_factory=dict)
+
+
+class InsightsErrorsResponse(BaseModel):
+    range: str
+    total_errors: int = 0
+    by_agent: list[InsightsErrorAgent] = Field(default_factory=list)
+    by_type_global: dict[str, int] = Field(default_factory=dict)
+    by_category_global: dict[str, int] = Field(default_factory=dict)
+    error_timeseries: list[InsightsTimeseriesBucket] = Field(default_factory=list)
+
+
+class InsightsPromptDetail(BaseModel):
+    name: str
+    total_count: int = 0
+    avg_tokens_in: int = 0
+    max_tokens_in: int = 0
+    total_tokens_in: int = 0
+    total_tokens_out: int = 0
+    total_cost: float = 0.0
+    agents_using: list[str] = Field(default_factory=list)
+    primary_model: str = ""
+
+
+class InsightsPromptsResponse(BaseModel):
+    range: str
+    calls: list[InsightsPromptDetail] = Field(default_factory=list)
+    biggest_prompt: dict[str, Any] = Field(default_factory=dict)
+
+
+class InsightsActionDetail(BaseModel):
+    name: str
+    total_started: int = 0
+    total_completed: int = 0
+    total_failed: int = 0
+    success_rate: float | None = None
+    agents_using: dict[str, int] = Field(default_factory=dict)
+    hourly_avg: float = 0.0
+    peak_hour: str = ""
+    peak_count: int = 0
+
+
+class InsightsActionsResponse(BaseModel):
+    range: str
+    actions: list[InsightsActionDetail] = Field(default_factory=list)

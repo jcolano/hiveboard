@@ -216,6 +216,8 @@ COLD_EVENT_RETENTION: dict[str, int] = {
     EventType.ACTION_STARTED: 86400,   # 24 hours
 }
 
+AGGREGATE_RETENTION_DAYS = 90
+
 
 PLAN_LIMITS: dict[str, dict] = {
     TenantPlan.FREE: {
@@ -252,6 +254,7 @@ RANGE_SECONDS: dict[str, int] = {
     "24h": 86400,
     "7d": 604800,
     "30d": 2592000,
+    "90d": 7_776_000,
 }
 
 AUTO_INTERVAL: dict[str, str] = {

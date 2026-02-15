@@ -24,6 +24,7 @@ from typing import Any
 from uuid import uuid4
 
 from shared.enums import (
+    AGGREGATE_RETENTION_DAYS,
     AgentStatus,
     AUTO_INTERVAL,
     COLD_EVENT_RETENTION,
@@ -180,6 +181,8 @@ TABLE_FILES = [
     "alert_rules",
     "alert_history",
     "invites",
+    "agent_hourly",
+    "model_hourly",
 ]
 
 
@@ -1988,6 +1991,29 @@ class JsonStorageBackend:
             return True
         age = (now - ts).total_seconds()
         return age <= max_age_seconds
+
+    # ───────────────────────────────────────────────────────────────────
+    #  AGGREGATE RETENTION & PRUNING
+    # ───────────────────────────────────────────────────────────────────
+
+    async def prune_aggregates(self) -> dict[str, int]:
+        """Remove aggregate buckets older than AGGREGATE_RETENTION_DAYS."""
+        cutoff = (
+            _now_utc() - timedelta(days=AGGREGATE_RETENTION_DAYS)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        pruned: dict[str, int] = {}
+        for table_name in ("agent_hourly", "model_hourly"):
+            async with self._locks[table_name]:
+                before = len(self._tables[table_name])
+                self._tables[table_name] = [
+                    row for row in self._tables[table_name]
+                    if row.get("hour", "") >= cutoff
+                ]
+                removed = before - len(self._tables[table_name])
+                if removed > 0:
+                    self._persist(table_name)
+                pruned[table_name] = removed
+        return pruned
 
     # ───────────────────────────────────────────────────────────────────
     #  GLOBAL EMAIL LOOKUP
