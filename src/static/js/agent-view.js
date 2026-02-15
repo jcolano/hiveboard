@@ -47,7 +47,7 @@ const AV_PATTERN_COLORS = [
 
 async function avFetchAgents() {
   var data = await apiFetch('/v1/agents', { environment: avGetEnv() });
-  if (data && data.agents) avAgents = data.agents;
+  if (data && data.data) avAgents = data.data;
   avPopulateAgentSelector();
 }
 
@@ -69,7 +69,7 @@ async function avFetchTasks() {
     limit: 20,
     environment: avGetEnv()
   });
-  if (data && data.tasks) avTasks = data.tasks;
+  if (data && data.data) avTasks = data.data;
 }
 
 async function avFetchMetrics() {
@@ -1197,7 +1197,7 @@ function avSetConnection(connected, text) {
 function avConnectWs() {
   if (!CONFIG.wsUrl || !CONFIG.apiKey) return;
   try {
-    avWs = new WebSocket(CONFIG.wsUrl + '?apiKey=' + CONFIG.apiKey);
+    avWs = new WebSocket(CONFIG.wsUrl + '?token=' + encodeURIComponent(CONFIG.apiKey));
     avWs.onopen = function() {
       avSetConnection(true, 'Live');
       avWsRetry = 0;
@@ -1219,12 +1219,17 @@ function avConnectWs() {
       } catch (e) { /* ignore parse errors */ }
     };
     avWs.onclose = function() {
-      avSetConnection(false, 'Reconnecting…');
-      var delay = Math.min(1000 * Math.pow(2, avWsRetry), 30000);
+      avWs = null;
       avWsRetry++;
-      setTimeout(avConnectWs, delay);
+      if (avWsRetry <= 3) {
+        avSetConnection(false, 'Reconnecting…');
+        var delay = Math.min(1000 * Math.pow(2, avWsRetry), 16000);
+        setTimeout(avConnectWs, delay);
+      } else {
+        avSetConnection(false, 'Polling');
+      }
     };
-    avWs.onerror = function() { avWs.close(); };
+    avWs.onerror = function() { /* onclose handles it */ };
   } catch (e) {
     console.warn('WebSocket error:', e);
   }
