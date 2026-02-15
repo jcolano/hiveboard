@@ -38,7 +38,7 @@ _current_action_id: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 )
 
 # SDK version constant
-SDK_VERSION = "hiveloop-0.1.0"
+SDK_VERSION = "hiveloop-0.1.2"
 
 
 def _utcnow_iso() -> str:
