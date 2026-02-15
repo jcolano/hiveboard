@@ -5,945 +5,160 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HiveBoard — Analytics Deep Dive</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
     <link href="css/analytics.css" rel="stylesheet" />
-
+    <style>
+        /* Loading / empty / error states */
+        .ad-state{padding:32px 20px;text-align:center;font-size:13px;color:var(--text-muted);}
+        .ad-state--loading::before{content:'';display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:ad-spin .6s linear infinite;margin-right:8px;vertical-align:middle;}
+        .ad-state--error{color:var(--error);}
+        @keyframes ad-spin{to{transform:rotate(360deg)}}
+    </style>
 </head>
 <body>
 
-    <!-- TOP BAR  -->
-    <div class="topbar">
-        <div class="topbar-left">
-            <a class="logo" href="#">
-                <div class="logo-hex"><div class="logo-hex-inner"></div></div>
-                Hive<span>Board</span>
+<!-- ═══════════════ TOP BAR ═══════════════ -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a class="logo" href="/static/index.html">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <div class="workspace-badge">loopcore-prod</div>
+        <div class="view-tabs">
+            <a class="view-tab" href="/static/index.html">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
             </a>
-            <div class="workspace-badge">loopcore-prod</div>
-            <div class="view-tabs">
-                <a class="view-tab" href="#">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>
-                    Dashboard
-                </a>
-                <a class="view-tab" href="#">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" /></svg>
-                    Costs
-                </a>
-                <a class="view-tab" href="#">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
-                    Insights
-                </a>
-                <a class="view-tab active" href="#">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    Analytics
-                </a>
-            </div>
+            <a class="view-tab" href="/static/index.html?view=cost">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Costs
+            </a>
+            <a class="view-tab" href="/static/insights.html">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Insights
+            </a>
+            <a class="view-tab active" href="/static/analytics.html">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Analytics
+            </a>
         </div>
-        <div class="topbar-right">
-            <div class="status-pill">
-                <div class="status-dot"></div>
-                <span>Connected</span>
-            </div>
-            <select class="env-selector">
-                <option>production</option>
-                <option>staging</option>
-            </select>
+    </div>
+    <div class="topbar-right">
+        <div class="status-pill">
+            <div class="status-dot"></div>
+            <span>Connected</span>
+        </div>
+        <select class="env-selector">
+            <option>production</option>
+            <option>staging</option>
+        </select>
+    </div>
+</div>
+
+<!-- ═══════════════ ANALYTICS BODY ═══════════════ -->
+<div class="analytics-container" id="analyticsContainer">
+
+    <!-- Toolbar -->
+    <div class="analytics-toolbar">
+        <div class="toolbar-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Analytics Deep Dive
+        </div>
+        <div style="width:1px;height:24px;background:var(--border);margin:0 8px;"></div>
+        <label for="adRange">Range</label>
+        <select id="adRange">
+            <option value="1h">1 hour</option>
+            <option value="6h">6 hours</option>
+            <option value="24h" selected>24 hours</option>
+            <option value="7d">7 days</option>
+            <option value="30d">30 days</option>
+            <option value="90d">90 days</option>
+        </select>
+        <div class="toolbar-spacer"></div>
+        <span class="text-xs muted">Last updated: <span class="mono" id="adLastUpdated">—</span></span>
+    </div>
+
+    <!-- S0: Fleet Status -->
+    <div class="a-section" id="secS">
+        <div class="a-section-header expanded" onclick="toggleSec('S')">
+            <div class="section-chevron expanded" id="chevS">&#9654;</div>
+            <span class="section-title">Fleet Status</span>
+            <span class="section-subtitle">— Who's Alive Right Now?</span>
+            <span class="section-tag">LIVE</span>
+        </div>
+        <div class="a-section-body expanded" id="secBodyS">
+            <div id="renderFleet"></div>
         </div>
     </div>
 
-    <!-- ═══════════════ ANALYTICS BODY ═══════════════ -->
-    <div class="analytics-container" id="analyticsContainer">
-
-        <!-- Toolbar -->
-        <div class="analytics-toolbar">
-            <div class="toolbar-title">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                Analytics Deep Dive
-            </div>
-            <div style="width:1px;height:24px;background:var(--border);margin:0 8px;"></div>
-            <label for="adRange">Range</label>
-            <select id="adRange">
-                <option value="1h">1 hour</option>
-                <option value="6h">6 hours</option>
-                <option value="24h" selected>24 hours</option>
-                <option value="7d">7 days</option>
-                <option value="30d">30 days</option>
-            </select>
-            <div class="toolbar-spacer"></div>
-            <span class="text-xs muted">Last updated: <span class="mono">12s ago</span></span>
+    <!-- S1: Cost Rankings -->
+    <div class="a-section" id="sec0">
+        <div class="a-section-header expanded" onclick="toggleSec(0)">
+            <div class="section-chevron expanded" id="chev0">&#9654;</div>
+            <span class="section-title">Cost Rankings</span>
+            <span class="section-subtitle">— Who's Spending What?</span>
+            <span class="section-tag">A1–A3</span>
         </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 0: FLEET STATUS — Who's Alive Right Now?
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="secS">
-            <div class="a-section-header expanded" onclick="toggleSec('S')">
-                <div class="section-chevron expanded" id="chevS">&#9654;</div>
-                <span class="section-title">Fleet Status</span>
-                <span class="section-subtitle">— Who's Alive Right Now?</span>
-                <span class="section-tag">LIVE</span>
-            </div>
-            <div class="a-section-body expanded" id="secBodyS">
-
-                <div class="fleet-status-strip mb-16">
-                    <div class="fleet-seg fleet-seg--running" style="width:50%;" title="3 running">3 Running</div>
-                    <div class="fleet-seg fleet-seg--idle" style="width:33.3%;" title="2 idle">2 Idle</div>
-                    <div class="fleet-seg fleet-seg--stopped" style="width:16.7%;" title="1 stopped">1 Stopped</div>
-                </div>
-
-                <div class="status-grid">
-                    <!-- RUNNING agents -->
-                    <div class="status-row status-row--running">
-                        <div class="status-indicator">
-                            <div class="heartbeat-dot heartbeat-dot--running"></div>
-                        </div>
-                        <div class="status-name">research-agent</div>
-                        <div class="status-state"><span class="a-badge a-badge--green">● Running</span></div>
-                        <div class="status-heartbeat mono">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            <span>12s ago</span>
-                        </div>
-                        <div class="status-last-event">
-                            <span class="text-xs muted">Last event:</span>
-                            <span class="mono text-xs">task_completed</span>
-                            <span class="mono text-xs muted">00:00:12 ago</span>
-                        </div>
-                        <div class="status-cost">
-                            <span class="mono" style="font-weight:700;color:var(--error);">$47.82</span>
-                            <span class="text-xs muted">/24h</span>
-                        </div>
-                        <div class="status-cpt">
-                            <span class="mono text-xs">$0.038/task</span>
-                        </div>
-                    </div>
-
-                    <div class="status-row status-row--running">
-                        <div class="status-indicator">
-                            <div class="heartbeat-dot heartbeat-dot--running"></div>
-                        </div>
-                        <div class="status-name">writer-agent</div>
-                        <div class="status-state"><span class="a-badge a-badge--green">● Running</span></div>
-                        <div class="status-heartbeat mono">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            <span>8s ago</span>
-                        </div>
-                        <div class="status-last-event">
-                            <span class="text-xs muted">Last event:</span>
-                            <span class="mono text-xs">llm_call_end</span>
-                            <span class="mono text-xs muted">00:00:08 ago</span>
-                        </div>
-                        <div class="status-cost">
-                            <span class="mono" style="font-weight:700;color:var(--warning);">$16.22</span>
-                            <span class="text-xs muted">/24h</span>
-                        </div>
-                        <div class="status-cpt">
-                            <span class="mono text-xs">$0.024/task</span>
-                        </div>
-                    </div>
-
-                    <div class="status-row status-row--running">
-                        <div class="status-indicator">
-                            <div class="heartbeat-dot heartbeat-dot--running"></div>
-                        </div>
-                        <div class="status-name">code-reviewer</div>
-                        <div class="status-state"><span class="a-badge a-badge--green">● Running</span></div>
-                        <div class="status-heartbeat mono">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            <span>3s ago</span>
-                        </div>
-                        <div class="status-last-event">
-                            <span class="text-xs muted">Last event:</span>
-                            <span class="mono text-xs">task_started</span>
-                            <span class="mono text-xs muted">00:00:03 ago</span>
-                        </div>
-                        <div class="status-cost">
-                            <span class="mono" style="font-weight:700;color:var(--warning);">$10.03</span>
-                            <span class="text-xs muted">/24h</span>
-                        </div>
-                        <div class="status-cpt">
-                            <span class="mono text-xs">$0.021/task</span>
-                        </div>
-                    </div>
-
-                    <!-- IDLE agents -->
-                    <div class="status-row status-row--idle">
-                        <div class="status-indicator">
-                            <div class="heartbeat-dot heartbeat-dot--idle"></div>
-                        </div>
-                        <div class="status-name">planner-agent</div>
-                        <div class="status-state"><span class="a-badge a-badge--amber">◦ Idle</span></div>
-                        <div class="status-heartbeat mono">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            <span>02:14 ago</span>
-                        </div>
-                        <div class="status-last-event">
-                            <span class="text-xs muted">Last event:</span>
-                            <span class="mono text-xs">task_completed</span>
-                            <span class="mono text-xs muted">00:02:14 ago</span>
-                        </div>
-                        <div class="status-cost">
-                            <span class="mono" style="font-weight:600;color:var(--text-secondary);">$6.80</span>
-                            <span class="text-xs muted">/24h</span>
-                        </div>
-                        <div class="status-cpt">
-                            <span class="mono text-xs">$0.026/task</span>
-                        </div>
-                    </div>
-
-                    <div class="status-row status-row--idle">
-                        <div class="status-indicator">
-                            <div class="heartbeat-dot heartbeat-dot--idle"></div>
-                        </div>
-                        <div class="status-name">summarizer</div>
-                        <div class="status-state"><span class="a-badge a-badge--amber">◦ Idle</span></div>
-                        <div class="status-heartbeat mono">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            <span>05:41 ago</span>
-                        </div>
-                        <div class="status-last-event">
-                            <span class="text-xs muted">Last event:</span>
-                            <span class="mono text-xs">task_completed</span>
-                            <span class="mono text-xs muted">00:05:41 ago</span>
-                        </div>
-                        <div class="status-cost">
-                            <span class="mono" style="font-weight:600;color:var(--text-secondary);">$4.17</span>
-                            <span class="text-xs muted">/24h</span>
-                        </div>
-                        <div class="status-cpt">
-                            <span class="mono text-xs">$0.020/task</span>
-                        </div>
-                    </div>
-
-                    <!-- STOPPED agent -->
-                    <div class="status-row status-row--stopped">
-                        <div class="status-indicator">
-                            <div class="heartbeat-dot heartbeat-dot--stopped"></div>
-                        </div>
-                        <div class="status-name">health-checker</div>
-                        <div class="status-state"><span class="a-badge a-badge--red">■ Stopped</span></div>
-                        <div class="status-heartbeat mono">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--error)" stroke-width="2.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
-                            <span style="color:var(--error);font-weight:600;">18:32:07 ago</span>
-                        </div>
-                        <div class="status-last-event">
-                            <span class="text-xs muted">Last event:</span>
-                            <span class="mono text-xs" style="color:var(--error);">agent_error</span>
-                            <span class="mono text-xs muted">18:32:07 ago</span>
-                        </div>
-                        <div class="status-cost">
-                            <span class="mono" style="font-weight:600;color:var(--success);">$2.14</span>
-                            <span class="text-xs muted">/24h</span>
-                        </div>
-                        <div class="status-cpt">
-                            <span class="mono text-xs">$0.063/task</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cost by status summary -->
-                <div class="subsection-label mt-16">Cost by Status</div>
-                <div class="a-grid-3">
-                    <div class="a-card" style="border-left:3px solid var(--success);">
-                        <div class="a-card-header"><span class="a-card-label">Running (3 agents)</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">$74.07</span><span class="text-xs muted">85.0%</span></div>
-                            <div class="text-xs muted mt-4">Avg $24.69/agent · $0.028/task avg</div>
-                        </div>
-                    </div>
-                    <div class="a-card" style="border-left:3px solid var(--warning);">
-                        <div class="a-card-header"><span class="a-card-label">Idle (2 agents)</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">$10.97</span><span class="text-xs muted">12.6%</span></div>
-                            <div class="text-xs muted mt-4">Avg $5.49/agent · $0.023/task avg</div>
-                        </div>
-                    </div>
-                    <div class="a-card" style="border-left:3px solid var(--error);">
-                        <div class="a-card-header"><span class="a-card-label">Stopped (1 agent)</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">$2.14</span><span class="text-xs muted">2.5%</span></div>
-                            <div class="text-xs muted mt-4">$0.063/task · stopped 18h ago</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="commentary-box mt-12">
-                    <strong>&#128994; HiveMind Analysis:</strong>
-                    <span class="highlight">3 of 6 agents</span> are actively running, accounting for <span class="highlight">85%</span> of total fleet spend.
-                    <span class="highlight">health-checker</span> has been stopped for <span class="highlight">18h 32m</span> — last event was an <span class="highlight">agent_error</span>.
-                    Despite being the cheapest agent overall, it has the highest cost-per-task (<span class="highlight">$0.063</span>) — likely because it
-                    crashed before completing its batch. The 2 idle agents (<span class="highlight">planner-agent</span>, <span class="highlight">summarizer</span>)
-                    are the most cost-efficient at <span class="highlight">$0.023/task</span> avg.
-                </div>
-
-            </div>
+        <div class="a-section-body expanded" id="secBody0">
+            <div id="renderCost"></div>
         </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 1: COST RANKINGS
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="sec0">
-            <div class="a-section-header expanded" onclick="toggleSec(0)">
-                <div class="section-chevron expanded" id="chev0">&#9654;</div>
-                <span class="section-title">Cost Rankings</span>
-                <span class="section-subtitle">— Who's Spending What?</span>
-                <span class="section-tag">A1–A3</span>
-            </div>
-            <div class="a-section-body expanded" id="secBody0">
-
-                <!-- Top-level cost KPIs -->
-                <div class="a-grid-4 mb-16">
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Most Expensive</span><span class="rank-circle rank-1">1</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">$47.82</span><span class="a-badge a-badge--red">&#9650; 12%</span></div>
-                            <div class="mono text-xs mt-4" style="color:var(--error);font-weight:600;">research-agent</div>
-                            <div class="text-xs muted mt-4">342 LLM calls · 1.2M tokens</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Least Expensive</span><span class="rank-circle rank-low">6</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">$2.14</span><span class="a-badge a-badge--green">&#9660; 8%</span></div>
-                            <div class="mono text-xs mt-4" style="color:var(--success);font-weight:600;">health-checker</div>
-                            <div class="text-xs muted mt-4">28 LLM calls · 45K tokens</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Fleet Average</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">$14.53</span></div>
-                            <div class="text-xs muted mt-4">Across 6 agents · $87.18 total</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Cost Spread</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number small">22.3×</span><span class="text-xs muted">max/min ratio</span></div>
-                            <div class="text-xs muted mt-4">Median: $11.20 · Std Dev: $15.67</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cost distribution bar -->
-                <div class="subsection-label">Cost Distribution by Agent</div>
-                <div class="distribution-strip mb-8">
-                    <div class="segment" style="width:54.8%;background:var(--chart-1);" title="research-agent: $47.82 (54.8%)">research 54.8%</div>
-                    <div class="segment" style="width:18.6%;background:var(--chart-2);" title="writer-agent: $16.22 (18.6%)">writer 18.6%</div>
-                    <div class="segment" style="width:11.5%;background:var(--chart-3);" title="code-reviewer: $10.03 (11.5%)">code-rev 11.5%</div>
-                    <div class="segment" style="width:7.8%;background:var(--chart-4);" title="planner-agent: $6.80 (7.8%)">planner</div>
-                    <div class="segment" style="width:4.8%;background:var(--chart-5);" title="summarizer: $4.17 (4.8%)">sum</div>
-                    <div class="segment" style="width:2.5%;background:var(--chart-6);" title="health-checker: $2.14 (2.5%)">hc</div>
-                </div>
-
-                <!-- Ranked bar chart -->
-                <div class="a-bar-row">
-                    <span class="a-bar-label">research-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--chart-1);">$47.82</div></div>
-                    <span class="a-bar-value">54.8%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">writer-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:33.9%;background:var(--chart-2);">$16.22</div></div>
-                    <span class="a-bar-value">18.6%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">code-reviewer</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:21.0%;background:var(--chart-3);">$10.03</div></div>
-                    <span class="a-bar-value">11.5%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">planner-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:14.2%;background:var(--chart-4);">$6.80</div></div>
-                    <span class="a-bar-value">7.8%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">summarizer</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:8.7%;background:var(--chart-5);">$4.17</div></div>
-                    <span class="a-bar-value">4.8%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">health-checker</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:4.5%;background:var(--chart-6);">$2.14</div></div>
-                    <span class="a-bar-value">2.5%</span>
-                </div>
-
-                <!-- Auto-generated commentary -->
-                <div class="commentary-box">
-                    <strong>&#9881; HiveMind Analysis:</strong>
-                    <span class="highlight">research-agent</span> is <span class="highlight">3.3×</span> more expensive than the fleet average
-                    and <span class="highlight">22.3×</span> more expensive than the cheapest agent (<span class="highlight">health-checker</span>).
-                    It accounts for over half of total fleet spend. Consider reviewing its prompt sizes and model selection —
-                    it uses <span class="highlight">claude-opus-4-20250514</span> for 89% of its calls. Switching routine lookups to Haiku
-                    could save an estimated <span class="highlight">$18-24/day</span>.
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 2: ACTIVITY RANKINGS
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="sec1">
-            <div class="a-section-header expanded" onclick="toggleSec(1)">
-                <div class="section-chevron expanded" id="chev1">&#9654;</div>
-                <span class="section-title">Activity Rankings</span>
-                <span class="section-subtitle">— Who's Doing the Most Work?</span>
-                <span class="section-tag">A4–A6</span>
-            </div>
-            <div class="a-section-body expanded" id="secBody1">
-
-                <div class="a-grid-3 mb-16">
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Most Active Agent</span><span class="rank-circle rank-1">1</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">1,247</span><span class="text-xs muted">tasks completed</span></div>
-                            <div class="mono text-xs mt-4" style="color:var(--active);font-weight:600;">research-agent</div>
-                            <div class="text-xs muted mt-4">52 tasks/hr avg · 98.1% success</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Least Active</span><span class="rank-circle rank-low">6</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">34</span><span class="text-xs muted">tasks completed</span></div>
-                            <div class="mono text-xs mt-4" style="color:var(--idle);font-weight:600;">health-checker</div>
-                            <div class="text-xs muted mt-4">1.4 tasks/hr avg · 100% success</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Fleet Total</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number">2,891</span><span class="text-xs muted">tasks · 24h</span></div>
-                            <div class="text-xs muted mt-4">Avg per agent: 482 · Peak hour: 14:00 UTC</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Activity bar chart -->
-                <div class="subsection-label">Tasks Completed by Agent</div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">research-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--chart-1);">1,247</div></div>
-                    <span class="a-bar-value">43.1%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">writer-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:53.4%;background:var(--chart-2);">666</div></div>
-                    <span class="a-bar-value">23.0%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">code-reviewer</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:38.2%;background:var(--chart-3);">476</div></div>
-                    <span class="a-bar-value">16.5%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">planner-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:20.7%;background:var(--chart-4);">258</div></div>
-                    <span class="a-bar-value">8.9%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">summarizer</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:16.8%;background:var(--chart-5);">210</div></div>
-                    <span class="a-bar-value">7.3%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">health-checker</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:2.7%;background:var(--chart-6);">34</div></div>
-                    <span class="a-bar-value">1.2%</span>
-                </div>
-
-                <!-- Drilldown: by Task Type -->
-                <div class="mt-16 flex-between">
-                    <div class="subsection-label" style="margin:0;border:0;padding:0;">Drilldown: research-agent by Task Type</div>
-                    <button class="drilldown-toggle active" onclick="toggleDrilldown('actTask')">By Task</button>
-                    <button class="drilldown-toggle" onclick="toggleDrilldown('actTool')" style="margin-left:6px;">By Tool</button>
-                </div>
-
-                <div class="drilldown-content visible" id="dd-actTask">
-                    <div class="a-grid-2 mt-8">
-                        <div>
-                            <div class="a-bar-row"><span class="a-bar-label">web_search</span><div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--chart-1);">487</div></div><span class="a-bar-value">39.1%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">document_analysis</span><div class="a-bar-track"><div class="a-bar-fill" style="width:62.4%;background:var(--chart-2);">304</div></div><span class="a-bar-value">24.4%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">data_extraction</span><div class="a-bar-track"><div class="a-bar-fill" style="width:41.3%;background:var(--chart-3);">201</div></div><span class="a-bar-value">16.1%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">summarization</span><div class="a-bar-track"><div class="a-bar-fill" style="width:31.8%;background:var(--chart-4);">155</div></div><span class="a-bar-value">12.4%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">comparison</span><div class="a-bar-track"><div class="a-bar-fill" style="width:20.5%;background:var(--chart-5);">100</div></div><span class="a-bar-value">8.0%</span></div>
-                        </div>
-                        <div class="a-card" style="display:flex;flex-direction:column;justify-content:center;">
-                            <div class="commentary-box" style="margin:0;">
-                                <strong>&#128270; Insight:</strong> <span class="highlight">web_search</span> is the dominant task at 39%,
-                                and it's also the most expensive task type ($0.14/call avg). The second most common,
-                                <span class="highlight">document_analysis</span>, costs only $0.04/call.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="drilldown-content" id="dd-actTool">
-                    <div class="a-grid-2 mt-8">
-                        <div>
-                            <div class="a-bar-row"><span class="a-bar-label">brave_search</span><div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--chart-2);">412</div></div><span class="a-bar-value">33.0%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">pdf_reader</span><div class="a-bar-track"><div class="a-bar-fill" style="width:58.3%;background:var(--chart-3);">240</div></div><span class="a-bar-value">19.2%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">text_splitter</span><div class="a-bar-track"><div class="a-bar-fill" style="width:46.8%;background:var(--chart-4);">193</div></div><span class="a-bar-value">15.5%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">json_parser</span><div class="a-bar-track"><div class="a-bar-fill" style="width:35.9%;background:var(--chart-5);">148</div></div><span class="a-bar-value">11.9%</span></div>
-                            <div class="a-bar-row"><span class="a-bar-label">embeddings_api</span><div class="a-bar-track"><div class="a-bar-fill" style="width:26.7%;background:var(--chart-6);">110</div></div><span class="a-bar-value">8.8%</span></div>
-                        </div>
-                        <div class="a-card" style="display:flex;flex-direction:column;justify-content:center;">
-                            <div class="commentary-box" style="margin:0;">
-                                <strong>&#128295; Insight:</strong> <span class="highlight">brave_search</span> is the most-called tool
-                                by this agent, typically paired with <span class="highlight">web_search</span> tasks. Each call averages 2.4s latency.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 3: ERROR ANALYSIS
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="sec2">
-            <div class="a-section-header expanded" onclick="toggleSec(2)">
-                <div class="section-chevron expanded" id="chev2">&#9654;</div>
-                <span class="section-title">Error Analysis</span>
-                <span class="section-subtitle">— Where Are Things Breaking?</span>
-                <span class="section-tag">A7–A10</span>
-            </div>
-            <div class="a-section-body expanded" id="secBody2">
-
-                <div class="a-grid-4 mb-16">
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Most Errors</span><span class="rank-circle rank-1">!</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number" style="color:var(--error);">67</span><span class="text-xs muted">errors in 24h</span></div>
-                            <div class="mono text-xs mt-4" style="color:var(--error);font-weight:600;">code-reviewer</div>
-                            <div class="text-xs muted mt-4">14.1% error rate · 4.8× fleet avg</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Fewest Errors</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number" style="color:var(--success);">0</span><span class="text-xs muted">errors in 24h</span></div>
-                            <div class="mono text-xs mt-4" style="color:var(--success);font-weight:600;">health-checker</div>
-                            <div class="text-xs muted mt-4">0% error rate · 34/34 success</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Fleet Error Rate</span></div>
-                        <div class="a-card-body">
-                            <div class="a-metric-row"><span class="a-big-number small">4.2%</span><span class="a-badge a-badge--amber">&#9650; 0.8%</span></div>
-                            <div class="text-xs muted mt-4">122 errors / 2,891 tasks total</div>
-                        </div>
-                    </div>
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">Top Error Type</span></div>
-                        <div class="a-card-body">
-                            <div class="mono text-sm" style="font-weight:700;color:var(--error);">RateLimitError</div>
-                            <div class="text-xs muted mt-4">48 occurrences · 39.3% of all errors</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Error ranking bars -->
-                <div class="subsection-label">Errors by Agent</div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">code-reviewer</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--error);">67</div></div>
-                    <span class="a-bar-value">54.9%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">research-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:46.3%;background:rgba(220,38,38,0.7);">31</div></div>
-                    <span class="a-bar-value">25.4%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">writer-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:20.9%;background:rgba(220,38,38,0.5);">14</div></div>
-                    <span class="a-bar-value">11.5%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">planner-agent</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:10.4%;background:rgba(220,38,38,0.35);">7</div></div>
-                    <span class="a-bar-value">5.7%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">summarizer</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:4.5%;background:rgba(220,38,38,0.25);">3</div></div>
-                    <span class="a-bar-value">2.5%</span>
-                </div>
-                <div class="a-bar-row">
-                    <span class="a-bar-label">health-checker</span>
-                    <div class="a-bar-track"><div class="a-bar-fill" style="width:0%;background:rgba(220,38,38,0.15);"></div></div>
-                    <span class="a-bar-value">0.0%</span>
-                </div>
-
-                <!-- Error drilldown for code-reviewer -->
-                <div class="subsection-label mt-16">Drilldown: code-reviewer — 67 Errors</div>
-                <div class="a-grid-3">
-                    <!-- By Error Type -->
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">By Error Type</span></div>
-                        <div class="a-card-body">
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">RateLimitError</span><div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--error);">32</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">TimeoutError</span><div class="a-bar-track"><div class="a-bar-fill" style="width:53.1%;background:var(--warning);">17</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">ParseError</span><div class="a-bar-track"><div class="a-bar-fill" style="width:34.4%;background:var(--llm);">11</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">ToolError</span><div class="a-bar-track"><div class="a-bar-fill" style="width:21.9%;background:var(--idle);">7</div></div></div>
-                        </div>
-                    </div>
-                    <!-- By Task -->
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">By Task</span></div>
-                        <div class="a-card-body">
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">lint_check</span><div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--chart-1);">28</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">diff_review</span><div class="a-bar-track"><div class="a-bar-fill" style="width:64.3%;background:var(--chart-2);">18</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">security_scan</span><div class="a-bar-track"><div class="a-bar-fill" style="width:50.0%;background:var(--chart-3);">14</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">test_gen</span><div class="a-bar-track"><div class="a-bar-fill" style="width:25.0%;background:var(--chart-4);">7</div></div></div>
-                        </div>
-                    </div>
-                    <!-- By Tool -->
-                    <div class="a-card">
-                        <div class="a-card-header"><span class="a-card-label">By Tool</span></div>
-                        <div class="a-card-body">
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">ast_parser</span><div class="a-bar-track"><div class="a-bar-fill" style="width:100%;background:var(--chart-6);">24</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">git_diff</span><div class="a-bar-track"><div class="a-bar-fill" style="width:75.0%;background:var(--chart-7);">18</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">eslint_runner</span><div class="a-bar-track"><div class="a-bar-fill" style="width:58.3%;background:var(--chart-8);">14</div></div></div>
-                            <div class="a-bar-row"><span class="a-bar-label" style="width:100px;">semgrep</span><div class="a-bar-track"><div class="a-bar-fill" style="width:45.8%;background:var(--chart-5);">11</div></div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="commentary-box">
-                    <strong>&#9888; HiveMind Analysis:</strong>
-                    <span class="highlight">code-reviewer</span> has a <span class="highlight">14.1%</span> error rate — nearly 5× the fleet average.
-                    The dominant error is <span class="highlight">RateLimitError</span> (47.8%), concentrated in the <span class="highlight">lint_check</span> task
-                    using the <span class="highlight">ast_parser</span> tool.
-                    This suggests the agent is hitting API rate limits during batch code reviews. Consider implementing request queuing
-                    or reducing concurrency for this agent.
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 4: PROMPT ANALYSIS
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="sec3">
-            <div class="a-section-header expanded" onclick="toggleSec(3)">
-                <div class="section-chevron expanded" id="chev3">&#9654;</div>
-                <span class="section-title">Prompt Analysis</span>
-                <span class="section-subtitle">— Size, Frequency & Attribution</span>
-                <span class="section-tag">A11–A14</span>
-            </div>
-            <div class="a-section-body expanded" id="secBody3">
-
-                <div class="subsection-label">Top Prompts by Token Size</div>
-                <table class="a-table">
-                    <thead>
-                        <tr>
-                            <th style="width:40px;">#</th>
-                            <th>Prompt Signature</th>
-                            <th style="text-align:right;">Avg Tokens</th>
-                            <th style="text-align:right;">Calls</th>
-                            <th>Agent(s)</th>
-                            <th>Task / Tool</th>
-                            <th style="text-align:right;">Est. Cost</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><span class="rank-circle rank-1" style="width:20px;height:20px;font-size:10px;">1</span></td>
-                            <td style="font-weight:600;color:var(--text-primary);">full_codebase_review</td>
-                            <td style="text-align:right;font-weight:700;">18,420</td>
-                            <td style="text-align:right;">87</td>
-                            <td><span class="a-badge a-badge--blue">code-reviewer</span></td>
-                            <td>diff_review · git_diff</td>
-                            <td style="text-align:right;font-weight:700;color:var(--error);">$14.22</td>
-                        </tr>
-                        <tr>
-                            <td><span class="rank-circle rank-2" style="width:20px;height:20px;font-size:10px;">2</span></td>
-                            <td style="font-weight:600;color:var(--text-primary);">deep_research_query</td>
-                            <td style="text-align:right;font-weight:700;">12,850</td>
-                            <td style="text-align:right;">203</td>
-                            <td><span class="a-badge a-badge--blue">research-agent</span></td>
-                            <td>web_search · brave_search</td>
-                            <td style="text-align:right;font-weight:700;color:var(--error);">$23.18</td>
-                        </tr>
-                        <tr>
-                            <td><span class="rank-circle rank-3" style="width:20px;height:20px;font-size:10px;">3</span></td>
-                            <td style="font-weight:600;color:var(--text-primary);">document_synthesis</td>
-                            <td style="text-align:right;font-weight:700;">8,200</td>
-                            <td style="text-align:right;">156</td>
-                            <td>
-                                <span class="a-badge a-badge--blue">research-agent</span>
-                                <span class="a-badge a-badge--purple">writer-agent</span>
-                            </td>
-                            <td>document_analysis · pdf_reader</td>
-                            <td style="text-align:right;font-weight:700;color:var(--warning);">$11.36</td>
-                        </tr>
-                        <tr>
-                            <td><span class="rank-circle rank-low" style="width:20px;height:20px;font-size:10px;">4</span></td>
-                            <td style="font-weight:600;color:var(--text-primary);">quick_classify</td>
-                            <td style="text-align:right;font-weight:700;">1,240</td>
-                            <td style="text-align:right;">412</td>
-                            <td>
-                                <span class="a-badge a-badge--blue">planner-agent</span>
-                                <span class="a-badge a-badge--gray">summarizer</span>
-                            </td>
-                            <td>classification · json_parser</td>
-                            <td style="text-align:right;color:var(--success);">$4.54</td>
-                        </tr>
-                        <tr>
-                            <td><span class="rank-circle rank-low" style="width:20px;height:20px;font-size:10px;">5</span></td>
-                            <td style="font-weight:600;color:var(--text-primary);">health_ping</td>
-                            <td style="text-align:right;font-weight:700;">320</td>
-                            <td style="text-align:right;">34</td>
-                            <td><span class="a-badge a-badge--green">health-checker</span></td>
-                            <td>heartbeat · status_check</td>
-                            <td style="text-align:right;color:var(--success);">$0.10</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div class="commentary-box">
-                    <strong>&#128203; HiveMind Analysis:</strong>
-                    The <span class="highlight">deep_research_query</span> prompt is the highest total cost driver at <span class="highlight">$23.18</span>
-                    (203 calls × 12.8K tokens each). Despite <span class="highlight">full_codebase_review</span> being larger per-call (18.4K tokens),
-                    its lower call volume keeps total cost at $14.22. The <span class="highlight">quick_classify</span> prompt is a good efficiency model:
-                    high volume (412 calls) with small token footprint (1.2K), resulting in only $4.54 total.
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 5: TOOL USAGE TRACKER
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="sec4">
-            <div class="a-section-header expanded" onclick="toggleSec(4)">
-                <div class="section-chevron expanded" id="chev4">&#9654;</div>
-                <span class="section-title">Tool Usage Tracker</span>
-                <span class="section-subtitle">— Frequency, Timing & Patterns</span>
-                <span class="section-tag">A15–A18</span>
-            </div>
-            <div class="a-section-body expanded" id="secBody4">
-
-                <!-- Tool usage summary pills -->
-                <div class="subsection-label">Tool Usage Summary (24h)</div>
-                <div class="mb-16" style="display:flex;flex-wrap:wrap;gap:4px;">
-                    <div class="usage-pill"><span class="count">412</span><span class="label">brave_search</span><span class="sub">17.2/hr</span></div>
-                    <div class="usage-pill"><span class="count">348</span><span class="label">pdf_reader</span><span class="sub">14.5/hr</span></div>
-                    <div class="usage-pill"><span class="count">291</span><span class="label">text_splitter</span><span class="sub">12.1/hr</span></div>
-                    <div class="usage-pill"><span class="count">256</span><span class="label">json_parser</span><span class="sub">10.7/hr</span></div>
-                    <div class="usage-pill"><span class="count">198</span><span class="label">ast_parser</span><span class="sub">8.3/hr</span></div>
-                    <div class="usage-pill"><span class="count">167</span><span class="label">git_diff</span><span class="sub">7.0/hr</span></div>
-                    <div class="usage-pill"><span class="count">134</span><span class="label">eslint_runner</span><span class="sub">5.6/hr</span></div>
-                    <div class="usage-pill"><span class="count">110</span><span class="label">embeddings_api</span><span class="sub">4.6/hr</span></div>
-                    <div class="usage-pill"><span class="count">89</span><span class="label">semgrep</span><span class="sub">3.7/hr</span></div>
-                    <div class="usage-pill"><span class="count">52</span><span class="label">status_check</span><span class="sub">2.2/hr</span></div>
-                </div>
-
-                <!-- Hourly Heatmap -->
-                <div class="subsection-label">Hourly Activity Heatmap (Top 5 Tools)</div>
-                <div class="a-card a-card--full mb-16">
-                    <div class="a-card-body" id="toolHeatmap">
-                        <!-- Rendered by JS -->
-                    </div>
-                </div>
-
-                <!-- Weekly aggregation -->
-                <div class="subsection-label">Weekly Aggregation</div>
-                <table class="a-table">
-                    <thead>
-                        <tr>
-                            <th>Tool</th>
-                            <th style="text-align:right;">Mon</th>
-                            <th style="text-align:right;">Tue</th>
-                            <th style="text-align:right;">Wed</th>
-                            <th style="text-align:right;">Thu</th>
-                            <th style="text-align:right;">Fri</th>
-                            <th style="text-align:right;">Sat</th>
-                            <th style="text-align:right;">Sun</th>
-                            <th style="text-align:right;">Total</th>
-                            <th>Trend</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">brave_search</td>
-                            <td style="text-align:right;">89</td>
-                            <td style="text-align:right;">102</td>
-                            <td style="text-align:right;">95</td>
-                            <td style="text-align:right;">112</td>
-                            <td style="text-align:right;">98</td>
-                            <td style="text-align:right;">42</td>
-                            <td style="text-align:right;">38</td>
-                            <td style="text-align:right;font-weight:700;">576</td>
-                            <td><span class="a-badge a-badge--green">&#9650; 8%</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">pdf_reader</td>
-                            <td style="text-align:right;">72</td>
-                            <td style="text-align:right;">81</td>
-                            <td style="text-align:right;">88</td>
-                            <td style="text-align:right;">76</td>
-                            <td style="text-align:right;">69</td>
-                            <td style="text-align:right;">31</td>
-                            <td style="text-align:right;">28</td>
-                            <td style="text-align:right;font-weight:700;">445</td>
-                            <td><span class="a-badge a-badge--gray">— flat</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">ast_parser</td>
-                            <td style="text-align:right;">45</td>
-                            <td style="text-align:right;">52</td>
-                            <td style="text-align:right;">48</td>
-                            <td style="text-align:right;">61</td>
-                            <td style="text-align:right;">55</td>
-                            <td style="text-align:right;">18</td>
-                            <td style="text-align:right;">12</td>
-                            <td style="text-align:right;font-weight:700;">291</td>
-                            <td><span class="a-badge a-badge--amber">&#9650; 15%</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">git_diff</td>
-                            <td style="text-align:right;">38</td>
-                            <td style="text-align:right;">41</td>
-                            <td style="text-align:right;">39</td>
-                            <td style="text-align:right;">44</td>
-                            <td style="text-align:right;">42</td>
-                            <td style="text-align:right;">15</td>
-                            <td style="text-align:right;">10</td>
-                            <td style="text-align:right;font-weight:700;">229</td>
-                            <td><span class="a-badge a-badge--green">&#9650; 5%</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">embeddings_api</td>
-                            <td style="text-align:right;">22</td>
-                            <td style="text-align:right;">25</td>
-                            <td style="text-align:right;">28</td>
-                            <td style="text-align:right;">31</td>
-                            <td style="text-align:right;">27</td>
-                            <td style="text-align:right;">14</td>
-                            <td style="text-align:right;">11</td>
-                            <td style="text-align:right;font-weight:700;">158</td>
-                            <td><span class="a-badge a-badge--red">&#9660; 12%</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════
-             SECTION 6: SKILL USAGE TRACKER
-             ══════════════════════════════════════════════════ -->
-        <div class="a-section" id="sec5">
-            <div class="a-section-header expanded" onclick="toggleSec(5)">
-                <div class="section-chevron expanded" id="chev5">&#9654;</div>
-                <span class="section-title">Skill Usage Tracker</span>
-                <span class="section-subtitle">— Who Uses What & When?</span>
-                <span class="section-tag">A19–A22</span>
-            </div>
-            <div class="a-section-body expanded" id="secBody5">
-
-                <div class="subsection-label">Skill Usage by Agent (24h)</div>
-                <table class="a-table mb-16">
-                    <thead>
-                        <tr>
-                            <th>Skill</th>
-                            <th style="text-align:right;">Total Uses</th>
-                            <th>Used By</th>
-                            <th style="text-align:right;">Avg Duration</th>
-                            <th style="text-align:right;">Success Rate</th>
-                            <th>Peak Hours</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">web_research</td>
-                            <td style="text-align:right;font-weight:700;">487</td>
-                            <td>
-                                <span class="a-badge a-badge--blue">research-agent</span>
-                            </td>
-                            <td style="text-align:right;">3.2s</td>
-                            <td style="text-align:right;"><span style="color:var(--success);font-weight:600;">97.5%</span></td>
-                            <td><span class="a-badge a-badge--gray">10-14 UTC</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">code_review</td>
-                            <td style="text-align:right;font-weight:700;">476</td>
-                            <td>
-                                <span class="a-badge a-badge--blue">code-reviewer</span>
-                            </td>
-                            <td style="text-align:right;">8.1s</td>
-                            <td style="text-align:right;"><span style="color:var(--warning);font-weight:600;">85.9%</span></td>
-                            <td><span class="a-badge a-badge--gray">09-17 UTC</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">content_writing</td>
-                            <td style="text-align:right;font-weight:700;">389</td>
-                            <td>
-                                <span class="a-badge a-badge--purple">writer-agent</span>
-                            </td>
-                            <td style="text-align:right;">5.4s</td>
-                            <td style="text-align:right;"><span style="color:var(--success);font-weight:600;">97.9%</span></td>
-                            <td><span class="a-badge a-badge--gray">11-16 UTC</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">planning</td>
-                            <td style="text-align:right;font-weight:700;">258</td>
-                            <td>
-                                <span class="a-badge a-badge--blue">planner-agent</span>
-                            </td>
-                            <td style="text-align:right;">2.8s</td>
-                            <td style="text-align:right;"><span style="color:var(--success);font-weight:600;">97.3%</span></td>
-                            <td><span class="a-badge a-badge--gray">08-12 UTC</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">summarization</td>
-                            <td style="text-align:right;font-weight:700;">210</td>
-                            <td>
-                                <span class="a-badge a-badge--gray">summarizer</span>
-                                <span class="a-badge a-badge--blue">research-agent</span>
-                            </td>
-                            <td style="text-align:right;">1.9s</td>
-                            <td style="text-align:right;"><span style="color:var(--success);font-weight:600;">98.6%</span></td>
-                            <td><span class="a-badge a-badge--gray">10-15 UTC</span></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight:600;color:var(--text-primary);">health_monitoring</td>
-                            <td style="text-align:right;font-weight:700;">34</td>
-                            <td>
-                                <span class="a-badge a-badge--green">health-checker</span>
-                            </td>
-                            <td style="text-align:right;">0.4s</td>
-                            <td style="text-align:right;"><span style="color:var(--success);font-weight:600;">100%</span></td>
-                            <td><span class="a-badge a-badge--gray">always-on</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <!-- Skill usage heatmap by hour -->
-                <div class="subsection-label">Hourly Skill Activity Heatmap</div>
-                <div class="a-card a-card--full">
-                    <div class="a-card-body" id="skillHeatmap">
-                        <!-- Rendered by JS -->
-                    </div>
-                </div>
-
-                <div class="commentary-box mt-12">
-                    <strong>&#128301; HiveMind Analysis:</strong>
-                    The <span class="highlight">code_review</span> skill has the lowest success rate at <span class="highlight">85.9%</span>
-                    and the longest average duration (<span class="highlight">8.1s</span>). Cross-referencing with the Error Analysis section,
-                    this correlates directly with the <span class="highlight">code-reviewer</span> agent's high error rate.
-                    The <span class="highlight">web_research</span> skill drives the most volume and has the widest peak-hour window,
-                    suggesting it's the system's workhorse. Consider caching frequent queries to reduce load.
-                </div>
-
-            </div>
-        </div>
-
     </div>
 
-    <script src="js/analytics.js"></script>
+    <!-- S2: Activity Rankings -->
+    <div class="a-section" id="sec1">
+        <div class="a-section-header expanded" onclick="toggleSec(1)">
+            <div class="section-chevron expanded" id="chev1">&#9654;</div>
+            <span class="section-title">Activity Rankings</span>
+            <span class="section-subtitle">— Who's Doing the Most Work?</span>
+            <span class="section-tag">A4–A6</span>
+        </div>
+        <div class="a-section-body expanded" id="secBody1">
+            <div id="renderActivity"></div>
+        </div>
+    </div>
+
+    <!-- S3: Error Analysis -->
+    <div class="a-section" id="sec2">
+        <div class="a-section-header expanded" onclick="toggleSec(2)">
+            <div class="section-chevron expanded" id="chev2">&#9654;</div>
+            <span class="section-title">Error Analysis</span>
+            <span class="section-subtitle">— Where Are Things Breaking?</span>
+            <span class="section-tag">A7–A10</span>
+        </div>
+        <div class="a-section-body expanded" id="secBody2">
+            <div id="renderErrors"></div>
+        </div>
+    </div>
+
+    <!-- S4: Prompt Analysis -->
+    <div class="a-section" id="sec3">
+        <div class="a-section-header expanded" onclick="toggleSec(3)">
+            <div class="section-chevron expanded" id="chev3">&#9654;</div>
+            <span class="section-title">Prompt Analysis</span>
+            <span class="section-subtitle">— Size, Frequency & Attribution</span>
+            <span class="section-tag">A11–A14</span>
+        </div>
+        <div class="a-section-body expanded" id="secBody3">
+            <div id="renderPrompts"></div>
+        </div>
+    </div>
+
+    <!-- S5: Tool & Action Usage -->
+    <div class="a-section" id="sec4">
+        <div class="a-section-header expanded" onclick="toggleSec(4)">
+            <div class="section-chevron expanded" id="chev4">&#9654;</div>
+            <span class="section-title">Tool &amp; Action Usage</span>
+            <span class="section-subtitle">— Frequency, Timing & Patterns</span>
+            <span class="section-tag">A15–A22</span>
+        </div>
+        <div class="a-section-body expanded" id="secBody4">
+            <div id="renderActions"></div>
+        </div>
+    </div>
+
+</div>
+
+<script src="js/analytics.js"></script>
 
 </body>
 </html>
