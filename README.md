@@ -51,8 +51,7 @@
 
 ## Demo Video
 
-<!-- Replace with actual video embed or link after recording -->
-*Coming soon — 3-minute demo showing the live dashboard, task timelines, cost optimization, and The Hive Method.*
+*https://youtu.be/lLWr9_1cgNw — 3-minute demo showing the live dashboard, task timelines, cost optimization, and The Hive Method.*
 
 ---
 
