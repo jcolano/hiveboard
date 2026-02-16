@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Observability Model — HiveBoard Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (HiveBoard system)
+   ═══════════════════════════════════════ */
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --accent-light: rgba(194, 65, 12, 0.1);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --success-dim: rgba(22, 163, 74, 0.08);
+    --error: #dc2626;
+    --error-dim: rgba(220, 38, 38, 0.06);
+    --warning: #d97706;
+    --warning-dim: rgba(217, 119, 6, 0.08);
+    --info: #2563eb;
+    --info-dim: rgba(37, 99, 235, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.docs-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 3px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 1px solid rgba(194, 65, 12, 0.12);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.topbar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-link.primary {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+}
+.topbar-link.primary:hover { background: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.docs-layout {
+    display: flex; min-height: 100vh; padding-top: 56px;
+}
+
+/* ─── LEFT SIDEBAR ─── */
+.docs-sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: fixed; top: 56px; bottom: 0; left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.docs-nav-section {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding: 16px 12px 6px;
+}
+.docs-nav-section:first-child { padding-top: 0; }
+
+.docs-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    transition: all 0.12s; border: 1px solid transparent;
+}
+.docs-nav-item:hover {
+    background: var(--bg-hover); color: var(--text-primary);
+}
+.docs-nav-item.active {
+    background: var(--accent-dim); color: var(--accent);
+    font-weight: 600; border-color: rgba(194, 65, 12, 0.1);
+}
+.docs-nav-icon {
+    width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5;
+    display: flex; align-items: center;
+}
+.docs-nav-icon svg { width: 18px; height: 18px; }
+.docs-nav-item.active .docs-nav-icon { opacity: 1; color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.docs-main {
+    flex: 1; margin-left: 260px; margin-right: 220px;
+    padding: 40px 48px 80px;
+    max-width: 820px;
+    animation: fade-in 0.3s ease;
+}
+
+/* ─── RIGHT TOC ─── */
+.page-toc {
+    position: fixed; top: 96px; right: 24px;
+    width: 196px; max-height: calc(100vh - 120px);
+    overflow-y: auto; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.page-toc::-webkit-scrollbar { width: 3px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.page-toc-title {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+}
+.toc-link {
+    display: block; padding: 4px 0;
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s;
+    line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -1px;
+}
+.toc-link:hover { color: var(--text-primary); }
+.toc-link.toc-h3 { padding-left: 22px; font-size: 12px; }
+.toc-link.active {
+    color: var(--accent); font-weight: 600;
+    border-left-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   CONTENT TYPOGRAPHY
+   ═══════════════════════════════════════ */
+.doc-content h1 {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    letter-spacing: -0.7px; line-height: 1.2;
+    margin-bottom: 8px; color: var(--text-primary);
+}
+.doc-content h2 {
+    font-family: var(--font-sans); font-size: 21px; font-weight: 700;
+    letter-spacing: -0.3px; line-height: 1.3;
+    margin-top: 48px; margin-bottom: 16px;
+    padding-top: 24px; border-top: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+.doc-content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+
+.doc-content h3 {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    margin-top: 32px; margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.doc-content h4 {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    margin-top: 24px; margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.heading-anchor {
+    color: var(--accent); text-decoration: none;
+    opacity: 0; font-weight: 400; margin-left: 6px;
+    transition: opacity 0.15s;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor { opacity: 0.5; }
+.heading-anchor:hover { opacity: 1 !important; }
+
+.doc-content p {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 16px;
+}
+.doc-content strong { color: var(--text-primary); font-weight: 600; }
+
+.doc-content a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(194, 65, 12, 0.2);
+    transition: border-color 0.15s;
+}
+.doc-content a:hover { border-bottom-color: var(--accent); }
+
+.doc-content ul, .doc-content ol {
+    margin-bottom: 16px; padding-left: 24px;
+}
+.doc-content li {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.doc-content li strong { color: var(--text-primary); }
+
+/* Inline code */
+.doc-content code {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(194, 65, 12, 0.08);
+}
+
+/* Code blocks */
+.code-block {
+    position: relative; margin-bottom: 20px;
+    background: #1e1e2e; border-radius: var(--radius-md);
+    border: 1px solid #2a2a3e;
+    overflow: hidden;
+}
+.code-block .code-lang {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8888aa; background: rgba(255,255,255,0.05);
+    padding: 4px 12px; border-radius: 0 var(--radius-md) 0 6px;
+}
+.code-block pre {
+    margin: 0; padding: 20px 24px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.code-block pre::-webkit-scrollbar { height: 4px; }
+.code-block pre::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.code-block pre code {
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    color: #cdd6f4; background: none; padding: 0; border: none; border-radius: 0;
+}
+
+/* Tables */
+.table-wrapper {
+    margin-bottom: 20px; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    scrollbar-width: thin;
+}
+.table-wrapper table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px;
+}
+.table-wrapper th {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); background: var(--bg-elevated);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.table-wrapper td {
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+    color: var(--text-secondary); padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+}
+.table-wrapper tr:last-child td { border-bottom: none; }
+.table-wrapper tr:hover td { background: var(--bg-elevated); }
+.table-wrapper td code {
+    font-size: 12px;
+}
+
+/* Blockquotes / Callouts */
+.callout {
+    margin-bottom: 20px; padding: 16px 20px;
+    border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--bg-elevated);
+}
+.callout p { margin-bottom: 8px; font-size: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.callout em { color: var(--text-muted); }
+
+.callout-warning {
+    border-left-color: var(--warning);
+    background: var(--warning-dim);
+}
+.callout-tip {
+    border-left-color: var(--success);
+    background: var(--success-dim);
+}
+.callout-info {
+    border-left-color: var(--info);
+    background: var(--info-dim);
+}
+.callout-danger {
+    border-left-color: var(--error);
+    background: var(--error-dim);
+}
+
+/* HR */
+.doc-content hr {
+    border: none; height: 1px;
+    background: var(--border); margin: 32px 0;
+}
+
+/* ─── VERSION BADGE ─── */
+.doc-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.doc-meta-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); background: var(--bg-elevated);
+    padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ─── PREV / NEXT NAV ─── */
+.prev-next {
+    display: flex; gap: 16px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+}
+.prev-next-link {
+    flex: 1; display: block; padding: 16px 20px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); text-decoration: none;
+    transition: all 0.15s;
+}
+.prev-next-link:hover {
+    border-color: var(--accent); background: var(--accent-dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.06);
+}
+.prev-next-link.next { text-align: right; }
+.prev-next-label {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--text-muted); display: block; margin-bottom: 4px;
+}
+.prev-next-title {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    color: var(--text-primary);
+}
+.prev-next-link:hover .prev-next-title { color: var(--accent); }
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+    cursor: pointer; color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 1200px) {
+    .page-toc { display: none; }
+    .docs-main { margin-right: 0; }
+}
+
+@media (max-width: 860px) {
+    .mobile-menu-toggle { display: flex; }
+    .docs-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 50;
+        box-shadow: none;
+    }
+    .docs-sidebar.open {
+        transform: translateX(0);
+        box-shadow: 8px 0 30px rgba(0,0,0,0.1);
+    }
+    .docs-main {
+        margin-left: 0; padding: 28px 20px 60px;
+    }
+    .doc-content h1 { font-size: 24px; }
+    .doc-content h2 { font-size: 19px; }
+    .prev-next { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════
+   PRISM THEME OVERRIDES (dark code blocks)
+   ═══════════════════════════════════════ */
+.code-block .token.comment,
+.code-block .token.prolog,
+.code-block .token.doctype { color: #6c7086; }
+.code-block .token.punctuation { color: #a6adc8; }
+.code-block .token.property,
+.code-block .token.tag,
+.code-block .token.boolean,
+.code-block .token.number { color: #fab387; }
+.code-block .token.string,
+.code-block .token.attr-value { color: #a6e3a1; }
+.code-block .token.selector,
+.code-block .token.attr-name,
+.code-block .token.builtin { color: #89b4fa; }
+.code-block .token.keyword { color: #cba6f7; }
+.code-block .token.function { color: #89b4fa; }
+.code-block .token.operator { color: #89dceb; }
+.code-block .token.class-name { color: #f9e2af; }
+.code-block .token.decorator { color: #f38ba8; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="https://hiveboard.net/index.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <span class="docs-badge">Docs</span>
+    </div>
+    <div class="topbar-right">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <a href="https://github.com/jcolano/hiveboard" class="topbar-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://hiveboard.net/home.html" class="topbar-link primary">Open Dashboard</a>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="docs-layout">
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar" id="docsSidebar">
+<div class="docs-nav-section">Getting Started</div>
+<a class="docs-nav-item" href="user-manual.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7a2 2 0 012 2v12.5l-.5-.5-3-3H3.5A1.5 1.5 0 012 11.5v-8z" stroke="currentColor" stroke-width="1.3"/><path d="M16 3.5A1.5 1.5 0 0014.5 2H11a2 2 0 00-2 2v12.5l.5-.5 3-3h2A1.5 1.5 0 0016 11.5v-8z" stroke="currentColor" stroke-width="1.3"/></svg></span><span>SDK Manual</span></a>
+<a class="docs-nav-item" href="integration-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M6 2v4M12 2v4M4 6h10v3a5 5 0 01-5 5 5 5 0 01-5-5V6zM9 14v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Integration Guide</span></a>
+<a class="docs-nav-item" href="claude-code-skill.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 16L11.5 6.5M9 4l1.5-1.5L12 4l-1.5 1.5M14 2l2 2M6 3V1M3 6H1M5.5 5.5L4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Claude Code Skill</span></a>
+<div class="docs-nav-section">Dashboard</div>
+<a class="docs-nav-item" href="platform-overview.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><polygon points="12,6 7.5,7.5 6,12 10.5,10.5" fill="currentColor" opacity="0.6"/></svg></span><span>Platform Overview</span></a>
+<a class="docs-nav-item" href="fleet-dashboard.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 7h14M7 7v9" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Fleet Dashboard</span></a>
+<a class="docs-nav-item" href="analytics-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="3" height="8" rx="0.5" stroke="currentColor" stroke-width="1.3"/><rect x="7.5" y="4" width="3" height="12" rx="0.5" stroke="currentColor" stroke-width="1.3"/><rect x="13" y="6" width="3" height="10" rx="0.5" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Analytics</span></a>
+<a class="docs-nav-item" href="agent-view-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 16c0-3.5 3-5.5 7-5.5s7 2 7 5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>Agent View</span></a>
+<a class="docs-nav-item" href="insights-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M7 14h4M7.5 15.5h3M9 2a5 5 0 00-2 9.58V13h4v-1.42A5 5 0 009 2z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Insights</span></a>
+<a class="docs-nav-item" href="dashboard-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="10" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="10" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="10" y="10" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Elements Reference</span></a>
+<div class="docs-nav-section">Instrumentation</div>
+<a class="docs-nav-item" href="instrumentation-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Instrumentation</span></a>
+<a class="docs-nav-item" href="layer1-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6l7 4 7-4-7-4zM2 12l7 4 7-4M2 9l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Layer 1 Guide</span></a>
+<div class="docs-nav-section">Rich Events</div>
+<a class="docs-nav-item" href="layer2-rich-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M10 2L3 10h5l-1 6 7-8h-5l1-6z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Rich Events</span></a>
+<a class="docs-nav-item" href="layer2-llm-tracking.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="7" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2v2M11 2v2M7 14v2M11 14v2M2 7h2M2 11h2M14 7h2M14 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>LLM Tracking</span></a>
+<a class="docs-nav-item" href="operational-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M16 9h-3l-2 7L7 2 5 9H2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Operational Events</span></a>
+<a class="docs-nav-item" href="track-context.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7v4M13 7c0 3-2 4-8 4" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Track Context</span></a>
+<div class="docs-nav-section">Reference</div>
+<a class="docs-nav-item active" href="observability-model.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M9 2v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Observability Model</span></a>
+<a class="docs-nav-item" href="sdk-reference.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8l2.5 2L5 12M10 12h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>SDK Reference</span></a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+        <div class="doc-meta">
+            <span class="doc-meta-badge">v0.1.0</span>
+            <span class="doc-meta-badge">Updated Feb 2026</span>
+        </div>
+        <article class="doc-content">
+<h1 id="agent-sensors-study">Agent Sensors Study <a class="heading-anchor" href="#agent-sensors-study" aria-label="Link to this section">#</a></h1>
+<p>A comprehensive inventory of all observable information (&quot;sensors&quot;) that the HiveBoard/HiveLoop SDK can capture from an agent. These sensors are organized into three groups:</p>
+<ul>
+<li><strong>Group 1 — Identity</strong>: Static/descriptive properties about what the agent <em>is</em></li>
+<li><strong>Group 2 — State</strong>: Mutable data about what the agent <em>has</em> at a point in time</li>
+<li><strong>Group 3 — Activity</strong>: Events and traces about what the agent <em>does</em></li>
+</ul>
+<hr />
+<h2 id="group-1-identity-what-the-agent-is">Group 1 — Identity (What the agent <em>is</em>) <a class="heading-anchor" href="#group-1-identity-what-the-agent-is" aria-label="Link to this section">#</a></h2>
+<p>These are the static, descriptive properties that define an agent's identity, configuration, and deployment context. They are set at creation time and rarely change.</p>
+<h3 id="11-core-identity">1.1 Core Identity <a class="heading-anchor" href="#11-core-identity" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Property</th>
+  <th>Type</th>
+  <th>Default</th>
+  <th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>agent_id</code></td>
+  <td><code>str</code> (max 256)</td>
+  <td><em>(required)</em></td>
+  <td>User-provided unique identifier</td>
+</tr>
+<tr>
+  <td><code>agent_type</code></td>
+  <td><code>str</code></td>
+  <td><code>&quot;general&quot;</code></td>
+  <td>Classification/category of the agent</td>
+</tr>
+<tr>
+  <td><code>version</code></td>
+  <td><code>str \| None</code></td>
+  <td><code>None</code></td>
+  <td>Implementation version string</td>
+</tr>
+<tr>
+  <td><code>framework</code></td>
+  <td><code>str</code></td>
+  <td><code>&quot;custom&quot;</code></td>
+  <td>Framework the agent is built with</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:576-595</code></p>
+<h3 id="12-deployment-context">1.2 Deployment Context <a class="heading-anchor" href="#12-deployment-context" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Property</th>
+  <th>Type</th>
+  <th>Default</th>
+  <th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>environment</code></td>
+  <td><code>str</code> (max 64)</td>
+  <td><code>&quot;production&quot;</code></td>
+  <td>Deployment environment (dev/staging/prod)</td>
+</tr>
+<tr>
+  <td><code>group</code></td>
+  <td><code>str</code> (max 128)</td>
+  <td><code>&quot;default&quot;</code></td>
+  <td>Team/service grouping</td>
+</tr>
+<tr>
+  <td><code>runtime</code></td>
+  <td><code>str</code></td>
+  <td>Auto-detected</td>
+  <td>e.g. <code>&quot;python-3.11.0&quot;</code></td>
+</tr>
+<tr>
+  <td><code>sdk_version</code></td>
+  <td><code>str</code></td>
+  <td><code>&quot;hiveloop-0.1.0&quot;</code></td>
+  <td>SDK version constant</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:600-601, 610-621</code></p>
+<h3 id="13-behavioral-configuration">1.3 Behavioral Configuration <a class="heading-anchor" href="#13-behavioral-configuration" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Property</th>
+  <th>Type</th>
+  <th>Default</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>heartbeat_interval</code></td>
+  <td><code>float</code></td>
+  <td><code>30.0</code></td>
+  <td>Seconds between heartbeat emissions</td>
+</tr>
+<tr>
+  <td><code>stuck_threshold</code></td>
+  <td><code>int</code></td>
+  <td><code>300</code></td>
+  <td>Seconds of inactivity before marked stuck</td>
+</tr>
+<tr>
+  <td><code>heartbeat_payload</code></td>
+  <td><code>Callable</code></td>
+  <td><code>None</code></td>
+  <td>Optional callback for custom heartbeat data</td>
+</tr>
+<tr>
+  <td><code>queue_provider</code></td>
+  <td><code>Callable</code></td>
+  <td><code>None</code></td>
+  <td>Optional callback for queue state reporting</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:584-587</code></p>
+<h3 id="14-transport-configuration-hiveboard-client">1.4 Transport Configuration (HiveBoard client) <a class="heading-anchor" href="#14-transport-configuration-hiveboard-client" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Property</th>
+  <th>Type</th>
+  <th>Default</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>api_key</code></td>
+  <td><code>str</code></td>
+  <td><em>(required)</em></td>
+  <td>API authentication</td>
+</tr>
+<tr>
+  <td><code>endpoint</code></td>
+  <td><code>str</code></td>
+  <td>Auto-resolved</td>
+  <td>Backend URL</td>
+</tr>
+<tr>
+  <td><code>flush_interval</code></td>
+  <td><code>float</code></td>
+  <td><code>5.0</code></td>
+  <td>Seconds between event flushes</td>
+</tr>
+<tr>
+  <td><code>batch_size</code></td>
+  <td><code>int</code></td>
+  <td><code>100</code></td>
+  <td>Max events per HTTP batch</td>
+</tr>
+<tr>
+  <td><code>max_queue_size</code></td>
+  <td><code>int</code></td>
+  <td><code>10,000</code></td>
+  <td>Max queued events before dropping</td>
+</tr>
+<tr>
+  <td><code>debug</code></td>
+  <td><code>bool</code></td>
+  <td><code>False</code></td>
+  <td>Enable debug logging</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/__init__.py:75-85</code></p>
+<h3 id="15-persistent-identity-agentrecord">1.5 Persistent Identity (AgentRecord) <a class="heading-anchor" href="#15-persistent-identity-agentrecord" aria-label="Link to this section">#</a></h3>
+<p>When the backend persists agent data, it adds temporal identity fields:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>tenant_id</code></td>
+  <td><code>str</code></td>
+  <td>Owning tenant</td>
+</tr>
+<tr>
+  <td><code>first_seen</code></td>
+  <td><code>datetime</code></td>
+  <td>First event ever received</td>
+</tr>
+<tr>
+  <td><code>last_seen</code></td>
+  <td><code>datetime</code></td>
+  <td>Most recent event received</td>
+</tr>
+<tr>
+  <td><code>is_registered</code></td>
+  <td><code>bool</code></td>
+  <td>Registration flag</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/shared/models.py:449-469</code></p>
+<hr />
+<h2 id="group-2-state-what-the-agent-has">Group 2 — State (What the agent <em>has</em>) <a class="heading-anchor" href="#group-2-state-what-the-agent-has" aria-label="Link to this section">#</a></h2>
+<p>These represent mutable, point-in-time snapshots of the agent's internal condition. They change during execution and can be queried or observed.</p>
+<h3 id="21-derived-status">2.1 Derived Status <a class="heading-anchor" href="#21-derived-status" aria-label="Link to this section">#</a></h3>
+<p>The backend computes a real-time status from the event stream:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Status</th>
+  <th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>stuck</code></td>
+  <td>Activity age &gt; <code>stuck_threshold_seconds</code></td>
+</tr>
+<tr>
+  <td><code>error</code></td>
+  <td>Last event is <code>task_failed</code> or <code>action_failed</code></td>
+</tr>
+<tr>
+  <td><code>waiting_approval</code></td>
+  <td>Last event is <code>approval_requested</code></td>
+</tr>
+<tr>
+  <td><code>processing</code></td>
+  <td>Last event is <code>task_started</code> or <code>action_started</code></td>
+</tr>
+<tr>
+  <td><code>idle</code></td>
+  <td>Default (no active work)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Priority cascade</strong>: stuck &gt; error &gt; waiting_approval &gt; processing &gt; idle</p>
+<p><strong>File</strong>: <code>src/backend/storage_json.py:80-123</code></p>
+<h3 id="22-agent-summary-api-response-get-v1agents">2.2 Agent Summary (API response: GET /v1/agents) <a class="heading-anchor" href="#22-agent-summary-api-response-get-v1agents" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>derived_status</code></td>
+  <td><code>str</code></td>
+  <td>Computed status (see above)</td>
+</tr>
+<tr>
+  <td><code>current_task_id</code></td>
+  <td><code>str \| None</code></td>
+  <td>Active task</td>
+</tr>
+<tr>
+  <td><code>current_project_id</code></td>
+  <td><code>str \| None</code></td>
+  <td>Active project</td>
+</tr>
+<tr>
+  <td><code>last_heartbeat</code></td>
+  <td><code>ISO 8601</code></td>
+  <td>When last heartbeat received</td>
+</tr>
+<tr>
+  <td><code>heartbeat_age_seconds</code></td>
+  <td><code>int \| None</code></td>
+  <td>Seconds since last heartbeat</td>
+</tr>
+<tr>
+  <td><code>is_stuck</code></td>
+  <td><code>bool</code></td>
+  <td>Whether agent is stuck</td>
+</tr>
+<tr>
+  <td><code>stats_1h</code></td>
+  <td><code>AgentStats1h</code></td>
+  <td>Rolling 1-hour metrics</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/shared/models.py:570-589</code></p>
+<h3 id="23-rolling-statistics-1-hour-window">2.3 Rolling Statistics (1-hour window) <a class="heading-anchor" href="#23-rolling-statistics-1-hour-window" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>tasks_completed</code></td>
+  <td><code>int</code></td>
+  <td>Tasks completed in window</td>
+</tr>
+<tr>
+  <td><code>tasks_failed</code></td>
+  <td><code>int</code></td>
+  <td>Tasks failed in window</td>
+</tr>
+<tr>
+  <td><code>success_rate</code></td>
+  <td><code>float \| None</code></td>
+  <td>Success percentage</td>
+</tr>
+<tr>
+  <td><code>avg_duration_ms</code></td>
+  <td><code>int \| None</code></td>
+  <td>Average task duration</td>
+</tr>
+<tr>
+  <td><code>total_cost</code></td>
+  <td><code>float \| None</code></td>
+  <td>Total LLM cost</td>
+</tr>
+<tr>
+  <td><code>throughput</code></td>
+  <td><code>int</code></td>
+  <td>Tasks per hour</td>
+</tr>
+<tr>
+  <td><code>queue_depth</code></td>
+  <td><code>int</code></td>
+  <td>Current queue size</td>
+</tr>
+<tr>
+  <td><code>active_issues</code></td>
+  <td><code>int</code></td>
+  <td>Unresolved issues</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/shared/models.py:558-567</code></p>
+<h3 id="24-queue-state-via-queue_provider-callback">2.4 Queue State (via queue_provider callback) <a class="heading-anchor" href="#24-queue-state-via-queue_provider-callback" aria-label="Link to this section">#</a></h3>
+<p>When a <code>queue_provider</code> callback is registered, the agent emits periodic queue snapshots:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>depth</code></td>
+  <td><code>int</code></td>
+  <td>Number of items in queue</td>
+</tr>
+<tr>
+  <td><code>oldest_age_seconds</code></td>
+  <td><code>int \| None</code></td>
+  <td>Age of oldest item</td>
+</tr>
+<tr>
+  <td><code>items</code></td>
+  <td><code>list</code></td>
+  <td>Queue items (id, priority, source, summary, queued_at)</td>
+</tr>
+<tr>
+  <td><code>processing</code></td>
+  <td><code>dict \| None</code></td>
+  <td>Currently processing item (id, summary, started_at, elapsed_ms)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:985-1012</code></p>
+<h3 id="25-todopipeline-state">2.5 Todo/Pipeline State <a class="heading-anchor" href="#25-todopipeline-state" aria-label="Link to this section">#</a></h3>
+<p>Active todo items, reconstructed from the event stream:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>todo_id</code></td>
+  <td><code>str</code></td>
+  <td>Stable identifier</td>
+</tr>
+<tr>
+  <td><code>action</code></td>
+  <td><code>str</code></td>
+  <td>Latest: created, completed, failed, dismissed, deferred</td>
+</tr>
+<tr>
+  <td><code>priority</code></td>
+  <td><code>str \| None</code></td>
+  <td>high, normal, low</td>
+</tr>
+<tr>
+  <td><code>source</code></td>
+  <td><code>str \| None</code></td>
+  <td>Origin of the todo</td>
+</tr>
+<tr>
+  <td><code>context</code></td>
+  <td><code>str \| None</code></td>
+  <td>Additional context</td>
+</tr>
+<tr>
+  <td><code>due_by</code></td>
+  <td><code>ISO 8601 \| None</code></td>
+  <td>Deadline</td>
+</tr>
+</tbody>
+</table></div>
+<p>The backend reconstructs a <code>PipelineState</code> by grouping todos by <code>todo_id</code>, taking the latest action, and filtering active states.</p>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:1014-1046</code></p>
+<h3 id="26-plan-state">2.6 Plan State <a class="heading-anchor" href="#26-plan-state" aria-label="Link to this section">#</a></h3>
+<p>When an agent creates a plan, its state is tracked:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>goal</code></td>
+  <td><code>str</code></td>
+  <td>What the plan aims to achieve</td>
+</tr>
+<tr>
+  <td><code>steps</code></td>
+  <td><code>list[{index, description}]</code></td>
+  <td>Ordered step descriptions</td>
+</tr>
+<tr>
+  <td><code>revision</code></td>
+  <td><code>int \| None</code></td>
+  <td>0 = initial, increments on replan</td>
+</tr>
+<tr>
+  <td><code>_plan_total_steps</code></td>
+  <td><code>int</code></td>
+  <td>Stored on task for step tracking</td>
+</tr>
+<tr>
+  <td><code>_plan_revision</code></td>
+  <td><code>int</code></td>
+  <td>Current revision stored on task</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:307-332</code></p>
+<h3 id="27-scheduled-work-state">2.7 Scheduled Work State <a class="heading-anchor" href="#27-scheduled-work-state" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>items</code></td>
+  <td><code>list</code></td>
+  <td>Each: id, name, next_run, interval, enabled, last_status</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:1048-1069</code></p>
+<h3 id="28-active-issues-state">2.8 Active Issues State <a class="heading-anchor" href="#28-active-issues-state" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>severity</code></td>
+  <td><code>str</code></td>
+  <td>critical, high, medium, low</td>
+</tr>
+<tr>
+  <td><code>issue_id</code></td>
+  <td><code>str \| None</code></td>
+  <td>Stable ID (server deduplicates by hash if absent)</td>
+</tr>
+<tr>
+  <td><code>category</code></td>
+  <td><code>str \| None</code></td>
+  <td>permissions, connectivity, configuration, data_quality, rate_limit, other</td>
+</tr>
+<tr>
+  <td><code>action</code></td>
+  <td><code>str</code></td>
+  <td>reported, resolved, dismissed</td>
+</tr>
+<tr>
+  <td><code>occurrence_count</code></td>
+  <td><code>int \| None</code></td>
+  <td>How many times observed</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:1071-1126</code></p>
+<h3 id="29-internal-transport-state">2.9 Internal Transport State <a class="heading-anchor" href="#29-internal-transport-state" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>_queue</code></td>
+  <td><code>deque</code></td>
+  <td>Bounded event queue (max 10k items)</td>
+</tr>
+<tr>
+  <td><code>_shutdown</code></td>
+  <td><code>bool</code></td>
+  <td>Whether transport is shutting down</td>
+</tr>
+<tr>
+  <td><code>_thread</code></td>
+  <td><code>Thread</code></td>
+  <td>Background flush thread (<code>hiveloop-flush</code>)</td>
+</tr>
+<tr>
+  <td><code>_flush_event</code></td>
+  <td><code>Event</code></td>
+  <td>Signal for immediate flush</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_transport.py:33-67</code></p>
+<h3 id="210-active-task-context-thread-local">2.10 Active Task Context (thread-local) <a class="heading-anchor" href="#210-active-task-context-thread-local" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>_task_local.task</code></td>
+  <td><code>Task \| None</code></td>
+  <td>Currently active task on this thread</td>
+</tr>
+<tr>
+  <td><code>_current_action_id</code></td>
+  <td><code>ContextVar[str \| None]</code></td>
+  <td>Active action ID (async-safe)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:35-38, 754-761</code></p>
+<hr />
+<h2 id="group-3-activity-what-the-agent-does">Group 3 — Activity (What the agent <em>does</em>) <a class="heading-anchor" href="#group-3-activity-what-the-agent-does" aria-label="Link to this section">#</a></h2>
+<p>These capture the dynamic behavior of the agent — its execution lifecycle, events emitted, and traces produced.</p>
+<h3 id="31-the-agentic-loop-lifecycle">3.1 The Agentic Loop Lifecycle <a class="heading-anchor" href="#31-the-agentic-loop-lifecycle" aria-label="Link to this section">#</a></h3>
+<p>The complete execution lifecycle follows this sequence:</p>
+<div class="code-block"><pre><code>hiveloop.init()
+  └─ HiveBoard singleton created
+      └─ hb.agent(id)
+          ├─ Agent.__init__()
+          ├─ _register() → emit AGENT_REGISTERED
+          └─ _start_heartbeat() → background daemon thread
+              ├─ emit HEARTBEAT (every N seconds)
+              ├─ heartbeat_payload() callback
+              └─ queue_provider() callback → emit queue_snapshot
+
+          with agent.task(id):
+              ├─ emit TASK_STARTED
+              │
+              ├─ @agent.track(&quot;action_name&quot;)
+              │   ├─ emit ACTION_STARTED
+              │   ├─ [user code executes]
+              │   └─ emit ACTION_COMPLETED or ACTION_FAILED
+              │
+              ├─ task.llm_call(...)      → emit CUSTOM (kind=llm_call)
+              ├─ task.plan(...)          → emit CUSTOM (kind=plan_created)
+              ├─ task.plan_step(...)     → emit CUSTOM (kind=plan_step)
+              ├─ task.retry(...)         → emit RETRY_STARTED
+              ├─ task.escalate(...)      → emit ESCALATED
+              ├─ task.request_approval() → emit APPROVAL_REQUESTED
+              ├─ task.approval_received()→ emit APPROVAL_RECEIVED
+              ├─ agent.todo(...)         → emit CUSTOM (kind=todo)
+              ├─ agent.report_issue(...) → emit CUSTOM (kind=issue)
+              ├─ task.event(...)         → emit CUSTOM (arbitrary)
+              │
+              └─ [context exit]
+                  ├─ emit TASK_COMPLETED (success)
+                  └─ emit TASK_FAILED (exception)
+
+hiveloop.shutdown()
+  └─ _stop_heartbeat() → transport.shutdown() → final flush
+</code></pre></div>
+<h3 id="32-event-types-13-total">3.2 Event Types (13 total) <a class="heading-anchor" href="#32-event-types-13-total" aria-label="Link to this section">#</a></h3>
+<h4 id="layer-0-agent-lifecycle">Layer 0 — Agent Lifecycle <a class="heading-anchor" href="#layer-0-agent-lifecycle" aria-label="Link to this section">#</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event Type</th>
+  <th>Trigger</th>
+  <th>Key Data</th>
+  <th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>agent_registered</code></td>
+  <td><code>hb.agent()</code></td>
+  <td>type, version, framework, stuck_threshold</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>heartbeat</code></td>
+  <td>Background thread (every N sec)</td>
+  <td>Optional custom payload</td>
+  <td>DEBUG</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="layer-1-structured-execution">Layer 1 — Structured Execution <a class="heading-anchor" href="#layer-1-structured-execution" aria-label="Link to this section">#</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event Type</th>
+  <th>Trigger</th>
+  <th>Key Data</th>
+  <th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task_started</code></td>
+  <td><code>agent.task()</code> enter</td>
+  <td>task_id, project_id, task_type, correlation_id</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>task_completed</code></td>
+  <td><code>agent.task()</code> exit (success)</td>
+  <td>status, duration_ms, payload</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>task_failed</code></td>
+  <td><code>agent.task()</code> exit (exception)</td>
+  <td>status, duration_ms, exception_type, exception_message</td>
+  <td>ERROR</td>
+</tr>
+<tr>
+  <td><code>action_started</code></td>
+  <td><code>@agent.track()</code> / <code>track_context()</code> enter</td>
+  <td>action_id, parent_action_id, action_name, function</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>action_completed</code></td>
+  <td>Exit (success)</td>
+  <td>status, duration_ms</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>action_failed</code></td>
+  <td>Exit (exception)</td>
+  <td>status, duration_ms, exception_type, exception_message</td>
+  <td>ERROR</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="layer-2-narrative-telemetry">Layer 2 — Narrative Telemetry <a class="heading-anchor" href="#layer-2-narrative-telemetry" aria-label="Link to this section">#</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Event Type</th>
+  <th>Trigger</th>
+  <th>Key Data</th>
+  <th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>retry_started</code></td>
+  <td><code>task.retry()</code></td>
+  <td>attempt, backoff_seconds</td>
+  <td>WARN</td>
+</tr>
+<tr>
+  <td><code>escalated</code></td>
+  <td><code>task.escalate()</code></td>
+  <td>assigned_to, reason</td>
+  <td>WARN</td>
+</tr>
+<tr>
+  <td><code>approval_requested</code></td>
+  <td><code>task.request_approval()</code></td>
+  <td>approver</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>approval_received</code></td>
+  <td><code>task.approval_received()</code></td>
+  <td>approved_by, decision</td>
+  <td>INFO</td>
+</tr>
+<tr>
+  <td><code>custom</code></td>
+  <td><code>agent.event()</code> / <code>task.event()</code> / convenience methods</td>
+  <td>Arbitrary payload with optional <code>kind</code></td>
+  <td>INFO</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="33-well-known-payload-kinds-7-types-emitted-as-custom-events">3.3 Well-Known Payload Kinds (7 types, emitted as <code>custom</code> events) <a class="heading-anchor" href="#33-well-known-payload-kinds-7-types-emitted-as-custom-events" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Kind</th>
+  <th>Method</th>
+  <th>Key Fields</th>
+  <th>Tags</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>llm_call</code></td>
+  <td><code>task.llm_call()</code> / <code>agent.llm_call()</code></td>
+  <td>name, model, tokens_in/out, cost, duration_ms, prompt/response_preview</td>
+  <td><code>[&quot;llm&quot;]</code></td>
+</tr>
+<tr>
+  <td><code>queue_snapshot</code></td>
+  <td><code>agent.queue_snapshot()</code> / heartbeat callback</td>
+  <td>depth, oldest_age_seconds, items, processing</td>
+  <td><code>[&quot;queue&quot;]</code></td>
+</tr>
+<tr>
+  <td><code>todo</code></td>
+  <td><code>agent.todo()</code></td>
+  <td>todo_id, action, priority, source, context, due_by</td>
+  <td><code>[&quot;todo&quot;, action]</code></td>
+</tr>
+<tr>
+  <td><code>scheduled</code></td>
+  <td><code>agent.scheduled()</code></td>
+  <td>items (id, name, next_run, interval, enabled, last_status)</td>
+  <td><code>[&quot;scheduled&quot;]</code></td>
+</tr>
+<tr>
+  <td><code>plan_created</code></td>
+  <td><code>task.plan()</code></td>
+  <td>goal, steps, revision</td>
+  <td><code>[&quot;plan&quot;, &quot;created&quot;]</code></td>
+</tr>
+<tr>
+  <td><code>plan_step</code></td>
+  <td><code>task.plan_step()</code></td>
+  <td>step_index, total_steps, action, turns, tokens, plan_revision</td>
+  <td><code>[&quot;plan&quot;, &quot;step_*&quot;]</code></td>
+</tr>
+<tr>
+  <td><code>issue</code></td>
+  <td><code>agent.report_issue()</code></td>
+  <td>severity, issue_id, category, context, action, occurrence_count</td>
+  <td><code>[&quot;issue&quot;]</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="34-tracing-amp-observability">3.4 Tracing &amp; Observability <a class="heading-anchor" href="#34-tracing-amp-observability" aria-label="Link to this section">#</a></h3>
+<h4 id="event-envelope-every-event">Event Envelope (every event) <a class="heading-anchor" href="#event-envelope-every-event" aria-label="Link to this section">#</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>event_id</code></td>
+  <td>UUID4</td>
+  <td>Client-generated unique ID</td>
+</tr>
+<tr>
+  <td><code>timestamp</code></td>
+  <td>ISO 8601</td>
+  <td>UTC timestamp</td>
+</tr>
+<tr>
+  <td><code>event_type</code></td>
+  <td><code>str</code></td>
+  <td>One of 13 types</td>
+</tr>
+<tr>
+  <td><code>severity</code></td>
+  <td><code>str</code></td>
+  <td>debug / info / warn / error</td>
+</tr>
+<tr>
+  <td><code>status</code></td>
+  <td><code>str \| None</code></td>
+  <td>success / failure (terminal events)</td>
+</tr>
+<tr>
+  <td><code>duration_ms</code></td>
+  <td><code>int \| None</code></td>
+  <td>Wall-clock elapsed time</td>
+</tr>
+<tr>
+  <td><code>parent_event_id</code></td>
+  <td><code>UUID \| None</code></td>
+  <td>Causal predecessor link</td>
+</tr>
+<tr>
+  <td><code>payload</code></td>
+  <td><code>dict</code></td>
+  <td>Max 32KB, free-form or well-known kind</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/shared/models.py:161-227</code></p>
+<h4 id="causality-chains">Causality Chains <a class="heading-anchor" href="#causality-chains" aria-label="Link to this section">#</a></h4>
+<p>Two linking mechanisms:</p>
+<ol>
+<li><strong>Parent-child (causal)</strong>: <code>parent_event_id</code> links an event to its cause (e.g., retry → original failure)</li>
+<li><strong>Action nesting (hierarchy)</strong>: <code>action_id</code> + <code>parent_action_id</code> creates 3+ level deep action trees</li>
+</ol>
+<h4 id="task-context-inherited-by-all-events-within-a-task">Task Context (inherited by all events within a task) <a class="heading-anchor" href="#task-context-inherited-by-all-events-within-a-task" aria-label="Link to this section">#</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task_id</code></td>
+  <td><code>str</code></td>
+  <td>User-provided task identifier</td>
+</tr>
+<tr>
+  <td><code>task_run_id</code></td>
+  <td><code>UUID</code></td>
+  <td>Generated per-execution run</td>
+</tr>
+<tr>
+  <td><code>project_id</code></td>
+  <td><code>str \| None</code></td>
+  <td>Project scope</td>
+</tr>
+<tr>
+  <td><code>task_type</code></td>
+  <td><code>str \| None</code></td>
+  <td>Classification</td>
+</tr>
+<tr>
+  <td><code>correlation_id</code></td>
+  <td><code>str \| None</code></td>
+  <td>Cross-agent/system correlation</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:114-134</code></p>
+<h3 id="35-action-tracking-decorator-amp-context-manager">3.5 Action Tracking (Decorator &amp; Context Manager) <a class="heading-anchor" href="#35-action-tracking-decorator-amp-context-manager" aria-label="Link to this section">#</a></h3>
+<p>Two patterns for wrapping code execution:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Decorator — wraps entire function
+@agent.track(&quot;search_database&quot;)
+async def search(query):
+    ...
+
+# Context manager — wraps arbitrary block
+with agent.track_context(&quot;call_api&quot;) as ctx:
+    result = api.call(...)
+    ctx.set_payload({&quot;result_count&quot;: len(result)})
+</code></pre></div>
+<p>Both emit <code>ACTION_STARTED</code> on entry and <code>ACTION_COMPLETED</code>/<code>ACTION_FAILED</code> on exit.</p>
+<p>Supports nesting: inner actions get <code>parent_action_id</code> pointing to outer action.</p>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:782-870</code></p>
+<h3 id="36-tool-call-tracking-helper">3.6 Tool Call Tracking Helper <a class="heading-anchor" href="#36-tool-call-tracking-helper" aria-label="Link to this section">#</a></h3>
+<p>Standardized payload builder for tool execution events:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">tool_payload(
+    args={&quot;query&quot;: q},
+    result=data,
+    success=True,
+    duration_ms=elapsed,
+    tool_category=&quot;crm&quot;,
+    http_status=200,
+    result_size_bytes=len(data)
+)
+</code></pre></div>
+<p>Auto-truncates args (500 chars) and result (1000 chars).</p>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_agent.py:1161-1212</code></p>
+<h3 id="37-logging-bridge">3.7 Logging Bridge <a class="heading-anchor" href="#37-logging-bridge" aria-label="Link to this section">#</a></h3>
+<p><code>HiveBoardLogHandler</code> extends Python's <code>logging.Handler</code> to forward WARNING+ log records as agent issues:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Log Level</th>
+  <th>Issue Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>WARNING</td>
+  <td>medium</td>
+</tr>
+<tr>
+  <td>ERROR</td>
+  <td>high</td>
+</tr>
+<tr>
+  <td>CRITICAL</td>
+  <td>critical</td>
+</tr>
+</tbody>
+</table></div>
+<p>Includes: filename, line number, function name in issue context.</p>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/contrib/log_handler.py</code></p>
+<h3 id="38-transport-amp-delivery">3.8 Transport &amp; Delivery <a class="heading-anchor" href="#38-transport-amp-delivery" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Aspect</th>
+  <th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Queue</td>
+  <td>Thread-safe bounded deque (10k default)</td>
+</tr>
+<tr>
+  <td>Batching</td>
+  <td>Up to 100 events per HTTP POST (max 500)</td>
+</tr>
+<tr>
+  <td>Flush interval</td>
+  <td>5 seconds (configurable)</td>
+</tr>
+<tr>
+  <td>Overflow</td>
+  <td>Oldest events dropped with warning</td>
+</tr>
+<tr>
+  <td>Retry</td>
+  <td>Exponential backoff: 1→2→4→8→16→60s (max 5 retries)</td>
+</tr>
+<tr>
+  <td>Rate limits</td>
+  <td>Ingest: 100 req/s, Query: 30 req/s, WebSocket: 5 conn/key</td>
+</tr>
+<tr>
+  <td>Safety</td>
+  <td>Transport never raises to caller — events dropped silently on failure</td>
+</tr>
+<tr>
+  <td>Shutdown</td>
+  <td>Synchronous drain of remaining events</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/sdk/hiveloop/_transport.py</code></p>
+<h3 id="39-timeline-summary-reconstructed-output">3.9 Timeline Summary (reconstructed output) <a class="heading-anchor" href="#39-timeline-summary-reconstructed-output" aria-label="Link to this section">#</a></h3>
+<p>After execution, the backend can reconstruct a complete timeline:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Field</th>
+  <th>Type</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>task_id</code></td>
+  <td><code>str</code></td>
+  <td>Task identifier</td>
+</tr>
+<tr>
+  <td><code>task_run_id</code></td>
+  <td><code>str \| None</code></td>
+  <td>Run identifier</td>
+</tr>
+<tr>
+  <td><code>derived_status</code></td>
+  <td><code>str</code></td>
+  <td>processing / completed / failed / escalated / waiting</td>
+</tr>
+<tr>
+  <td><code>started_at</code></td>
+  <td><code>ISO 8601</code></td>
+  <td>When task started</td>
+</tr>
+<tr>
+  <td><code>completed_at</code></td>
+  <td><code>ISO 8601 \| None</code></td>
+  <td>When task ended</td>
+</tr>
+<tr>
+  <td><code>duration_ms</code></td>
+  <td><code>int \| None</code></td>
+  <td>Total elapsed time</td>
+</tr>
+<tr>
+  <td><code>total_cost</code></td>
+  <td><code>float \| None</code></td>
+  <td>Cumulative LLM cost</td>
+</tr>
+<tr>
+  <td><code>events</code></td>
+  <td><code>list[dict]</code></td>
+  <td>Full event array</td>
+</tr>
+<tr>
+  <td><code>action_tree</code></td>
+  <td><code>list[dict]</code></td>
+  <td>Reconstructed action hierarchy</td>
+</tr>
+<tr>
+  <td><code>error_chains</code></td>
+  <td><code>list[dict]</code></td>
+  <td>Linked error events</td>
+</tr>
+<tr>
+  <td><code>plan</code></td>
+  <td><code>dict \| None</code></td>
+  <td>Reconstructed plan if present</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>File</strong>: <code>src/shared/models.py:613-628</code></p>
+<hr />
+<h2 id="summary-sensor-count-by-group">Summary: Sensor Count by Group <a class="heading-anchor" href="#summary-sensor-count-by-group" aria-label="Link to this section">#</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Group</th>
+  <th>Category</th>
+  <th>Sensor Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>1. Identity</strong></td>
+  <td>Core identity</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Deployment context</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Behavioral config</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Transport config</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Persistent identity</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td></td>
+  <td><strong>Subtotal</strong></td>
+  <td><strong>22</strong></td>
+</tr>
+<tr>
+  <td><strong>2. State</strong></td>
+  <td>Derived status</td>
+  <td>5 states</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Agent summary</td>
+  <td>7</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Rolling stats (1h)</td>
+  <td>8</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Queue state</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Todo/pipeline</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Plan state</td>
+  <td>5</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Scheduled work</td>
+  <td>1 (list)</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Active issues</td>
+  <td>6</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Transport state</td>
+  <td>4</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Active context</td>
+  <td>2</td>
+</tr>
+<tr>
+  <td></td>
+  <td><strong>Subtotal</strong></td>
+  <td><strong>48</strong></td>
+</tr>
+<tr>
+  <td><strong>3. Activity</strong></td>
+  <td>Event types</td>
+  <td>13</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Payload kinds</td>
+  <td>7</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Trace fields per event</td>
+  <td>8</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Task context fields</td>
+  <td>5</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Action tracking</td>
+  <td>2 patterns</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Tool tracking</td>
+  <td>7 fields</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Logging bridge</td>
+  <td>3 mappings</td>
+</tr>
+<tr>
+  <td></td>
+  <td>Timeline summary</td>
+  <td>10</td>
+</tr>
+<tr>
+  <td></td>
+  <td><strong>Subtotal</strong></td>
+  <td><strong>55+</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Total observable sensors: 125+</strong></p>
+
+        </article>
+        <div class="prev-next"><a class="prev-next-link prev" href="track-context.html"><span class="prev-next-label">← Previous</span><span class="prev-next-title">Track Context</span></a><a class="prev-next-link next" href="sdk-reference.html"><span class="prev-next-label">Next →</span><span class="prev-next-title">SDK Reference</span></a></div>
+    </main>
+
+    <!-- RIGHT TOC -->
+<nav class="page-toc"><div class="page-toc-title">On this page</div>
+<a class="toc-link" href="#group-1-identity-what-the-agent-is">Group 1 — Identity (What the agent *is*)</a>
+<a class="toc-link toc-h3" href="#11-core-identity">1.1 Core Identity</a>
+<a class="toc-link toc-h3" href="#12-deployment-context">1.2 Deployment Context</a>
+<a class="toc-link toc-h3" href="#13-behavioral-configuration">1.3 Behavioral Configuration</a>
+<a class="toc-link toc-h3" href="#14-transport-configuration-hiveboard-client">1.4 Transport Configuration (HiveBoard client)</a>
+<a class="toc-link toc-h3" href="#15-persistent-identity-agentrecord">1.5 Persistent Identity (AgentRecord)</a>
+<a class="toc-link" href="#group-2-state-what-the-agent-has">Group 2 — State (What the agent *has*)</a>
+<a class="toc-link toc-h3" href="#21-derived-status">2.1 Derived Status</a>
+<a class="toc-link toc-h3" href="#22-agent-summary-api-response-get-v1agents">2.2 Agent Summary (API response: GET /v1/agents)</a>
+<a class="toc-link toc-h3" href="#23-rolling-statistics-1-hour-window">2.3 Rolling Statistics (1-hour window)</a>
+<a class="toc-link toc-h3" href="#24-queue-state-via-queue_provider-callback">2.4 Queue State (via queue_provider callback)</a>
+<a class="toc-link toc-h3" href="#25-todopipeline-state">2.5 Todo/Pipeline State</a>
+<a class="toc-link toc-h3" href="#26-plan-state">2.6 Plan State</a>
+<a class="toc-link toc-h3" href="#27-scheduled-work-state">2.7 Scheduled Work State</a>
+<a class="toc-link toc-h3" href="#28-active-issues-state">2.8 Active Issues State</a>
+<a class="toc-link toc-h3" href="#29-internal-transport-state">2.9 Internal Transport State</a>
+<a class="toc-link toc-h3" href="#210-active-task-context-thread-local">2.10 Active Task Context (thread-local)</a>
+<a class="toc-link" href="#group-3-activity-what-the-agent-does">Group 3 — Activity (What the agent *does*)</a>
+<a class="toc-link toc-h3" href="#31-the-agentic-loop-lifecycle">3.1 The Agentic Loop Lifecycle</a>
+<a class="toc-link toc-h3" href="#32-event-types-13-total">3.2 Event Types (13 total)</a>
+<a class="toc-link toc-h3" href="#33-well-known-payload-kinds-7-types-emitted-as-custom-events">3.3 Well-Known Payload Kinds (7 types, emitted as custom events)</a>
+<a class="toc-link toc-h3" href="#34-tracing-observability">3.4 Tracing & Observability</a>
+<a class="toc-link toc-h3" href="#35-action-tracking-decorator-context-manager">3.5 Action Tracking (Decorator & Context Manager)</a>
+<a class="toc-link toc-h3" href="#36-tool-call-tracking-helper">3.6 Tool Call Tracking Helper</a>
+<a class="toc-link toc-h3" href="#37-logging-bridge">3.7 Logging Bridge</a>
+<a class="toc-link toc-h3" href="#38-transport-delivery">3.8 Transport & Delivery</a>
+<a class="toc-link toc-h3" href="#39-timeline-summary-reconstructed-output">3.9 Timeline Summary (reconstructed output)</a>
+<a class="toc-link" href="#summary-sensor-count-by-group">Summary: Sensor Count by Group</a>
+</nav>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script>
+// Re-highlight after load
+Prism.highlightAll();
+
+// Mobile menu toggle
+document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.toggle('open');
+});
+
+// Close sidebar on content click (mobile)
+document.querySelector('.docs-main')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.remove('open');
+});
+
+// Active TOC tracking
+(function() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    if (!tocLinks.length) return;
+    
+    const headings = [];
+    tocLinks.forEach(link => {
+        const id = link.getAttribute('href')?.slice(1);
+        const el = id && document.getElementById(id);
+        if (el) headings.push({ el, link });
+    });
+    
+    function updateActive() {
+        let current = headings[0];
+        for (const h of headings) {
+            if (h.el.getBoundingClientRect().top <= 100) current = h;
+        }
+        tocLinks.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+    
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', a.getAttribute('href'));
+        }
+    });
+});
+</script>
+</body>
+</html>
