@@ -303,7 +303,7 @@ For the full methodology, see [The Hive Method](docs/The-Hive-Method.md).
 | Component | Technology |
 |-----------|------------|
 | **Backend** | Python 3.11+ / FastAPI (async-native) |
-| **Database** | PostgreSQL + TimescaleDB (production) / SQLite (development) |
+| **Database** | PostgreSQL + TimescaleDB (production) / Jsons (quick development) |
 | **Real-time** | WebSocket (FastAPI native) |
 | **Frontend** | Vanilla JS + CSS (no framework dependencies) |
 | **SDK** | Python (`pip install hiveloop`) |
