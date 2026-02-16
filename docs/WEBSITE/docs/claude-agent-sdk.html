@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Agent SDK Integration — HiveBoard Docs</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS (HiveBoard system)
+   ═══════════════════════════════════════ */
+:root {
+    --accent: #c2410c;
+    --accent-dim: rgba(194, 65, 12, 0.06);
+    --accent-hover: #a93b0b;
+    --accent-light: rgba(194, 65, 12, 0.1);
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --bg-deep: #f5f3ef;
+    --bg-primary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-elevated: #fafaf8;
+    --bg-hover: #f0eeea;
+    --border: #e2e0db;
+    --border-subtle: #eceae5;
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --success: #16a34a;
+    --success-dim: rgba(22, 163, 74, 0.08);
+    --error: #dc2626;
+    --error-dim: rgba(220, 38, 38, 0.06);
+    --warning: #d97706;
+    --warning-dim: rgba(217, 119, 6, 0.08);
+    --info: #2563eb;
+    --info-dim: rgba(37, 99, 235, 0.06);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════ */
+.topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 56px;
+    background: var(--bg-primary); border-bottom: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+}
+.topbar-left { display: flex; align-items: center; gap: 20px; }
+.logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans); font-weight: 800; font-size: 17px;
+    letter-spacing: -0.5px; text-decoration: none; color: var(--text-primary);
+}
+.logo-hex {
+    width: 28px; height: 28px; background: var(--accent);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-hex-inner {
+    width: 18px; height: 18px; background: var(--bg-primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+.logo span { color: var(--accent); }
+
+.docs-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 3px 10px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    border: 1px solid rgba(194, 65, 12, 0.12);
+}
+
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-link {
+    font-family: var(--font-sans); font-size: 13px; font-weight: 600;
+    color: var(--text-secondary); text-decoration: none;
+    padding: 7px 14px; border-radius: var(--radius-sm);
+    transition: all 0.15s; border: 1px solid transparent;
+}
+.topbar-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.topbar-link.primary {
+    color: #fff; background: var(--accent); border-color: var(--accent);
+}
+.topbar-link.primary:hover { background: var(--accent-hover); }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════ */
+.docs-layout {
+    display: flex; min-height: 100vh; padding-top: 56px;
+}
+
+/* ─── LEFT SIDEBAR ─── */
+.docs-sidebar {
+    width: 260px; flex-shrink: 0;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border);
+    padding: 20px 12px;
+    position: fixed; top: 56px; bottom: 0; left: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.docs-nav-section {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding: 16px 12px 6px;
+}
+.docs-nav-section:first-child { padding-top: 0; }
+
+.docs-nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--radius-sm);
+    font-family: var(--font-sans); font-size: 13.5px; font-weight: 500;
+    color: var(--text-secondary); text-decoration: none;
+    transition: all 0.12s; border: 1px solid transparent;
+}
+.docs-nav-item:hover {
+    background: var(--bg-hover); color: var(--text-primary);
+}
+.docs-nav-item.active {
+    background: var(--accent-dim); color: var(--accent);
+    font-weight: 600; border-color: rgba(194, 65, 12, 0.1);
+}
+.docs-nav-icon {
+    width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5;
+    display: flex; align-items: center;
+}
+.docs-nav-icon svg { width: 18px; height: 18px; }
+.docs-nav-item.active .docs-nav-icon { opacity: 1; color: var(--accent); }
+
+/* ─── MAIN CONTENT ─── */
+.docs-main {
+    flex: 1; margin-left: 260px; margin-right: 220px;
+    padding: 40px 48px 80px;
+    max-width: 820px;
+    animation: fade-in 0.3s ease;
+}
+
+/* ─── RIGHT TOC ─── */
+.page-toc {
+    position: fixed; top: 96px; right: 24px;
+    width: 196px; max-height: calc(100vh - 120px);
+    overflow-y: auto; scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.page-toc::-webkit-scrollbar { width: 3px; }
+.page-toc::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.page-toc-title {
+    font-family: var(--font-sans); font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 8px;
+}
+.toc-link {
+    display: block; padding: 4px 0;
+    font-family: var(--font-sans); font-size: 12.5px; font-weight: 500;
+    color: var(--text-muted); text-decoration: none;
+    transition: color 0.15s;
+    line-height: 1.4;
+    border-left: 2px solid transparent;
+    padding-left: 10px;
+    margin-left: -1px;
+}
+.toc-link:hover { color: var(--text-primary); }
+.toc-link.toc-h3 { padding-left: 22px; font-size: 12px; }
+.toc-link.active {
+    color: var(--accent); font-weight: 600;
+    border-left-color: var(--accent);
+}
+
+/* ═══════════════════════════════════════
+   CONTENT TYPOGRAPHY
+   ═══════════════════════════════════════ */
+.doc-content h1 {
+    font-family: var(--font-sans); font-size: 28px; font-weight: 800;
+    letter-spacing: -0.7px; line-height: 1.2;
+    margin-bottom: 8px; color: var(--text-primary);
+}
+.doc-content h2 {
+    font-family: var(--font-sans); font-size: 21px; font-weight: 700;
+    letter-spacing: -0.3px; line-height: 1.3;
+    margin-top: 48px; margin-bottom: 16px;
+    padding-top: 24px; border-top: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+.doc-content h2:first-of-type { margin-top: 32px; border-top: none; padding-top: 0; }
+
+.doc-content h3 {
+    font-family: var(--font-sans); font-size: 17px; font-weight: 700;
+    margin-top: 32px; margin-bottom: 12px;
+    color: var(--text-primary);
+}
+.doc-content h4 {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    margin-top: 24px; margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.heading-anchor {
+    color: var(--accent); text-decoration: none;
+    opacity: 0; font-weight: 400; margin-left: 6px;
+    transition: opacity 0.15s;
+}
+h2:hover .heading-anchor,
+h3:hover .heading-anchor,
+h4:hover .heading-anchor { opacity: 0.5; }
+.heading-anchor:hover { opacity: 1 !important; }
+
+.doc-content p {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 16px;
+}
+.doc-content strong { color: var(--text-primary); font-weight: 600; }
+
+.doc-content a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(194, 65, 12, 0.2);
+    transition: border-color 0.15s;
+}
+.doc-content a:hover { border-bottom-color: var(--accent); }
+
+.doc-content ul, .doc-content ol {
+    margin-bottom: 16px; padding-left: 24px;
+}
+.doc-content li {
+    font-size: 15px; line-height: 1.7;
+    color: var(--text-secondary); margin-bottom: 6px;
+}
+.doc-content li strong { color: var(--text-primary); }
+
+/* Inline code */
+.doc-content code {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--accent); background: var(--accent-dim);
+    padding: 2px 6px; border-radius: 4px;
+    border: 1px solid rgba(194, 65, 12, 0.08);
+}
+
+/* Code blocks */
+.code-block {
+    position: relative; margin-bottom: 20px;
+    background: #1e1e2e; border-radius: var(--radius-md);
+    border: 1px solid #2a2a3e;
+    overflow: hidden;
+}
+.code-block .code-lang {
+    position: absolute; top: 0; right: 0;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: #8888aa; background: rgba(255,255,255,0.05);
+    padding: 4px 12px; border-radius: 0 var(--radius-md) 0 6px;
+}
+.code-block pre {
+    margin: 0; padding: 20px 24px; overflow-x: auto;
+    scrollbar-width: thin; scrollbar-color: #444 transparent;
+}
+.code-block pre::-webkit-scrollbar { height: 4px; }
+.code-block pre::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+.code-block pre code {
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+    color: #cdd6f4; background: none; padding: 0; border: none; border-radius: 0;
+}
+
+/* Tables */
+.table-wrapper {
+    margin-bottom: 20px; overflow-x: auto;
+    border: 1px solid var(--border); border-radius: var(--radius-md);
+    scrollbar-width: thin;
+}
+.table-wrapper table {
+    width: 100%; border-collapse: collapse;
+    font-size: 14px;
+}
+.table-wrapper th {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    color: var(--text-muted); background: var(--bg-elevated);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+}
+.table-wrapper td {
+    font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+    color: var(--text-secondary); padding: 10px 16px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+}
+.table-wrapper tr:last-child td { border-bottom: none; }
+.table-wrapper tr:hover td { background: var(--bg-elevated); }
+.table-wrapper td code {
+    font-size: 12px;
+}
+
+/* Blockquotes / Callouts */
+.callout {
+    margin-bottom: 20px; padding: 16px 20px;
+    border-left: 3px solid var(--border);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background: var(--bg-elevated);
+}
+.callout p { margin-bottom: 8px; font-size: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.callout em { color: var(--text-muted); }
+
+.callout-warning {
+    border-left-color: var(--warning);
+    background: var(--warning-dim);
+}
+.callout-tip {
+    border-left-color: var(--success);
+    background: var(--success-dim);
+}
+.callout-info {
+    border-left-color: var(--info);
+    background: var(--info-dim);
+}
+.callout-danger {
+    border-left-color: var(--error);
+    background: var(--error-dim);
+}
+
+/* HR */
+.doc-content hr {
+    border: none; height: 1px;
+    background: var(--border); margin: 32px 0;
+}
+
+/* ─── VERSION BADGE ─── */
+.doc-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px;
+}
+.doc-meta-badge {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-muted); background: var(--bg-elevated);
+    padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* ─── PREV / NEXT NAV ─── */
+.prev-next {
+    display: flex; gap: 16px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+}
+.prev-next-link {
+    flex: 1; display: block; padding: 16px 20px;
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-md); text-decoration: none;
+    transition: all 0.15s;
+}
+.prev-next-link:hover {
+    border-color: var(--accent); background: var(--accent-dim);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(194, 65, 12, 0.06);
+}
+.prev-next-link.next { text-align: right; }
+.prev-next-label {
+    font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+    color: var(--text-muted); display: block; margin-bottom: 4px;
+}
+.prev-next-title {
+    font-family: var(--font-sans); font-size: 15px; font-weight: 700;
+    color: var(--text-primary);
+}
+.prev-next-link:hover .prev-next-title { color: var(--accent); }
+
+/* ─── MOBILE MENU ─── */
+.mobile-menu-toggle {
+    display: none; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); background: var(--bg-primary);
+    cursor: pointer; color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════ */
+@media (max-width: 1200px) {
+    .page-toc { display: none; }
+    .docs-main { margin-right: 0; }
+}
+
+@media (max-width: 860px) {
+    .mobile-menu-toggle { display: flex; }
+    .docs-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 50;
+        box-shadow: none;
+    }
+    .docs-sidebar.open {
+        transform: translateX(0);
+        box-shadow: 8px 0 30px rgba(0,0,0,0.1);
+    }
+    .docs-main {
+        margin-left: 0; padding: 28px 20px 60px;
+    }
+    .doc-content h1 { font-size: 24px; }
+    .doc-content h2 { font-size: 19px; }
+    .prev-next { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════
+   PRISM THEME OVERRIDES (dark code blocks)
+   ═══════════════════════════════════════ */
+.code-block .token.comment,
+.code-block .token.prolog,
+.code-block .token.doctype { color: #6c7086; }
+.code-block .token.punctuation { color: #a6adc8; }
+.code-block .token.property,
+.code-block .token.tag,
+.code-block .token.boolean,
+.code-block .token.number { color: #fab387; }
+.code-block .token.string,
+.code-block .token.attr-value { color: #a6e3a1; }
+.code-block .token.selector,
+.code-block .token.attr-name,
+.code-block .token.builtin { color: #89b4fa; }
+.code-block .token.keyword { color: #cba6f7; }
+.code-block .token.function { color: #89b4fa; }
+.code-block .token.operator { color: #89dceb; }
+.code-block .token.class-name { color: #f9e2af; }
+.code-block .token.decorator { color: #f38ba8; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="https://hiveboard.net/index.html" class="logo">
+            <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+            Hive<span>Board</span>
+        </a>
+        <span class="docs-badge">Docs</span>
+    </div>
+    <div class="topbar-right">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle navigation">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </button>
+        <a href="https://github.com/hiveboard/hiveloop" class="topbar-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://hiveboard.net/home.html" class="topbar-link primary">Open Dashboard</a>
+    </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="docs-layout">
+    <!-- SIDEBAR -->
+    <nav class="docs-sidebar" id="docsSidebar">
+<div class="docs-nav-section">Getting Started</div>
+<a class="docs-nav-item" href="user-manual.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 3.5A1.5 1.5 0 013.5 2H7a2 2 0 012 2v12.5l-.5-.5-3-3H3.5A1.5 1.5 0 012 11.5v-8z" stroke="currentColor" stroke-width="1.3"/><path d="M16 3.5A1.5 1.5 0 0014.5 2H11a2 2 0 00-2 2v12.5l.5-.5 3-3h2A1.5 1.5 0 0016 11.5v-8z" stroke="currentColor" stroke-width="1.3"/></svg></span><span>SDK Manual</span></a>
+<a class="docs-nav-item" href="integration-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M6 2v4M12 2v4M4 6h10v3a5 5 0 01-5 5 5 5 0 01-5-5V6zM9 14v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Integration Guide</span></a>
+<a class="docs-nav-item" href="claude-code-skill.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M2 16L11.5 6.5M9 4l1.5-1.5L12 4l-1.5 1.5M14 2l2 2M6 3V1M3 6H1M5.5 5.5L4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Claude Code Skill</span></a>
+<a class="docs-nav-item active" href="claude-agent-sdk.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M7.5 10.5l3-3M6 12l-1.5 1.5a2.12 2.12 0 003 3L9 15a2.12 2.12 0 000-3M12 6l1.5-1.5a2.12 2.12 0 00-3-3L9 3a2.12 2.12 0 000 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Claude Agent SDK</span></a>
+<div class="docs-nav-section">Dashboard</div>
+<a class="docs-nav-item" href="platform-overview.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><polygon points="12,6 7.5,7.5 6,12 10.5,10.5" fill="currentColor" opacity="0.6"/></svg></span><span>Platform Overview</span></a>
+<a class="docs-nav-item" href="fleet-dashboard.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M2 7h14M7 7v9" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Fleet Dashboard</span></a>
+<a class="docs-nav-item" href="analytics-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="3" height="8" rx="0.5" stroke="currentColor" stroke-width="1.3"/><rect x="7.5" y="4" width="3" height="12" rx="0.5" stroke="currentColor" stroke-width="1.3"/><rect x="13" y="6" width="3" height="10" rx="0.5" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Analytics</span></a>
+<a class="docs-nav-item" href="agent-view-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M2 16c0-3.5 3-5.5 7-5.5s7 2 7 5.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>Agent View</span></a>
+<a class="docs-nav-item" href="insights-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M7 14h4M7.5 15.5h3M9 2a5 5 0 00-2 9.58V13h4v-1.42A5 5 0 009 2z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Insights</span></a>
+<a class="docs-nav-item" href="dashboard-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="10" y="2" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="10" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><rect x="10" y="10" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Elements Reference</span></a>
+<div class="docs-nav-section">Instrumentation</div>
+<a class="docs-nav-item" href="instrumentation-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="4" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Instrumentation</span></a>
+<a class="docs-nav-item" href="layer1-guide.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M9 2L2 6l7 4 7-4-7-4zM2 12l7 4 7-4M2 9l7 4 7-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Layer 1 Guide</span></a>
+<div class="docs-nav-section">Rich Events</div>
+<a class="docs-nav-item" href="layer2-rich-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M10 2L3 10h5l-1 6 7-8h-5l1-6z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Rich Events</span></a>
+<a class="docs-nav-item" href="layer2-llm-tracking.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="4" y="4" width="10" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="7" y="7" width="4" height="4" rx="0.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 2v2M11 2v2M7 14v2M11 14v2M2 7h2M2 11h2M14 7h2M14 11h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span>LLM Tracking</span></a>
+<a class="docs-nav-item" href="operational-events.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><path d="M16 9h-3l-2 7L7 2 5 9H2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Operational Events</span></a>
+<a class="docs-nav-item" href="track-context.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="5" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="13" cy="5" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="13" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7v4M13 7c0 3-2 4-8 4" stroke="currentColor" stroke-width="1.3"/></svg></span><span>Track Context</span></a>
+<div class="docs-nav-section">Reference</div>
+<a class="docs-nav-item" href="observability-model.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M9 2v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="9" cy="9" r="1" fill="currentColor"/></svg></span><span>Observability Model</span></a>
+<a class="docs-nav-item" href="sdk-reference.html"><span class="docs-nav-icon"><svg viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8l2.5 2L5 12M10 12h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>SDK Reference</span></a>
+
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="docs-main">
+        <div class="doc-meta">
+            <span class="doc-meta-badge">v0.1.0</span>
+            <span class="doc-meta-badge">Updated Feb 2026</span>
+        </div>
+        <article class="doc-content">
+<h1 id="hiveloop-integration-guide-claude-agent-sdk">HiveLoop — Integration Guide: Claude Agent SDK <a class="heading-anchor" href="#hiveloop-integration-guide-claude-agent-sdk" aria-label="Link to this section">#</a></h1>
+<p><strong>Version:</strong> 0.1.0<br />
+<strong>Last updated:</strong> 2026-02-16</p>
+<blockquote class="callout"><p><em>One function call. Full fleet observability for your Claude Agent SDK agents.</em></p></blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents <a class="heading-anchor" href="#table-of-contents" aria-label="Link to this section">#</a></h2>
+<ol>
+<li><a href="#1-what-this-guide-covers">What This Guide Covers</a></li>
+<li><a href="#2-quick-start--60-seconds-to-first-heartbeat">Quick Start — 60 Seconds to First Heartbeat</a></li>
+<li><a href="#3-what-you-see-on-hiveboard">What You See on HiveBoard</a></li>
+<li><a href="#4-configuration-reference">Configuration Reference</a></li>
+<li><a href="#5-working-with-subagents">Working with Subagents</a></li>
+<li><a href="#6-working-with-user-input-and-approvals">Working with User Input and Approvals</a></li>
+<li><a href="#7-composing-with-your-own-hooks">Composing with Your Own Hooks</a></li>
+<li><a href="#8-adding-llm-cost-tracking">Adding LLM Cost Tracking</a></li>
+<li><a href="#9-adding-rich-events-going-deeper">Adding Rich Events (Going Deeper)</a></li>
+<li><a href="#10-validation-checklist">Validation Checklist</a></li>
+<li><a href="#11-troubleshooting">Troubleshooting</a></li>
+<li><a href="#12-faq">FAQ</a></li>
+</ol>
+<hr />
+<h2 id="1-what-this-guide-covers">1. What This Guide Covers <a class="heading-anchor" href="#1-what-this-guide-covers" aria-label="Link to this section">#</a></h2>
+<p>This guide walks you through adding HiveBoard observability to agents built with the <a href="https://docs.anthropic.com/en/docs/agent-sdk" target="_blank" rel="noopener">Claude Agent SDK</a> (formerly Claude Code SDK). The integration hooks into the Agent SDK's lifecycle hooks — no changes to your agent's logic, no manual event code.</p>
+<p><strong>What you get automatically:</strong></p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Capability</th>
+  <th>What it looks like on HiveBoard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Agent health</td>
+  <td>Live heartbeat, stuck detection, online/offline status</td>
+</tr>
+<tr>
+  <td>Task tracking</td>
+  <td>Every <code>query()</code> call becomes a task with start/end/duration/status</td>
+</tr>
+<tr>
+  <td>Tool timelines</td>
+  <td>Every Read, Edit, Bash, Grep, Glob call becomes a node in the timeline</td>
+</tr>
+<tr>
+  <td>Subagent pipelines</td>
+  <td>Task tool delegations show as parent → child relationships</td>
+</tr>
+<tr>
+  <td>Approval tracking</td>
+  <td>AskUserQuestion calls appear as human-in-the-loop events</td>
+</tr>
+<tr>
+  <td>Real-time stream</td>
+  <td>All events push to the dashboard via WebSocket as they happen</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>What you don't get automatically</strong> (but can add manually):</p>
+<p>LLM cost tracking, plans, queue state, issues, retries, and scheduled work. See <a href="#8-adding-llm-cost-tracking">Section 8</a> and <a href="#9-adding-rich-events-going-deeper">Section 9</a> for how to add these.</p>
+<h3 id="prerequisites">Prerequisites <a class="heading-anchor" href="#prerequisites" aria-label="Link to this section">#</a></h3>
+<ul>
+<li><code>pip install hiveloop</code> (v0.1.0+)</li>
+<li><code>pip install claude-agent-sdk</code></li>
+<li>A HiveBoard API key (get one at <a href="https://hiveboard.net" target="_blank" rel="noopener">hiveboard.net</a>)</li>
+<li>A working Claude Agent SDK agent (the <a href="https://docs.anthropic.com/en/docs/agent-sdk/quickstart" target="_blank" rel="noopener">quickstart</a> is a great starting point)</li>
+</ul>
+<hr />
+<h2 id="2-quick-start-60-seconds-to-first-heartbeat">2. Quick Start — 60 Seconds to First Heartbeat <a class="heading-anchor" href="#2-quick-start-60-seconds-to-first-heartbeat" aria-label="Link to this section">#</a></h2>
+<h3 id="before-no-observability">Before (no observability) <a class="heading-anchor" href="#before-no-observability" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+
+
+async def main():
+    async for message in query(
+        prompt=&quot;Find and fix the bug in auth.py&quot;,
+        options=ClaudeAgentOptions(allowed_tools=[&quot;Read&quot;, &quot;Edit&quot;, &quot;Bash&quot;]),
+    ):
+        if hasattr(message, &quot;result&quot;):
+            print(message.result)
+
+
+asyncio.run(main())
+</code></pre></div>
+<h3 id="after-full-observability">After (full observability) <a class="heading-anchor" href="#after-full-observability" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+from hiveloop.integrations.claude_agent_sdk import hiveloop_hooks    # ← add this
+
+
+async def main():
+    async for message in query(
+        prompt=&quot;Find and fix the bug in auth.py&quot;,
+        options=ClaudeAgentOptions(
+            allowed_tools=[&quot;Read&quot;, &quot;Edit&quot;, &quot;Bash&quot;],
+            hooks=hiveloop_hooks(                                     # ← add this
+                api_key=&quot;hb_live_your_key_here&quot;,
+                project=&quot;my-project&quot;,
+                agent_name=&quot;bug-fixer&quot;,
+            ),
+        ),
+    ):
+        if hasattr(message, &quot;result&quot;):
+            print(message.result)
+
+
+asyncio.run(main())
+</code></pre></div>
+<p><strong>Two lines added. Zero logic changed.</strong> Your agent now appears on HiveBoard with a live heartbeat, and every tool call becomes a visible step in the task timeline.</p>
+<h3 id="what-happens-under-the-hood">What happens under the hood <a class="heading-anchor" href="#what-happens-under-the-hood" aria-label="Link to this section">#</a></h3>
+<ol>
+<li><code>hiveloop_hooks()</code> initializes the HiveLoop SDK and returns a hooks dict</li>
+<li>When <code>query()</code> starts, the <code>SessionStart</code> hook registers the agent and starts a task</li>
+<li>A background thread begins emitting heartbeats every 30 seconds</li>
+<li>Each tool call triggers <code>PreToolUse</code> / <code>PostToolUse</code> hooks → action tracking</li>
+<li>When the agent finishes, the <code>Stop</code> hook closes the task with the result</li>
+<li><code>SessionEnd</code> flushes all events to ensure delivery</li>
+</ol>
+<p>The hooks never modify the Agent SDK's behavior — they observe and report. If HiveBoard is unreachable, your agent runs exactly the same. Events are dropped silently, never thrown.</p>
+<hr />
+<h2 id="3-what-you-see-on-hiveboard">3. What You See on HiveBoard <a class="heading-anchor" href="#3-what-you-see-on-hiveboard" aria-label="Link to this section">#</a></h2>
+<h3 id="31-fleet-view-quotare-my-agents-healthyquot">3.1 Fleet View — &quot;Are my agents healthy?&quot; <a class="heading-anchor" href="#31-fleet-view-quotare-my-agents-healthyquot" aria-label="Link to this section">#</a></h3>
+<p>Your agent appears as a card with live status:</p>
+<div class="code-block"><pre><code>┌─────────────────────────────────────┐
+│ 🟢 bug-fixer                       │
+│ Type: general  Framework: claude-agent-sdk │
+│ Status: PROCESSING                  │
+│ ↳ session_a1b2c3d4                  │
+│ ♥ 8s ago                            │
+│ Tasks: 3 ✓  0 ✗  |  Avg: 4.2s      │
+└─────────────────────────────────────┘
+</code></pre></div>
+<p>When the agent finishes, status goes to IDLE. If the process crashes, the heartbeat stops and the card turns STUCK after 5 minutes.</p>
+<h3 id="32-task-timeline-quotwhat-exactly-happenedquot">3.2 Task Timeline — &quot;What exactly happened?&quot; <a class="heading-anchor" href="#32-task-timeline-quotwhat-exactly-happenedquot" aria-label="Link to this section">#</a></h3>
+<p>Every <code>query()</code> call becomes a task. Click it to see the full timeline:</p>
+<div class="code-block"><pre><code>session_a1b2c3d4  ·  bug-fixer  ·  completed  ·  4.2s
+
+──┬── Read:auth.py ─── Grep:&quot;login&quot; ─── Edit:auth.py ─── Bash:pytest ──┬──
+  │     120ms            80ms             890ms            2400ms        │
+  start                                                               stop
+</code></pre></div>
+<p>Each tool call is a node. Click any node to see:</p>
+<ul>
+<li><strong>Tool name</strong> and input parameters</li>
+<li><strong>Duration</strong> of the tool execution</li>
+<li><strong>Result preview</strong> (first 500 chars of the tool output)</li>
+<li><strong>Error details</strong> if the tool failed (red node)</li>
+</ul>
+<h3 id="33-activity-stream-quotwhats-happening-right-nowquot">3.3 Activity Stream — &quot;What's happening right now?&quot; <a class="heading-anchor" href="#33-activity-stream-quotwhats-happening-right-nowquot" aria-label="Link to this section">#</a></h3>
+<p>Real-time feed of all events, pushed via WebSocket:</p>
+<div class="code-block"><pre><code>14:32:01  bug-fixer  task_started     session_a1b2c3d4
+14:32:01  bug-fixer  action_started   Read:auth.py
+14:32:02  bug-fixer  action_completed Read:auth.py (120ms)
+14:32:02  bug-fixer  action_started   Grep:&quot;login&quot;
+14:32:02  bug-fixer  action_completed Grep:&quot;login&quot; (80ms, 3 matches)
+14:32:03  bug-fixer  action_started   Edit:auth.py
+14:32:04  bug-fixer  action_completed Edit:auth.py (890ms)
+14:32:04  bug-fixer  action_started   Bash:pytest
+14:32:06  bug-fixer  action_completed Bash:pytest (2400ms, exit 0)
+14:32:07  bug-fixer  task_completed   session_a1b2c3d4 (4.2s)
+</code></pre></div>
+<h3 id="34-task-list-quotwhat-ran-todayquot">3.4 Task List — &quot;What ran today?&quot; <a class="heading-anchor" href="#34-task-list-quotwhat-ran-todayquot" aria-label="Link to this section">#</a></h3>
+<p>Filterable table of all tasks across all agents. Each row shows the task ID, agent, project, status, duration, and action count.</p>
+<hr />
+<h2 id="4-configuration-reference">4. Configuration Reference <a class="heading-anchor" href="#4-configuration-reference" aria-label="Link to this section">#</a></h2>
+<h3 id="41-all-parameters">4.1 All Parameters <a class="heading-anchor" href="#41-all-parameters" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">hooks = hiveloop_hooks(
+    # ── Required ──
+    api_key=&quot;hb_live_xxx&quot;,             # Your HiveBoard API key
+
+    # ── Agent Identity ──
+    agent_name=&quot;bug-fixer&quot;,            # Name in Fleet View (default: &quot;claude-agent&quot;)
+    agent_type=&quot;coder&quot;,                # Classification (default: &quot;general&quot;)
+    agent_version=&quot;1.2.0&quot;,             # Your agent's version (default: None)
+    project=&quot;backend-team&quot;,            # HiveBoard project for tasks (default: None)
+
+    # ── Connection ──
+    endpoint=&quot;https://api.hiveboard.io&quot;,  # Backend URL (default: auto-resolved)
+    environment=&quot;production&quot;,             # dev / staging / production (default: &quot;production&quot;)
+    group=&quot;engineering&quot;,                  # Team grouping for filtering (default: &quot;default&quot;)
+
+    # ── Behavior ──
+    track_subagents=True,              # Track Task tool as subagents (default: True)
+    capture_tool_results=True,         # Include tool output in payloads (default: True)
+    result_preview_length=500,         # Max chars for result previews (default: 500)
+    heartbeat_interval=30.0,           # Seconds between heartbeats (default: 30.0)
+    stuck_threshold=300,               # Seconds before marked stuck (default: 300)
+
+    # ── Advanced ──
+    debug=False,                       # Enable debug logging (default: False)
+)
+</code></pre></div>
+<h3 id="42-minimal-setup">4.2 Minimal Setup <a class="heading-anchor" href="#42-minimal-setup" aria-label="Link to this section">#</a></h3>
+<p>If you just want it working with defaults:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">hooks = hiveloop_hooks(api_key=&quot;hb_live_xxx&quot;)
+</code></pre></div>
+<p>This creates an agent named <code>&quot;claude-agent&quot;</code> with type <code>&quot;general&quot;</code>, no project, and all other defaults. Good for trying it out — customize when you're ready.</p>
+<h3 id="43-multiple-agents">4.3 Multiple Agents <a class="heading-anchor" href="#43-multiple-agents" aria-label="Link to this section">#</a></h3>
+<p>If you run multiple Agent SDK agents, give each a distinct name:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># Agent 1: Bug fixer
+async for message in query(
+    prompt=&quot;Fix the bug in auth.py&quot;,
+    options=ClaudeAgentOptions(
+        hooks=hiveloop_hooks(api_key=&quot;hb_live_xxx&quot;, agent_name=&quot;bug-fixer&quot;, project=&quot;backend&quot;),
+    ),
+):
+    ...
+
+# Agent 2: Code reviewer
+async for message in query(
+    prompt=&quot;Review the PR for security issues&quot;,
+    options=ClaudeAgentOptions(
+        hooks=hiveloop_hooks(api_key=&quot;hb_live_xxx&quot;, agent_name=&quot;code-reviewer&quot;, project=&quot;backend&quot;),
+    ),
+):
+    ...
+</code></pre></div>
+<p>Both agents appear as separate cards in Fleet View with independent heartbeats, task histories, and statistics.</p>
+<h3 id="44-environment-based-configuration">4.4 Environment-Based Configuration <a class="heading-anchor" href="#44-environment-based-configuration" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">import os
+
+hooks = hiveloop_hooks(
+    api_key=os.environ[&quot;HIVEBOARD_API_KEY&quot;],
+    endpoint=os.environ.get(&quot;HIVEBOARD_ENDPOINT&quot;, &quot;https://api.hiveboard.io&quot;),
+    environment=os.environ.get(&quot;DEPLOY_ENV&quot;, &quot;production&quot;),
+    agent_name=os.environ.get(&quot;AGENT_NAME&quot;, &quot;my-agent&quot;),
+    project=os.environ.get(&quot;HIVEBOARD_PROJECT&quot;, &quot;default&quot;),
+)
+</code></pre></div>
+<hr />
+<h2 id="5-working-with-subagents">5. Working with Subagents <a class="heading-anchor" href="#5-working-with-subagents" aria-label="Link to this section">#</a></h2>
+<p>If your Agent SDK agent uses <a href="https://docs.anthropic.com/en/docs/agent-sdk/subagents" target="_blank" rel="noopener">subagents</a> via the <code>Task</code> tool, HiveLoop tracks them automatically.</p>
+<h3 id="51-what-happens">5.1 What Happens <a class="heading-anchor" href="#51-what-happens" aria-label="Link to this section">#</a></h3>
+<p>When your main agent delegates to a subagent:</p>
+<ol>
+<li>HiveLoop detects the <code>Task</code> tool call in <code>PreToolUse</code></li>
+<li>A new agent is registered for the subagent (named <code>{your-agent}:sub:{subagent-name}</code>)</li>
+<li>A child task is created under the subagent</li>
+<li>A <code>delegation</code> event is emitted on the parent task</li>
+<li>When the subagent returns, its task is completed</li>
+</ol>
+<h3 id="52-example">5.2 Example <a class="heading-anchor" href="#52-example" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">async for message in query(
+    prompt=&quot;Use the code-reviewer to review this codebase&quot;,
+    options=ClaudeAgentOptions(
+        allowed_tools=[&quot;Read&quot;, &quot;Glob&quot;, &quot;Grep&quot;, &quot;Task&quot;],
+        agents={
+            &quot;code-reviewer&quot;: AgentDefinition(
+                description=&quot;Expert code reviewer.&quot;,
+                prompt=&quot;Analyze code quality and suggest improvements.&quot;,
+                tools=[&quot;Read&quot;, &quot;Glob&quot;, &quot;Grep&quot;],
+            )
+        },
+        hooks=hiveloop_hooks(
+            api_key=&quot;hb_live_xxx&quot;,
+            agent_name=&quot;orchestrator&quot;,
+            project=&quot;code-quality&quot;,
+        ),
+    ),
+):
+    ...
+</code></pre></div>
+<h3 id="53-what-you-see-on-hiveboard">5.3 What You See on HiveBoard <a class="heading-anchor" href="#53-what-you-see-on-hiveboard" aria-label="Link to this section">#</a></h3>
+<p><strong>Fleet View</strong> — Two agent cards:</p>
+<div class="code-block"><pre><code>┌──────────────────────────┐  ┌──────────────────────────────────────┐
+│ 🟢 orchestrator          │  │ 🟢 orchestrator:sub:code-reviewer    │
+│ PROCESSING               │  │ PROCESSING                           │
+│ ↳ session_abc123         │  │ ↳ sub-tu_def456                      │
+└──────────────────────────┘  └──────────────────────────────────────┘
+</code></pre></div>
+<p><strong>Parent Task Timeline</strong> — Shows delegation event:</p>
+<div class="code-block"><pre><code>──┬── Read:... ─── [delegation → code-reviewer] ─── ... ──┬──
+</code></pre></div>
+<p><strong>Child Task Timeline</strong> — Shows the subagent's own tool calls:</p>
+<div class="code-block"><pre><code>──┬── Glob:**/*.py ─── Read:utils.py ─── Grep:&quot;TODO&quot; ──┬──
+</code></pre></div>
+<h3 id="54-disabling-subagent-tracking">5.4 Disabling Subagent Tracking <a class="heading-anchor" href="#54-disabling-subagent-tracking" aria-label="Link to this section">#</a></h3>
+<p>If you don't want subagents as separate agents (e.g., too many short-lived subagents), set <code>track_subagents=False</code>. Subagent calls will appear as regular <code>Task</code> action nodes in the parent timeline instead.</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">hooks = hiveloop_hooks(
+    api_key=&quot;hb_live_xxx&quot;,
+    track_subagents=False,  # Task tool calls tracked as actions, not subagents
+)
+</code></pre></div>
+<hr />
+<h2 id="6-working-with-user-input-and-approvals">6. Working with User Input and Approvals <a class="heading-anchor" href="#6-working-with-user-input-and-approvals" aria-label="Link to this section">#</a></h2>
+<p>If your agent uses <code>AskUserQuestion</code> or has interactive approval flows, HiveLoop tracks these as human-in-the-loop events.</p>
+<h3 id="61-what-happens">6.1 What Happens <a class="heading-anchor" href="#61-what-happens" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>When <code>AskUserQuestion</code> fires in <code>PreToolUse</code>, HiveLoop emits an <code>approval_requested</code> event</li>
+<li>The agent's status changes to <code>waiting_approval</code> on the dashboard</li>
+<li>When the user responds in <code>PostToolUse</code>, HiveLoop emits an <code>approval_received</code> event</li>
+<li>The status returns to <code>processing</code></li>
+</ol>
+<h3 id="62-what-you-see-on-hiveboard">6.2 What You See on HiveBoard <a class="heading-anchor" href="#62-what-you-see-on-hiveboard" aria-label="Link to this section">#</a></h3>
+<p><strong>Fleet View</strong> — Agent card shows waiting state:</p>
+<div class="code-block"><pre><code>┌─────────────────────────────────────┐
+│ 🟡 my-agent                        │
+│ Status: WAITING APPROVAL            │
+│ ↳ session_abc123                    │
+└─────────────────────────────────────┘
+</code></pre></div>
+<p><strong>Task Timeline</strong> — Approval node with duration (how long the user took to respond):</p>
+<div class="code-block"><pre><code>──── Edit:config.yaml ─── [⏳ Awaiting user: &quot;Deploy to prod?&quot;] ─── Bash:deploy ────
+                                      42.3s (human response time)
+</code></pre></div>
+<p><strong>Activity Stream:</strong></p>
+<div class="code-block"><pre><code>14:32:10  my-agent  approval_requested  &quot;Agent asking user: Deploy to production?&quot;
+14:32:52  my-agent  approval_received   &quot;User responded: Yes, deploy&quot;
+</code></pre></div>
+<hr />
+<h2 id="7-composing-with-your-own-hooks">7. Composing with Your Own Hooks <a class="heading-anchor" href="#7-composing-with-your-own-hooks" aria-label="Link to this section">#</a></h2>
+<p>If you already have custom hooks, use <code>merge_hooks()</code> to combine them with HiveLoop:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">from hiveloop.integrations.claude_agent_sdk import hiveloop_hooks, merge_hooks
+
+# Your existing hooks
+my_hooks = {
+    &quot;PostToolUse&quot;: [
+        HookMatcher(matcher=&quot;Edit|Write&quot;, hooks=[my_audit_logger])
+    ],
+    &quot;PreToolUse&quot;: [
+        HookMatcher(matcher=&quot;Bash&quot;, hooks=[my_command_validator])
+    ],
+}
+
+# Combine
+combined = merge_hooks(my_hooks, hiveloop_hooks(api_key=&quot;hb_live_xxx&quot;))
+
+async for message in query(
+    prompt=&quot;...&quot;,
+    options=ClaudeAgentOptions(hooks=combined),
+):
+    ...
+</code></pre></div>
+<p>Both your hooks and HiveLoop's hooks fire for every event. Order is preserved — your hooks run first (since they're first in <code>merge_hooks</code>), HiveLoop's hooks observe after.</p>
+<p><strong>Important:</strong> HiveLoop hooks always return <code>{}</code> (empty dict). They never modify the Agent SDK's behavior. Your hooks can still block, modify, or reject tool calls as normal.</p>
+<hr />
+<h2 id="8-adding-llm-cost-tracking">8. Adding LLM Cost Tracking <a class="heading-anchor" href="#8-adding-llm-cost-tracking" aria-label="Link to this section">#</a></h2>
+<p>The Claude Agent SDK handles LLM calls internally — the hooks fire around tool use, not API calls. To get cost tracking, use the <code>instrumented_query()</code> wrapper which intercepts usage metadata from the message stream.</p>
+<h3 id="81-setup">8.1 Setup <a class="heading-anchor" href="#81-setup" aria-label="Link to this section">#</a></h3>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">from hiveloop.integrations.claude_agent_sdk import hiveloop_hooks, instrumented_query
+
+async for message in instrumented_query(                # ← use this instead of query()
+    prompt=&quot;Fix the bug in auth.py&quot;,
+    options=ClaudeAgentOptions(
+        allowed_tools=[&quot;Read&quot;, &quot;Edit&quot;, &quot;Bash&quot;],
+        hooks=hiveloop_hooks(api_key=&quot;hb_live_xxx&quot;, project=&quot;my-project&quot;),
+    ),
+):
+    if hasattr(message, &quot;result&quot;):
+        print(message.result)
+</code></pre></div>
+<p>The only change is <code>query()</code> → <code>instrumented_query()</code>. Messages pass through unchanged — the wrapper just inspects each one for usage metadata before yielding it to you.</p>
+<h3 id="82-what-you-get">8.2 What You Get <a class="heading-anchor" href="#82-what-you-get" aria-label="Link to this section">#</a></h3>
+<p>If the Agent SDK includes usage data in its messages (model name, input/output tokens), HiveBoard's Cost Explorer populates with:</p>
+<ul>
+<li>Cost per task</li>
+<li>Cost per agent</li>
+<li>Cost breakdown by model</li>
+<li>Token consumption trends</li>
+<li>Per-call detail table</li>
+</ul>
+<h3 id="83-note-on-availability">8.3 Note on Availability <a class="heading-anchor" href="#83-note-on-availability" aria-label="Link to this section">#</a></h3>
+<p>This depends on the Claude Agent SDK exposing usage metadata in its message stream. If usage data isn't available in the messages, the wrapper is a no-op — no errors, no cost data. Check the <a href="https://github.com/anthropics/claude-agent-sdk-python/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Agent SDK changelog</a> for updates on usage metadata availability.</p>
+<hr />
+<h2 id="9-adding-rich-events-going-deeper">9. Adding Rich Events (Going Deeper) <a class="heading-anchor" href="#9-adding-rich-events-going-deeper" aria-label="Link to this section">#</a></h2>
+<p>The auto-instrumentation covers Layers 0 and 1. If you want Layer 2 — plans, retries, issues, custom business events — you can add them manually alongside the hooks.</p>
+<h3 id="91-getting-the-task-object">9.1 Getting the Task Object <a class="heading-anchor" href="#91-getting-the-task-object" aria-label="Link to this section">#</a></h3>
+<p>Inside your agent's code, access the current HiveLoop task via context variables:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">from hiveloop.integrations.claude_agent_sdk import get_current_task, get_current_agent
+
+# Anywhere in your codebase (after a query() with hiveloop_hooks has started)
+task = get_current_task()
+agent = get_current_agent()
+</code></pre></div>
+<h3 id="92-adding-llm-calls-manually">9.2 Adding LLM Calls Manually <a class="heading-anchor" href="#92-adding-llm-calls-manually" aria-label="Link to this section">#</a></h3>
+<p>If <code>instrumented_query()</code> doesn't capture costs (e.g., you make side LLM calls outside the Agent SDK):</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">task = get_current_task()
+if task:
+    task.llm_call(
+        &quot;side-analysis&quot;,
+        model=&quot;claude-haiku-4-20250514&quot;,
+        tokens_in=500,
+        tokens_out=100,
+        cost=0.0008,
+    )
+</code></pre></div>
+<h3 id="93-adding-issue-reporting">9.3 Adding Issue Reporting <a class="heading-anchor" href="#93-adding-issue-reporting" aria-label="Link to this section">#</a></h3>
+<p>If your agent detects persistent problems:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">agent = get_current_agent()
+if agent:
+    agent.report_issue(
+        &quot;API rate limiting detected&quot;,
+        severity=&quot;high&quot;,
+        category=&quot;rate_limit&quot;,
+    )
+</code></pre></div>
+<h3 id="94-adding-custom-events">9.4 Adding Custom Events <a class="heading-anchor" href="#94-adding-custom-events" aria-label="Link to this section">#</a></h3>
+<p>For any business-specific telemetry:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">task = get_current_task()
+if task:
+    task.event(&quot;custom&quot;, payload={
+        &quot;kind&quot;: &quot;validation&quot;,
+        &quot;summary&quot;: &quot;Input validation passed for 42 files&quot;,
+        &quot;data&quot;: {&quot;files_checked&quot;: 42, &quot;errors_found&quot;: 0},
+        &quot;tags&quot;: [&quot;validation&quot;, &quot;quality&quot;],
+    })
+</code></pre></div>
+<h3 id="95-the-if-task-guard">9.5 The <code>if task:</code> Guard <a class="heading-anchor" href="#95-the-if-task-guard" aria-label="Link to this section">#</a></h3>
+<p>Always guard manual event calls. The task is <code>None</code> if:</p>
+<ul>
+<li><code>hiveloop_hooks()</code> wasn't provided</li>
+<li>The query hasn't started yet</li>
+<li>The query has already ended</li>
+<li>HiveLoop initialization failed silently</li>
+</ul>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># ✅ Safe
+task = get_current_task()
+if task:
+    task.event(&quot;custom&quot;, payload={...})
+
+# ❌ Will crash if task is None
+get_current_task().event(&quot;custom&quot;, payload={...})
+</code></pre></div>
+<p>This one-line guard is the price of safety. It's worth it.</p>
+<hr />
+<h2 id="10-validation-checklist">10. Validation Checklist <a class="heading-anchor" href="#10-validation-checklist" aria-label="Link to this section">#</a></h2>
+<p>After adding <code>hiveloop_hooks()</code>, run your agent once and verify each step on the dashboard.</p>
+<h3 id="101-layer-0-agent-registration-heartbeat">10.1 Layer 0 — Agent Registration + Heartbeat <a class="heading-anchor" href="#101-layer-0-agent-registration-heartbeat" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard Element</th>
+  <th>What You Should See</th>
+  <th>If Missing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Fleet View</strong></td>
+  <td>Agent card with your <code>agent_name</code></td>
+  <td><code>hiveloop_hooks()</code> not reaching the Agent SDK — check that <code>hooks=</code> is passed to <code>ClaudeAgentOptions</code></td>
+</tr>
+<tr>
+  <td><strong>Heartbeat pulse</strong></td>
+  <td>Green dot pulsing, <code>♥ Xs ago</code> updating</td>
+  <td>Heartbeat thread didn't start — check <code>api_key</code> is valid, <code>endpoint</code> is reachable</td>
+</tr>
+<tr>
+  <td><strong>Status</strong></td>
+  <td>IDLE when no query running, PROCESSING during a query</td>
+  <td>Status derivation requires task events — trigger a query</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="102-layer-1-task-action-tracking">10.2 Layer 1 — Task + Action Tracking <a class="heading-anchor" href="#102-layer-1-task-action-tracking" aria-label="Link to this section">#</a></h3>
+<p>Trigger a query and check while it's running:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard Element</th>
+  <th>What You Should See</th>
+  <th>If Missing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Task Table</strong></td>
+  <td>New row with session ID, agent name, status: <code>processing</code></td>
+  <td><code>SessionStart</code> hook not firing — check Agent SDK version supports hooks</td>
+</tr>
+<tr>
+  <td><strong>Task Timeline</strong></td>
+  <td>Nodes appearing for each tool call (Read, Bash, etc.)</td>
+  <td><code>PreToolUse</code>/<code>PostToolUse</code> hooks not wired — check the hooks dict structure</td>
+</tr>
+<tr>
+  <td><strong>Action labels</strong></td>
+  <td>Descriptive labels like <code>Read:auth.py</code>, <code>Bash:pytest</code></td>
+  <td>Labels depend on <code>tool_input</code> parsing — check debug logs</td>
+</tr>
+<tr>
+  <td><strong>Action durations</strong></td>
+  <td>Millisecond timings between nodes</td>
+  <td><code>PreToolUse</code> start time not matching <code>PostToolUse</code> — check <code>tool_use_id</code> consistency</td>
+</tr>
+<tr>
+  <td><strong>Task completion</strong></td>
+  <td>Status → <code>completed</code>, duration populated</td>
+  <td><code>Stop</code> or <code>SessionEnd</code> not firing — check that the agent finishes cleanly</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>Chronological event feed: task_started → actions → task_completed</td>
+  <td>Events not flushing — check endpoint connectivity, try <code>debug=True</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="103-error-handling">10.3 Error Handling <a class="heading-anchor" href="#103-error-handling" aria-label="Link to this section">#</a></h3>
+<p>Deliberately trigger a failure (e.g., ask the agent to read a non-existent file):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Scenario</th>
+  <th>Expected on Dashboard</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Tool fails (e.g., file not found)</td>
+  <td>Red action node in timeline, <code>action_failed</code> in Activity Stream</td>
+</tr>
+<tr>
+  <td>Agent handles error and continues</td>
+  <td>Task may still complete — red node followed by more blue nodes</td>
+</tr>
+<tr>
+  <td>Agent fails entirely</td>
+  <td>Task status → <code>failed</code>, red task row in Task List</td>
+</tr>
+<tr>
+  <td>Process killed mid-task</td>
+  <td>Heartbeat stops → agent goes STUCK after threshold (default 5 min)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="104-subagents-if-applicable">10.4 Subagents (if applicable) <a class="heading-anchor" href="#104-subagents-if-applicable" aria-label="Link to this section">#</a></h3>
+<p>Trigger a query that uses the <code>Task</code> tool:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Dashboard Element</th>
+  <th>What You Should See</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Fleet View</strong></td>
+  <td>Second card appears: <code>{agent_name}:sub:{subagent_name}</code></td>
+</tr>
+<tr>
+  <td><strong>Parent Timeline</strong></td>
+  <td>Delegation event node</td>
+</tr>
+<tr>
+  <td><strong>Child Timeline</strong></td>
+  <td>Subagent's own tool call nodes</td>
+</tr>
+<tr>
+  <td><strong>Activity Stream</strong></td>
+  <td>Both agents' events interleaved chronologically</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="105-quick-smoke-test-sequence">10.5 Quick Smoke Test Sequence <a class="heading-anchor" href="#105-quick-smoke-test-sequence" aria-label="Link to this section">#</a></h3>
+<ol>
+<li>✅ Start HiveBoard server (or confirm cloud endpoint is reachable)</li>
+<li>✅ Run your agent with <code>hiveloop_hooks()</code></li>
+<li>✅ Agent card appears in Fleet View with green heartbeat</li>
+<li>✅ Task appears in Task Table with status <code>processing</code></li>
+<li>✅ Click task → Timeline shows tool call nodes with durations</li>
+<li>✅ Task completes → status <code>completed</code>, duration populated</li>
+<li>✅ Activity Stream shows chronological event feed</li>
+<li>✅ Kill the agent process → wait 5 min → card shows STUCK</li>
+<li>🎉 <strong>Integration is working</strong></li>
+</ol>
+<hr />
+<h2 id="11-troubleshooting">11. Troubleshooting <a class="heading-anchor" href="#11-troubleshooting" aria-label="Link to this section">#</a></h2>
+<h3 id="agent-doesnt-appear-in-fleet-view">Agent doesn't appear in Fleet View <a class="heading-anchor" href="#agent-doesnt-appear-in-fleet-view" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Check</th>
+  <th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>API key valid?</td>
+  <td>Must start with <code>hb_</code>. Try <code>curl -H &quot;Authorization: Bearer hb_live_xxx&quot; https://your-endpoint/v1/agents</code></td>
+</tr>
+<tr>
+  <td>Endpoint reachable?</td>
+  <td>Set <code>debug=True</code> and check stderr for connection errors</td>
+</tr>
+<tr>
+  <td>Hooks actually passed?</td>
+  <td>Make sure <code>hooks=hiveloop_hooks(...)</code> is inside <code>ClaudeAgentOptions()</code>, not as a kwarg to <code>query()</code></td>
+</tr>
+<tr>
+  <td>Agent SDK supports hooks?</td>
+  <td>Hooks were added in the Claude Agent SDK — make sure you're on a recent version</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="timeline-is-empty-no-action-nodes">Timeline is empty (no action nodes) <a class="heading-anchor" href="#timeline-is-empty-no-action-nodes" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Check</th>
+  <th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Tools allowed?</td>
+  <td><code>allowed_tools</code> must include at least one tool for actions to fire</td>
+</tr>
+<tr>
+  <td>Agent actually using tools?</td>
+  <td>Some prompts may be answered without tool use — try a prompt that requires reading files</td>
+</tr>
+<tr>
+  <td><code>PreToolUse</code> firing?</td>
+  <td>Set <code>debug=True</code> — you should see log lines for each hook callback</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="events-not-showing-in-activity-stream">Events not showing in Activity Stream <a class="heading-anchor" href="#events-not-showing-in-activity-stream" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Check</th>
+  <th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Flush happening?</td>
+  <td>Events batch every 5 seconds. Wait at least 5 seconds after the action.</td>
+</tr>
+<tr>
+  <td>WebSocket connected?</td>
+  <td>Check the browser console on the dashboard for WS connection errors</td>
+</tr>
+<tr>
+  <td>Correct project filter?</td>
+  <td>Activity Stream filters by project — make sure you're viewing the right one (or &quot;All&quot;)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="stuck-detection-not-working">Stuck detection not working <a class="heading-anchor" href="#stuck-detection-not-working" aria-label="Link to this section">#</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+  <th>Check</th>
+  <th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Heartbeat interval too high?</td>
+  <td>Default is 30s, stuck threshold is 300s (5 min). After killing the process, wait the full 5 minutes.</td>
+</tr>
+<tr>
+  <td>Clock skew?</td>
+  <td>The backend compares <code>last_heartbeat</code> to server time. Large clock differences between your machine and the backend can cause issues.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="debug-mode">Debug mode <a class="heading-anchor" href="#debug-mode" aria-label="Link to this section">#</a></h3>
+<p>When things aren't working, enable debug logging:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python">hooks = hiveloop_hooks(
+    api_key=&quot;hb_live_xxx&quot;,
+    debug=True,  # Logs all hook callbacks, event enqueues, and transport activity to stderr
+)
+</code></pre></div>
+<p>You'll see output like:</p>
+<div class="code-block"><pre><code>[HiveLoop DEBUG] SessionStart hook fired, session_id=session_a1b2c3d4
+[HiveLoop DEBUG] Agent registered: bug-fixer (claude-agent-sdk)
+[HiveLoop DEBUG] Task started: session_a1b2c3d4
+[HiveLoop DEBUG] PreToolUse: Read, tool_use_id=tu_001
+[HiveLoop DEBUG] Action started: Read:auth.py
+[HiveLoop DEBUG] PostToolUse: Read, tool_use_id=tu_001, duration=120ms
+[HiveLoop DEBUG] Action completed: Read:auth.py (120ms)
+[HiveLoop DEBUG] Flush: 4 events → POST /v1/ingest (200 OK)
+</code></pre></div>
+<hr />
+<h2 id="12-faq">12. FAQ <a class="heading-anchor" href="#12-faq" aria-label="Link to this section">#</a></h2>
+<h3 id="does-this-slow-down-my-agent">Does this slow down my agent? <a class="heading-anchor" href="#does-this-slow-down-my-agent" aria-label="Link to this section">#</a></h3>
+<p>No. Hook callbacks are async and run in microseconds (dict lookups + event enqueuing). Event delivery happens in a background thread. The Agent SDK's tool execution is not blocked or delayed.</p>
+<h3 id="what-if-hiveboard-is-down">What if HiveBoard is down? <a class="heading-anchor" href="#what-if-hiveboard-is-down" aria-label="Link to this section">#</a></h3>
+<p>Your agent runs exactly the same. The HiveLoop transport retries with exponential backoff and eventually drops events if the backend is unreachable. No exceptions are raised to your code. When HiveBoard comes back, new events flow normally — the gap period is simply missing data.</p>
+<h3 id="can-i-use-this-in-production">Can I use this in production? <a class="heading-anchor" href="#can-i-use-this-in-production" aria-label="Link to this section">#</a></h3>
+<p>Yes. The integration follows the same safety invariants as the core HiveLoop SDK: it never crashes the host application, never blocks the main execution path, and never modifies the Agent SDK's behavior. The hooks always return <code>{}</code>.</p>
+<h3 id="does-this-work-with-typescript">Does this work with TypeScript? <a class="heading-anchor" href="#does-this-work-with-typescript" aria-label="Link to this section">#</a></h3>
+<p>A TypeScript version (<code>hiveloopHooks()</code>) is on the roadmap. For now, the integration is Python-only.</p>
+<h3 id="can-i-filter-what-gets-tracked">Can I filter what gets tracked? <a class="heading-anchor" href="#can-i-filter-what-gets-tracked" aria-label="Link to this section">#</a></h3>
+<p>Not at the hook level currently — all tools are tracked. You can filter what you <em>see</em> on the dashboard using project, agent, and event type filters. If you need to exclude specific tools from tracking, you can use a custom <code>PreToolUse</code> hook that sets a flag, and modify the HiveLoop hook to skip those tools.</p>
+<h3 id="how-do-i-track-multiple-agents-in-a-fleet">How do I track multiple agents in a fleet? <a class="heading-anchor" href="#how-do-i-track-multiple-agents-in-a-fleet" aria-label="Link to this section">#</a></h3>
+<p>Call <code>hiveloop_hooks()</code> separately for each agent with a different <code>agent_name</code>. They can share the same <code>api_key</code> and <code>project</code>:</p>
+<div class="code-block"><span class="code-lang">python</span><pre><code class="language-python"># All agents share the same project, each gets a unique card
+agent_configs = [
+    {&quot;name&quot;: &quot;researcher&quot;, &quot;type&quot;: &quot;research&quot;},
+    {&quot;name&quot;: &quot;writer&quot;, &quot;type&quot;: &quot;content&quot;},
+    {&quot;name&quot;: &quot;reviewer&quot;, &quot;type&quot;: &quot;quality&quot;},
+]
+
+for config in agent_configs:
+    hooks = hiveloop_hooks(
+        api_key=&quot;hb_live_xxx&quot;,
+        project=&quot;content-pipeline&quot;,
+        agent_name=config[&quot;name&quot;],
+        agent_type=config[&quot;type&quot;],
+    )
+    # Pass hooks to each agent's query() call
+</code></pre></div>
+<p>All three appear in Fleet View as separate cards under the <code>content-pipeline</code> project.</p>
+<h3 id="whats-the-difference-between-this-and-the-langchain-integration">What's the difference between this and the LangChain integration? <a class="heading-anchor" href="#whats-the-difference-between-this-and-the-langchain-integration" aria-label="Link to this section">#</a></h3>
+<p>The LangChain integration uses LangChain's callback system (<code>on_llm_start</code>, <code>on_tool_end</code>, etc.). This integration uses the Claude Agent SDK's hook system (<code>SessionStart</code>, <code>PreToolUse</code>, <code>PostToolUse</code>, etc.). Same HiveBoard experience, different framework plumbing.</p>
+<p>The key difference: the LangChain integration gets automatic LLM cost tracking (via <code>on_llm_end</code>), while the Agent SDK integration requires <code>instrumented_query()</code> for costs because the SDK handles LLM calls internally.</p>
+<h3 id="im-already-using-the-core-hiveloop-sdk-do-i-still-need-this">I'm already using the core HiveLoop SDK. Do I still need this? <a class="heading-anchor" href="#im-already-using-the-core-hiveloop-sdk-do-i-still-need-this" aria-label="Link to this section">#</a></h3>
+<p>If you've already instrumented your agent with <code>hiveloop.init()</code>, <code>hb.agent()</code>, <code>agent.task()</code>, and <code>@agent.track()</code> — you don't need this integration. It's designed for developers who want observability without writing manual instrumentation code.</p>
+<p>However, if you're already using HiveLoop and want to <em>also</em> add Agent SDK hooks (e.g., to auto-track tool calls that your manual instrumentation doesn't cover), you can combine them. Just make sure both use the same <code>api_key</code> and <code>agent_name</code> so events land on the same agent card.</p>
+<hr />
+<h2 id="whats-next">What's Next <a class="heading-anchor" href="#whats-next" aria-label="Link to this section">#</a></h2>
+<ul>
+<li><strong>Add rich events</strong> — See <a href="#9-adding-rich-events-going-deeper">Section 9</a> for plans, retries, issues, and custom telemetry</li>
+<li><strong>Explore the dashboard</strong> — The <a href="https://hiveboard.net/docs/user-manual.html" target="_blank" rel="noopener">Dashboard Guide</a> covers every screen in detail</li>
+<li><strong>Join the community</strong> — Share what you're building and get help at <a href="https://hiveboard.net/community" target="_blank" rel="noopener">hiveboard.net/community</a></li>
+</ul>
+
+        </article>
+        <div class="prev-next"><a class="prev-next-link prev" href="claude-code-skill.html"><span class="prev-next-label">← Previous</span><span class="prev-next-title">Claude Code Skill</span></a><a class="prev-next-link next" href="platform-overview.html"><span class="prev-next-label">Next →</span><span class="prev-next-title">Platform Overview</span></a></div>
+    </main>
+
+    <!-- RIGHT TOC -->
+<nav class="page-toc"><div class="page-toc-title">On this page</div>
+<a class="toc-link" href="#table-of-contents">Table of Contents</a>
+<a class="toc-link" href="#1-what-this-guide-covers">1. What This Guide Covers</a>
+<a class="toc-link toc-h3" href="#prerequisites">Prerequisites</a>
+<a class="toc-link" href="#2-quick-start-60-seconds-to-first-heartbeat">2. Quick Start — 60 Seconds to First Heartbeat</a>
+<a class="toc-link toc-h3" href="#before-no-observability">Before (no observability)</a>
+<a class="toc-link toc-h3" href="#after-full-observability">After (full observability)</a>
+<a class="toc-link toc-h3" href="#what-happens-under-the-hood">What happens under the hood</a>
+<a class="toc-link" href="#3-what-you-see-on-hiveboard">3. What You See on HiveBoard</a>
+<a class="toc-link toc-h3" href="#31-fleet-view-are-my-agents-healthy">3.1 Fleet View — "Are my agents healthy?"</a>
+<a class="toc-link toc-h3" href="#32-task-timeline-what-exactly-happened">3.2 Task Timeline — "What exactly happened?"</a>
+<a class="toc-link toc-h3" href="#33-activity-stream-whats-happening-right-now">3.3 Activity Stream — "What's happening right now?"</a>
+<a class="toc-link toc-h3" href="#34-task-list-what-ran-today">3.4 Task List — "What ran today?"</a>
+<a class="toc-link" href="#4-configuration-reference">4. Configuration Reference</a>
+<a class="toc-link toc-h3" href="#41-all-parameters">4.1 All Parameters</a>
+<a class="toc-link toc-h3" href="#42-minimal-setup">4.2 Minimal Setup</a>
+<a class="toc-link toc-h3" href="#43-multiple-agents">4.3 Multiple Agents</a>
+<a class="toc-link toc-h3" href="#44-environment-based-configuration">4.4 Environment-Based Configuration</a>
+<a class="toc-link" href="#5-working-with-subagents">5. Working with Subagents</a>
+<a class="toc-link toc-h3" href="#51-what-happens">5.1 What Happens</a>
+<a class="toc-link toc-h3" href="#52-example">5.2 Example</a>
+<a class="toc-link toc-h3" href="#53-what-you-see-on-hiveboard">5.3 What You See on HiveBoard</a>
+<a class="toc-link toc-h3" href="#54-disabling-subagent-tracking">5.4 Disabling Subagent Tracking</a>
+<a class="toc-link" href="#6-working-with-user-input-and-approvals">6. Working with User Input and Approvals</a>
+<a class="toc-link toc-h3" href="#61-what-happens">6.1 What Happens</a>
+<a class="toc-link toc-h3" href="#62-what-you-see-on-hiveboard">6.2 What You See on HiveBoard</a>
+<a class="toc-link" href="#7-composing-with-your-own-hooks">7. Composing with Your Own Hooks</a>
+<a class="toc-link" href="#8-adding-llm-cost-tracking">8. Adding LLM Cost Tracking</a>
+<a class="toc-link toc-h3" href="#81-setup">8.1 Setup</a>
+<a class="toc-link toc-h3" href="#82-what-you-get">8.2 What You Get</a>
+<a class="toc-link toc-h3" href="#83-note-on-availability">8.3 Note on Availability</a>
+<a class="toc-link" href="#9-adding-rich-events-going-deeper">9. Adding Rich Events (Going Deeper)</a>
+<a class="toc-link toc-h3" href="#91-getting-the-task-object">9.1 Getting the Task Object</a>
+<a class="toc-link toc-h3" href="#92-adding-llm-calls-manually">9.2 Adding LLM Calls Manually</a>
+<a class="toc-link toc-h3" href="#93-adding-issue-reporting">9.3 Adding Issue Reporting</a>
+<a class="toc-link toc-h3" href="#94-adding-custom-events">9.4 Adding Custom Events</a>
+<a class="toc-link toc-h3" href="#95-the-if-task-guard">9.5 The if task: Guard</a>
+<a class="toc-link" href="#10-validation-checklist">10. Validation Checklist</a>
+<a class="toc-link toc-h3" href="#101-layer-0-agent-registration-heartbeat">10.1 Layer 0 — Agent Registration + Heartbeat</a>
+<a class="toc-link toc-h3" href="#102-layer-1-task-action-tracking">10.2 Layer 1 — Task + Action Tracking</a>
+<a class="toc-link toc-h3" href="#103-error-handling">10.3 Error Handling</a>
+<a class="toc-link toc-h3" href="#104-subagents-if-applicable">10.4 Subagents (if applicable)</a>
+<a class="toc-link toc-h3" href="#105-quick-smoke-test-sequence">10.5 Quick Smoke Test Sequence</a>
+<a class="toc-link" href="#11-troubleshooting">11. Troubleshooting</a>
+<a class="toc-link toc-h3" href="#agent-doesnt-appear-in-fleet-view">Agent doesn't appear in Fleet View</a>
+<a class="toc-link toc-h3" href="#timeline-is-empty-no-action-nodes">Timeline is empty (no action nodes)</a>
+<a class="toc-link toc-h3" href="#events-not-showing-in-activity-stream">Events not showing in Activity Stream</a>
+<a class="toc-link toc-h3" href="#stuck-detection-not-working">Stuck detection not working</a>
+<a class="toc-link toc-h3" href="#debug-mode">Debug mode</a>
+<a class="toc-link" href="#12-faq">12. FAQ</a>
+<a class="toc-link toc-h3" href="#does-this-slow-down-my-agent">Does this slow down my agent?</a>
+<a class="toc-link toc-h3" href="#what-if-hiveboard-is-down">What if HiveBoard is down?</a>
+<a class="toc-link toc-h3" href="#can-i-use-this-in-production">Can I use this in production?</a>
+<a class="toc-link toc-h3" href="#does-this-work-with-typescript">Does this work with TypeScript?</a>
+<a class="toc-link toc-h3" href="#can-i-filter-what-gets-tracked">Can I filter what gets tracked?</a>
+<a class="toc-link toc-h3" href="#how-do-i-track-multiple-agents-in-a-fleet">How do I track multiple agents in a fleet?</a>
+<a class="toc-link toc-h3" href="#whats-the-difference-between-this-and-the-langchain-integration">What's the difference between this and the LangChain integration?</a>
+<a class="toc-link toc-h3" href="#im-already-using-the-core-hiveloop-sdk-do-i-still-need-this">I'm already using the core HiveLoop SDK. Do I still need this?</a>
+<a class="toc-link" href="#whats-next">What's Next</a>
+</nav>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script>
+// Re-highlight after load
+Prism.highlightAll();
+
+// Mobile menu toggle
+document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.toggle('open');
+});
+
+// Close sidebar on content click (mobile)
+document.querySelector('.docs-main')?.addEventListener('click', () => {
+    document.getElementById('docsSidebar').classList.remove('open');
+});
+
+// Active TOC tracking
+(function() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    if (!tocLinks.length) return;
+    
+    const headings = [];
+    tocLinks.forEach(link => {
+        const id = link.getAttribute('href')?.slice(1);
+        const el = id && document.getElementById(id);
+        if (el) headings.push({ el, link });
+    });
+    
+    function updateActive() {
+        let current = headings[0];
+        for (const h of headings) {
+            if (h.el.getBoundingClientRect().top <= 100) current = h;
+        }
+        tocLinks.forEach(l => l.classList.remove('active'));
+        if (current) current.link.classList.add('active');
+    }
+    
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+})();
+
+// Smooth scrolling for anchor links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+            e.preventDefault();
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            history.pushState(null, '', a.getAttribute('href'));
+        }
+    });
+});
+</script>
+</body>
+</html>
