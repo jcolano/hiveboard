@@ -64,6 +64,23 @@ Product overview, architecture, and the story behind HiveBoard.
 
 ---
 
+## Notable Integrations & Automations
+
+### 🛠️ Claude Code Skill — 5-Minute Agent Instrumentation
+
+We built a custom **Claude Code Skill** that lets any developer instrument their AI agents with HiveBoard in under 5 minutes. Just point Claude Code at your project, and the Skill walks through setup interactively — initializing HiveLoop, registering agents, wiring up decorators, and validating the dashboard connection. What used to be 30 minutes of reading docs and manual config is now a guided conversation.
+
+### 🔗 Claude Agent SDK Integration — One Hook, Full Observability *(Coming Soon)*
+```python
+hooks=hiveloop_hooks(api_key="hb_live_xxx")
+```
+
+Add one hook to any [Claude Agent SDK](https://docs.anthropic.com/en/docs/agent-sdk) agent and get full HiveBoard observability — heartbeats, task timelines, tool action tracking, subagent pipelines — with zero manual instrumentation. The integration maps the Agent SDK's lifecycle hooks directly to HiveLoop events, so every `Read`, `Edit`, `Bash`, and `Grep` call becomes a visible node in your dashboard.
+
+> ⚡ **Status:** Currently in testing. We're pushing to ship before the hackathon deadline, but either way — this drops within hours.
+
+---
+
 ## Documentation
 
 **📖 [Read the full SDK manual →](https://hiveboard.net/docs/user-manual.html)**
