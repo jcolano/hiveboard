@@ -1,0 +1,6 @@
+The key highlights your team should focus on:
+Sensor coverage: Of your 28 sensors, 11 activate automatically with zero developer effort — and those 11 happen to be the 3 highest-impact groups (Registration, Task lifecycle, Action lifecycle) that power 20+ API endpoints and 6 dashboard screens fully.
+The architecture decision that matters most: We use start_task() (manual) instead of task() (context manager) because the task lifecycle spans multiple hook callbacks, not a single with block. Same reasoning for track_context() over @agent.track() — decorators can't wrap Agent SDK tool calls since we only have pre/post hooks.
+The _safe_hook wrapper is non-negotiable. Every callback is wrapped in try/except. The integration must never crash the host agent — same invariant as the core SDK transport layer.
+Biggest implementation risk: The _active_tools dict that bridges PreToolUse → PostToolUse via tool_use_id. If the SDK ever fires PreToolUse without a matching PostToolUse (agent crash, timeout, cancellation), those track contexts become orphaned. The cleanup routine in on_session_end handles this, but test it thoroughly.
+Phase 1 alone gives the developer: Fleet View, Task Timeline with tool action nodes, Activity Stream, Task List, WebSocket live updates, and stuck detection. That's a compelling demo without touching LLM cost tracking (Phase 2).

@@ -5,12 +5,11 @@ Thread-safe via asyncio.Lock per file.
 
 Files:
   tenants.json, api_keys.json, projects.json, agents.json,
-  project_agents.json, events.json, alert_rules.json, alert_history.json
+  project_agents.json, events/{agent_id}.json (per-agent partitioned),
+  alert_rules.json, alert_history.json, task_runs.json
 
-NOTE: This is the MVP backend for development velocity.  Once the simulator
-is running continuously, events.json will grow fast (~35K events/day with
-10 agents).  The MS SQL Server adapter is a practical necessity for real
-testing.
+NOTE: This is the MVP backend for development velocity.  The MS SQL Server
+adapter is a practical necessity for real testing.
 """
 
 from __future__ import annotations
@@ -28,8 +27,10 @@ from shared.enums import (
     AgentStatus,
     AUTO_INTERVAL,
     COLD_EVENT_RETENTION,
+    COLD_PAYLOAD_RETENTION,
     EventType,
     INTERVAL_SECONDS,
+    PAYLOAD_STRIP_SECONDS,
     PLAN_LIMITS,
     RANGE_SECONDS,
     Severity,
@@ -177,12 +178,13 @@ TABLE_FILES = [
     "projects",
     "agents",
     "project_agents",
-    "events",
+    # "events" — now per-agent partitioned in data/events/
     "alert_rules",
     "alert_history",
     "invites",
     "agent_hourly",
     "model_hourly",
+    "task_runs",
 ]
 
 
@@ -196,6 +198,7 @@ class JsonStorageBackend:
         )
         self._tables: dict[str, list[dict[str, Any]]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
+        self._agent_events: dict[str, list[dict[str, Any]]] = {}
 
     # ───────────────────────────────────────────────────────────────────
     #  LIFECYCLE
@@ -213,10 +216,44 @@ class JsonStorageBackend:
                 self._tables[name] = []
                 self._persist(name)
 
+        # Per-agent event partitioning
+        self._locks["events"] = asyncio.Lock()
+        events_dir = self._data_dir / "events"
+        old_events_fp = self._data_dir / "events.json"
+
+        if old_events_fp.exists() and not events_dir.exists():
+            # Migration: split monolithic events.json by agent_id
+            with open(old_events_fp, "r", encoding="utf-8") as f:
+                all_events = json.load(f)
+            for row in all_events:
+                aid = row.get("agent_id", "_unknown")
+                self._agent_events.setdefault(aid, []).append(row)
+            events_dir.mkdir(parents=True, exist_ok=True)
+            for aid in self._agent_events:
+                self._persist_agent_events(aid)
+            # Rename old file to .bak
+            bak = old_events_fp.with_suffix(".json.bak")
+            os.replace(old_events_fp, bak)
+        elif events_dir.exists():
+            # Normal load: read per-agent partition files
+            if old_events_fp.exists():
+                # Crashed mid-migration — prefer events/ dir, remove old file
+                bak = old_events_fp.with_suffix(".json.bak")
+                os.replace(old_events_fp, bak)
+            import glob as _glob
+            for fp_str in _glob.glob(str(events_dir / "*.json")):
+                fp = Path(fp_str)
+                aid = fp.stem
+                with open(fp, "r", encoding="utf-8") as f:
+                    self._agent_events[aid] = json.load(f)
+        # else: fresh install — no events at all
+
     async def close(self) -> None:
         for name in TABLE_FILES:
             if name in self._tables:
                 self._persist(name)
+        for agent_id in self._agent_events:
+            self._persist_agent_events(agent_id)
 
     def _persist(self, table: str) -> None:
         fp = self._data_dir / f"{table}.json"
@@ -225,6 +262,30 @@ class JsonStorageBackend:
             json.dump(self._tables[table], f, indent=2, default=str)
         os.replace(tmp, fp)
         # Restrict file permissions (no-op on Windows)
+        try:
+            os.chmod(fp, 0o600)
+        except OSError:
+            pass
+
+    def _iter_events(self, agent_id: str | None = None):
+        """Iterate events, optionally scoped to one agent partition."""
+        if agent_id:
+            yield from self._agent_events.get(agent_id, [])
+        else:
+            for events in self._agent_events.values():
+                yield from events
+
+    def _total_event_count(self) -> int:
+        return sum(len(v) for v in self._agent_events.values())
+
+    def _persist_agent_events(self, agent_id: str) -> None:
+        events_dir = self._data_dir / "events"
+        events_dir.mkdir(parents=True, exist_ok=True)
+        fp = events_dir / f"{agent_id}.json"
+        tmp = fp.with_suffix(".json.tmp")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(self._agent_events.get(agent_id, []), f, indent=2, default=str)
+        os.replace(tmp, fp)
         try:
             os.chmod(fp, 0o600)
         except OSError:
@@ -609,7 +670,7 @@ class JsonStorageBackend:
         self, tenant_id: str, project_id: str
     ) -> int:
         return sum(
-            1 for row in self._tables["events"]
+            1 for row in self._iter_events()
             if row["tenant_id"] == tenant_id
             and row.get("project_id") == project_id
         )
@@ -621,16 +682,19 @@ class JsonStorageBackend:
         to_project_id: str,
     ) -> int:
         count = 0
+        modified_agents: set[str] = set()
         async with self._locks["events"]:
-            for row in self._tables["events"]:
-                if (
-                    row["tenant_id"] == tenant_id
-                    and row.get("project_id") == from_project_id
-                ):
-                    row["project_id"] = to_project_id
-                    count += 1
-            if count > 0:
-                self._persist("events")
+            for aid, events in self._agent_events.items():
+                for row in events:
+                    if (
+                        row["tenant_id"] == tenant_id
+                        and row.get("project_id") == from_project_id
+                    ):
+                        row["project_id"] = to_project_id
+                        count += 1
+                        modified_agents.add(aid)
+            for aid in modified_agents:
+                self._persist_agent_events(aid)
         return count
 
     # ───────────────────────────────────────────────────────────────────
@@ -790,40 +854,37 @@ class JsonStorageBackend:
         agent_id: str,
     ) -> AgentStats1h:
         now = _now_utc()
-        since = datetime.fromtimestamp(
-            now.timestamp() - 3600, tz=timezone.utc
-        )
-        events = self._filter_events(
-            tenant_id,
-            agent_id=agent_id,
-            since=since,
-            exclude_heartbeats=True,
-        )
+        # Read current + previous hour buckets (covers rolling 1h window)
+        current_hour = now.replace(minute=0, second=0, microsecond=0)
+        prev_hour = current_hour - timedelta(hours=1)
+        prev_hour_str = prev_hour.strftime("%Y-%m-%dT%H:%M:%SZ")
 
         tasks_completed = 0
         tasks_failed = 0
-        durations: list[int] = []
+        duration_sum = 0
+        duration_count = 0
         total_cost = 0.0
 
-        for e in events:
-            if e["event_type"] == "task_completed":
-                tasks_completed += 1
-                if e.get("duration_ms"):
-                    durations.append(e["duration_ms"])
-            elif e["event_type"] == "task_failed":
-                tasks_failed += 1
-            p = e.get("payload")
-            if p and isinstance(p, dict) and p.get("kind") == "llm_call":
-                data = p.get("data", {})
-                if isinstance(data, dict):
-                    total_cost += data.get("cost", 0) or 0
+        for row in self._tables["agent_hourly"]:
+            if row.get("tenant_id") != tenant_id:
+                continue
+            if row.get("agent_id") != agent_id:
+                continue
+            h = row.get("hour", "")
+            if h < prev_hour_str:
+                continue
+            tasks_completed += row.get("tasks_completed", 0)
+            tasks_failed += row.get("tasks_failed", 0)
+            duration_sum += row.get("task_duration_sum_ms", 0)
+            duration_count += row.get("task_duration_count", 0)
+            total_cost += row.get("llm_cost", 0)
 
         total_tasks = tasks_completed + tasks_failed
         success_rate = (
             (tasks_completed / total_tasks * 100) if total_tasks > 0 else None
         )
         avg_duration = (
-            int(sum(durations) / len(durations)) if durations else None
+            int(duration_sum / duration_count) if duration_count > 0 else None
         )
 
         # Compute queue_depth and active_issues from pipeline data
@@ -876,9 +937,10 @@ class JsonStorageBackend:
         async with self._locks["events"]:
             existing_keys = {
                 (row["tenant_id"], row["event_id"])
-                for row in self._tables["events"]
+                for row in self._iter_events()
             }
             inserted = 0
+            modified_agents: set[str] = set()
             for evt in events:
                 key = (evt.tenant_id, evt.event_id)
                 if key in existing_keys:
@@ -887,10 +949,11 @@ class JsonStorageBackend:
                 row = evt.model_dump(mode="json")
                 if key_type:
                     row["key_type"] = key_type
-                self._tables["events"].append(row)
+                self._agent_events.setdefault(evt.agent_id, []).append(row)
+                modified_agents.add(evt.agent_id)
                 inserted += 1
-            if inserted > 0:
-                self._persist("events")
+            for aid in modified_agents:
+                self._persist_agent_events(aid)
         return inserted
 
     # ───────────────────────────────────────────────────────────────────
@@ -962,9 +1025,17 @@ class JsonStorageBackend:
         self,
         tenant_id: str,
         task_id: str,
+        *,
+        agent_id: str | None = None,
     ) -> list[Event]:
+        # Try to narrow to a single agent partition via task_runs
+        if agent_id is None:
+            for row in self._tables.get("task_runs", []):
+                if row.get("tenant_id") == tenant_id and row.get("task_id") == task_id:
+                    agent_id = row.get("agent_id")
+                    break
         rows = [
-            r for r in self._tables["events"]
+            r for r in self._iter_events(agent_id=agent_id)
             if r["tenant_id"] == tenant_id and r.get("task_id") == task_id
         ]
         rows.sort(key=lambda r: r["timestamp"])
@@ -989,7 +1060,7 @@ class JsonStorageBackend:
     ) -> list[dict[str, Any]]:
         """Filter events in memory — mirrors a SQL WHERE clause."""
         results = []
-        for row in self._tables["events"]:
+        for row in self._iter_events(agent_id=agent_id):
             if row["tenant_id"] != tenant_id:
                 continue
             if project_id and row.get("project_id") != project_id:
@@ -1035,6 +1106,54 @@ class JsonStorageBackend:
         return results
 
     # ───────────────────────────────────────────────────────────────────
+    #  HOURLY AGGREGATE HELPERS
+    # ───────────────────────────────────────────────────────────────────
+
+    def _filter_hourly_buckets(
+        self,
+        table_name: str,
+        tenant_id: str,
+        range: str,
+        *,
+        agent_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Filter hourly aggregate buckets by tenant, time range, and optional agent/project."""
+        now = _now_utc()
+        range_secs = RANGE_SECONDS.get(range, 86400)
+        since = datetime.fromtimestamp(
+            now.timestamp() - range_secs, tz=timezone.utc
+        )
+        since_str = since.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # If project_id, resolve to set of agent_ids
+        project_agent_ids: set[str] | None = None
+        if project_id:
+            project_agent_ids = {
+                row["agent_id"]
+                for row in self._tables["project_agents"]
+                if (
+                    row["tenant_id"] == tenant_id
+                    and row["project_id"] == project_id
+                )
+            }
+
+        results = []
+        for row in self._tables[table_name]:
+            if row.get("tenant_id") != tenant_id:
+                continue
+            h = row.get("hour", "")
+            if h < since_str:
+                continue
+            if agent_id and row.get("agent_id") != agent_id:
+                continue
+            if project_agent_ids is not None:
+                if row.get("agent_id") not in project_agent_ids:
+                    continue
+            results.append(row)
+        return results
+
+    # ───────────────────────────────────────────────────────────────────
     #  TASK QUERIES (derived from events)
     # ───────────────────────────────────────────────────────────────────
 
@@ -1053,13 +1172,9 @@ class JsonStorageBackend:
         limit: int = 50,
         cursor: str | None = None,
     ) -> Page[TaskSummary]:
-        # Group events by task_id
-        task_events: dict[str, list[dict]] = {}
-        for row in self._tables["events"]:
-            if row["tenant_id"] != tenant_id:
-                continue
-            tid = row.get("task_id")
-            if not tid:
+        summaries: list[TaskSummary] = []
+        for row in self._tables.get("task_runs", []):
+            if row.get("tenant_id") != tenant_id:
                 continue
             if agent_id and row.get("agent_id") != agent_id:
                 continue
@@ -1069,82 +1184,34 @@ class JsonStorageBackend:
                 continue
             if environment and row.get("environment") != environment:
                 continue
-            task_events.setdefault(tid, []).append(row)
-
-        # Build TaskSummary for each
-        summaries: list[TaskSummary] = []
-        for tid, events in task_events.items():
-            events.sort(key=lambda e: e["timestamp"])
-            event_types = {e["event_type"] for e in events}
-            derived = _derive_task_status(event_types)
-
+            derived = row.get("derived_status", "processing")
             if status and derived != status:
                 continue
-
-            first = events[0]
-            last = events[-1]
-
-            # F4: since/until filter on task started_at
-            started_at_dt = _parse_dt(first["timestamp"])
+            # since/until filter on started_at
+            started_at_dt = _parse_dt(row.get("started_at"))
             if since and started_at_dt and started_at_dt < since:
                 continue
             if until and started_at_dt and started_at_dt > until:
                 continue
-
-            # Duration from task_completed/task_failed event
-            duration_ms = None
-            completed_at = None
-            for e in events:
-                if e["event_type"] in ("task_completed", "task_failed"):
-                    duration_ms = e.get("duration_ms")
-                    completed_at = e["timestamp"]
-
-            # Cost + token counts: sum from llm_call payloads (F3)
-            total_cost = 0.0
-            total_tokens_in = 0
-            total_tokens_out = 0
-            llm_call_count = 0
-            for e in events:
-                p = e.get("payload")
-                if p and isinstance(p, dict) and p.get("kind") == "llm_call":
-                    data = p.get("data", {})
-                    if isinstance(data, dict):
-                        total_cost += data.get("cost", 0) or 0
-                        total_tokens_in += data.get("tokens_in", 0) or 0
-                        total_tokens_out += data.get("tokens_out", 0) or 0
-                        llm_call_count += 1
-
-            # Counts
-            action_count = sum(
-                1 for e in events
-                if e["event_type"] in ("action_started",)
-            )
-            error_count = sum(
-                1 for e in events
-                if e["event_type"] in ("action_failed", "task_failed")
-            )
-
+            total_cost = row.get("total_cost", 0.0)
             summaries.append(TaskSummary(
-                task_id=tid,
-                task_type=first.get("task_type"),
-                task_run_id=first.get("task_run_id"),
-                agent_id=first["agent_id"],
-                project_id=first.get("project_id"),
+                task_id=row["task_id"],
+                task_type=row.get("task_type"),
+                task_run_id=row.get("task_run_id"),
+                agent_id=row["agent_id"],
+                project_id=row.get("project_id"),
                 derived_status=derived,
-                started_at=first["timestamp"],
-                completed_at=completed_at,
-                duration_ms=duration_ms,
+                started_at=row["started_at"],
+                completed_at=row.get("completed_at"),
+                duration_ms=row.get("duration_ms"),
                 total_cost=total_cost if total_cost > 0 else None,
-                action_count=action_count,
-                error_count=error_count,
-                has_escalation=EventType.ESCALATED in event_types,
-                has_human_intervention=(
-                    EventType.APPROVAL_REQUESTED in event_types
-                    or EventType.APPROVAL_RECEIVED in event_types
-                ),
-                llm_call_count=llm_call_count,
-                total_tokens_in=total_tokens_in,
-                total_tokens_out=total_tokens_out,
+                action_count=row.get("action_count", 0),
+                error_count=row.get("error_count", 0),
+                has_escalation=row.get("has_escalation", False),
+                has_human_intervention=row.get("has_human_intervention", False),
+                llm_call_count=row.get("llm_call_count", 0),
+                total_tokens_in=row.get("total_tokens_in", 0),
+                total_tokens_out=row.get("total_tokens_out", 0),
             ))
 
         # Sort
@@ -1206,7 +1273,182 @@ class JsonStorageBackend:
         interval = interval or AUTO_INTERVAL.get(range, "5m")
         interval_secs = INTERVAL_SECONDS.get(interval, 300)
 
-        # Gather task events in range
+        # Use aggregates for hourly-or-coarser intervals, unless environment filter
+        use_aggregates = interval_secs >= 3600 and not environment
+
+        if use_aggregates:
+            return await self._get_metrics_from_aggregates(
+                tenant_id, now=now, since=since, range=range,
+                interval=interval, interval_secs=interval_secs,
+                agent_id=agent_id, project_id=project_id,
+                group_by=group_by,
+            )
+
+        # Fall back to event scan for sub-hourly intervals or environment filter
+        return await self._get_metrics_from_events(
+            tenant_id, now=now, since=since, range=range,
+            interval=interval, interval_secs=interval_secs,
+            agent_id=agent_id, project_id=project_id,
+            environment=environment, group_by=group_by,
+        )
+
+    async def _get_metrics_from_aggregates(
+        self,
+        tenant_id: str,
+        *,
+        now: datetime,
+        since: datetime,
+        range: str,
+        interval: str,
+        interval_secs: int,
+        agent_id: str | None = None,
+        project_id: str | None = None,
+        group_by: str | None = None,
+    ) -> MetricsResponse:
+        """Compute metrics from agent_hourly/model_hourly aggregates."""
+        buckets_data = self._filter_hourly_buckets(
+            "agent_hourly", tenant_id, range,
+            agent_id=agent_id, project_id=project_id,
+        )
+
+        completed = sum(b.get("tasks_completed", 0) for b in buckets_data)
+        failed = sum(b.get("tasks_failed", 0) for b in buckets_data)
+        escalations = sum(b.get("escalations", 0) for b in buckets_data)
+        duration_sum = sum(b.get("task_duration_sum_ms", 0) for b in buckets_data)
+        duration_count = sum(b.get("task_duration_count", 0) for b in buckets_data)
+        total_cost = sum(b.get("llm_cost", 0) for b in buckets_data)
+        total_tasks = completed + failed
+
+        # Stuck agents from agents table (live heartbeat status)
+        agents = [
+            AgentRecord(**a) for a in self._tables["agents"]
+            if a["tenant_id"] == tenant_id
+        ]
+        stuck = sum(
+            1 for a in agents
+            if derive_agent_status(a, now) == AgentStatus.STUCK
+        )
+
+        success_rate = (
+            (completed / total_tasks * 100) if total_tasks > 0 else None
+        )
+        avg_duration = (
+            int(duration_sum / duration_count) if duration_count > 0 else None
+        )
+        avg_cost = (
+            total_cost / total_tasks if total_tasks > 0 and total_cost > 0
+            else None
+        )
+
+        summary = MetricsSummary(
+            total_tasks=total_tasks,
+            completed=completed,
+            failed=failed,
+            escalated=escalations,
+            stuck=stuck,
+            success_rate=success_rate,
+            avg_duration_ms=avg_duration,
+            total_cost=total_cost if total_cost > 0 else None,
+            avg_cost_per_task=avg_cost,
+        )
+
+        # Timeseries from hourly buckets
+        timeseries: list[TimeseriesBucket] = []
+        t = since.timestamp()
+        end = now.timestamp()
+        while t < end:
+            bucket_since = datetime.fromtimestamp(t, tz=timezone.utc)
+            bucket_until = datetime.fromtimestamp(t + interval_secs, tz=timezone.utc)
+            since_str = bucket_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+            until_str = bucket_until.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            b_completed = 0
+            b_failed = 0
+            b_dur_sum = 0
+            b_dur_count = 0
+            b_cost = 0.0
+            b_errors = 0
+
+            for b in buckets_data:
+                h = b.get("hour", "")
+                if since_str <= h < until_str:
+                    b_completed += b.get("tasks_completed", 0)
+                    b_failed += b.get("tasks_failed", 0)
+                    b_dur_sum += b.get("task_duration_sum_ms", 0)
+                    b_dur_count += b.get("task_duration_count", 0)
+                    b_cost += b.get("llm_cost", 0)
+                    b_errors += b.get("tasks_failed", 0) + b.get("actions_failed", 0)
+
+            timeseries.append(TimeseriesBucket(
+                timestamp=bucket_since.isoformat(),
+                tasks_completed=b_completed,
+                tasks_failed=b_failed,
+                avg_duration_ms=(
+                    int(b_dur_sum / b_dur_count) if b_dur_count > 0 else None
+                ),
+                cost=b_cost,
+                error_count=b_errors,
+                throughput=b_completed,
+            ))
+            t += interval_secs
+
+        # group_by support
+        groups = None
+        if group_by == "agent":
+            grouped: dict[str, dict] = {}
+            for b in buckets_data:
+                key = b.get("agent_id", "unknown")
+                if key not in grouped:
+                    grouped[key] = {
+                        "agent": key,
+                        "tasks_completed": 0,
+                        "tasks_failed": 0,
+                        "total_cost": 0.0,
+                    }
+                grouped[key]["tasks_completed"] += b.get("tasks_completed", 0)
+                grouped[key]["tasks_failed"] += b.get("tasks_failed", 0)
+                grouped[key]["total_cost"] += b.get("llm_cost", 0)
+            groups = list(grouped.values())
+        elif group_by == "model":
+            model_buckets = self._filter_hourly_buckets(
+                "model_hourly", tenant_id, range,
+            )
+            grouped_m: dict[str, dict] = {}
+            for b in model_buckets:
+                key = b.get("model", "unknown")
+                if key not in grouped_m:
+                    grouped_m[key] = {
+                        "model": key,
+                        "tasks_completed": 0,
+                        "tasks_failed": 0,
+                        "total_cost": 0.0,
+                    }
+                grouped_m[key]["total_cost"] += b.get("cost", 0)
+            groups = list(grouped_m.values())
+
+        return MetricsResponse(
+            range=range,
+            interval=interval,
+            summary=summary,
+            timeseries=timeseries,
+            groups=groups,
+        )
+
+    async def _get_metrics_from_events(
+        self,
+        tenant_id: str,
+        *,
+        now: datetime,
+        since: datetime,
+        range: str,
+        interval: str,
+        interval_secs: int,
+        agent_id: str | None = None,
+        project_id: str | None = None,
+        environment: str | None = None,
+        group_by: str | None = None,
+    ) -> MetricsResponse:
+        """Compute metrics from raw event scan (sub-hourly intervals or environment filter)."""
         events = self._filter_events(
             tenant_id,
             agent_id=agent_id,
@@ -1294,13 +1536,11 @@ class JsonStorageBackend:
                 t + interval_secs, tz=timezone.utc
             )
 
-            # Events in this bucket
             bucket_events = [
                 e for e in events
                 if bucket_since <= (_parse_dt(e["timestamp"]) or bucket_since) < bucket_until
             ]
 
-            # Task metrics in bucket
             btask_events: dict[str, list[dict]] = {}
             for e in bucket_events:
                 tid = e.get("task_id")
@@ -1401,7 +1641,7 @@ class JsonStorageBackend:
     ) -> list[dict]:
         """Get events with payload.kind='llm_call'."""
         results = []
-        for row in self._tables["events"]:
+        for row in self._iter_events(agent_id=agent_id):
             if row["tenant_id"] != tenant_id:
                 continue
             if agent_id and row.get("agent_id") != agent_id:
@@ -1435,60 +1675,45 @@ class JsonStorageBackend:
         project_id: str | None = None,
         range: str = "24h",
     ) -> CostSummary:
-        now = _now_utc()
-        range_secs = RANGE_SECONDS.get(range, 86400)
-        since = datetime.fromtimestamp(
-            now.timestamp() - range_secs, tz=timezone.utc
-        )
-        rows = self._get_llm_call_events(
-            tenant_id, agent_id=agent_id, project_id=project_id, since=since
+        buckets = self._filter_hourly_buckets(
+            "agent_hourly", tenant_id, range,
+            agent_id=agent_id, project_id=project_id,
         )
 
-        total_cost = 0.0
-        total_tokens_in = 0
-        total_tokens_out = 0
-        reported_cost = 0.0
-        estimated_cost = 0.0
+        total_cost = sum(b.get("llm_cost", 0) for b in buckets)
+        call_count = sum(b.get("llm_call_count", 0) for b in buckets)
+        total_tokens_in = sum(b.get("llm_tokens_in", 0) for b in buckets)
+        total_tokens_out = sum(b.get("llm_tokens_out", 0) for b in buckets)
+        reported_cost = sum(b.get("reported_cost", 0) for b in buckets)
+        estimated_cost = sum(b.get("estimated_cost", 0) for b in buckets)
+
+        # by_agent: group buckets by agent_id
         by_agent: dict[str, dict] = {}
-        by_model: dict[str, dict] = {}
-
-        for row in rows:
-            data = row["payload"]["data"]
-            cost = data.get("cost", 0) or 0
-            t_in = data.get("tokens_in", 0) or 0
-            t_out = data.get("tokens_out", 0) or 0
-            cost_source = data.get("cost_source")
-            total_cost += cost
-            total_tokens_in += t_in
-            total_tokens_out += t_out
-            if cost_source == "reported":
-                reported_cost += cost
-            elif cost_source == "estimated":
-                estimated_cost += cost
-            aid = row["agent_id"]
-            mdl = data.get("model", "unknown")
-
+        for b in buckets:
+            aid = b.get("agent_id", "unknown")
             if aid not in by_agent:
                 by_agent[aid] = {"agent_id": aid, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0}
-            by_agent[aid]["cost"] += cost
-            by_agent[aid]["call_count"] += 1
-            by_agent[aid]["tokens_in"] += t_in
-            by_agent[aid]["tokens_out"] += t_out
-            if cost_source == "estimated":
-                by_agent[aid]["estimated_cost"] += cost
+            by_agent[aid]["cost"] += b.get("llm_cost", 0)
+            by_agent[aid]["call_count"] += b.get("llm_call_count", 0)
+            by_agent[aid]["tokens_in"] += b.get("llm_tokens_in", 0)
+            by_agent[aid]["tokens_out"] += b.get("llm_tokens_out", 0)
+            by_agent[aid]["estimated_cost"] += b.get("estimated_cost", 0)
 
-            if mdl not in by_model:
-                by_model[mdl] = {"model": mdl, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0}
-            by_model[mdl]["cost"] += cost
-            by_model[mdl]["call_count"] += 1
-            by_model[mdl]["tokens_in"] += t_in
-            by_model[mdl]["tokens_out"] += t_out
-            if cost_source == "estimated":
-                by_model[mdl]["estimated_cost"] += cost
+        # by_model: merge "models" nested dicts from buckets
+        by_model: dict[str, dict] = {}
+        for b in buckets:
+            models = b.get("models", {})
+            for mdl, mdata in models.items():
+                if mdl not in by_model:
+                    by_model[mdl] = {"model": mdl, "cost": 0, "call_count": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0}
+                by_model[mdl]["cost"] += mdata.get("cost", 0)
+                by_model[mdl]["call_count"] += mdata.get("calls", 0)
+                by_model[mdl]["tokens_in"] += mdata.get("tokens_in", 0)
+                by_model[mdl]["tokens_out"] += mdata.get("tokens_out", 0)
 
         return CostSummary(
             total_cost=total_cost,
-            call_count=len(rows),
+            call_count=call_count,
             total_tokens_in=total_tokens_in,
             total_tokens_out=total_tokens_out,
             by_agent=list(by_agent.values()),
@@ -1579,6 +1804,15 @@ class JsonStorageBackend:
         interval = interval or AUTO_INTERVAL.get(range, "1h")
         interval_secs = INTERVAL_SECONDS.get(interval, 3600)
 
+        # Use aggregates for hourly-or-coarser intervals
+        if interval_secs >= 3600:
+            return self._get_cost_timeseries_from_aggregates(
+                tenant_id, now=now, since=since, range=range,
+                interval_secs=interval_secs,
+                agent_id=agent_id, project_id=project_id,
+            )
+
+        # Fall back to event scan for sub-hourly intervals
         rows = self._get_llm_call_events(
             tenant_id, agent_id=agent_id, project_id=project_id, since=since
         )
@@ -1614,6 +1848,56 @@ class JsonStorageBackend:
 
         return buckets
 
+    def _get_cost_timeseries_from_aggregates(
+        self,
+        tenant_id: str,
+        *,
+        now: datetime,
+        since: datetime,
+        range: str,
+        interval_secs: int,
+        agent_id: str | None = None,
+        project_id: str | None = None,
+    ) -> list[CostTimeBucket]:
+        """Build cost timeseries from agent_hourly aggregates."""
+        hourly_buckets = self._filter_hourly_buckets(
+            "agent_hourly", tenant_id, range,
+            agent_id=agent_id, project_id=project_id,
+        )
+
+        result: list[CostTimeBucket] = []
+        t = since.timestamp()
+        end = now.timestamp()
+        while t < end:
+            bucket_since = datetime.fromtimestamp(t, tz=timezone.utc)
+            bucket_until = datetime.fromtimestamp(t + interval_secs, tz=timezone.utc)
+            since_str = bucket_since.strftime("%Y-%m-%dT%H:%M:%SZ")
+            until_str = bucket_until.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            b_cost = 0.0
+            b_count = 0
+            b_tokens_in = 0
+            b_tokens_out = 0
+
+            for b in hourly_buckets:
+                h = b.get("hour", "")
+                if since_str <= h < until_str:
+                    b_cost += b.get("llm_cost", 0)
+                    b_count += b.get("llm_call_count", 0)
+                    b_tokens_in += b.get("llm_tokens_in", 0)
+                    b_tokens_out += b.get("llm_tokens_out", 0)
+
+            result.append(CostTimeBucket(
+                timestamp=bucket_since.isoformat(),
+                cost=b_cost,
+                call_count=b_count,
+                tokens_in=b_tokens_in,
+                tokens_out=b_tokens_out,
+            ))
+            t += interval_secs
+
+        return result
+
     # ───────────────────────────────────────────────────────────────────
     #  PIPELINE (derived from well-known payload kinds)
     # ───────────────────────────────────────────────────────────────────
@@ -1624,10 +1908,9 @@ class JsonStorageBackend:
         agent_id: str,
     ) -> PipelineState:
         custom_events = [
-            r for r in self._tables["events"]
+            r for r in self._iter_events(agent_id=agent_id)
             if (
                 r["tenant_id"] == tenant_id
-                and r.get("agent_id") == agent_id
                 and r["event_type"] == "custom"
                 and isinstance(r.get("payload"), dict)
                 and r["payload"].get("kind") in (
@@ -1926,12 +2209,13 @@ class JsonStorageBackend:
     # ═══════════════════════════════════════════════════════════════════════
 
     async def prune_events(self) -> dict[str, int]:
-        """Run all event retention policies in a single pass.
+        """Run all event retention policies in a single pass per agent partition.
 
-        Combines TTL pruning (plan-based retention) and cold event pruning
-        (shorter retention for heartbeats and action_started).
+        Combines TTL pruning (plan-based retention), cold event pruning
+        (shorter retention for heartbeats, actions, and payload kinds),
+        and payload stripping for old LLM call events.
 
-        Returns dict with counts: {"ttl_pruned": N, "cold_pruned": N, "total_pruned": N}
+        Returns dict with counts: {"ttl_pruned": N, "cold_pruned": N, "payload_stripped": N, "total_pruned": N}
         """
         now = _now_utc()
 
@@ -1944,33 +2228,74 @@ class JsonStorageBackend:
 
         ttl_pruned = 0
         cold_pruned = 0
+        stripped = 0
 
         async with self._locks["events"]:
-            before = len(self._tables["events"])
-            kept: list[dict[str, Any]] = []
+            modified_agents: set[str] = set()
+            empty_agents: list[str] = []
 
-            for row in self._tables["events"]:
-                # Phase 1: TTL check
-                if not self._is_event_within_retention(row, cutoffs, now):
-                    ttl_pruned += 1
-                    continue
+            for aid, events in self._agent_events.items():
+                kept: list[dict[str, Any]] = []
+                agent_modified = False
 
-                # Phase 2: Cold event check
-                if not self._is_cold_event_within_retention(row, now):
-                    cold_pruned += 1
-                    continue
+                for row in events:
+                    # Phase 1: TTL check
+                    if not self._is_event_within_retention(row, cutoffs, now):
+                        ttl_pruned += 1
+                        agent_modified = True
+                        continue
 
-                kept.append(row)
+                    # Phase 2: Cold event check
+                    if not self._is_cold_event_within_retention(row, now):
+                        cold_pruned += 1
+                        agent_modified = True
+                        continue
 
-            total_pruned = ttl_pruned + cold_pruned
-            if total_pruned > 0:
-                self._tables["events"] = kept
-                self._persist("events")
+                    kept.append(row)
+
+                # Phase 3: Strip large payload fields from old llm_call events
+                for row in kept:
+                    if row.get("event_type") != "custom":
+                        continue
+                    payload = row.get("payload")
+                    if not isinstance(payload, dict) or payload.get("kind") != "llm_call":
+                        continue
+                    ts = _parse_dt(row.get("timestamp"))
+                    if ts and (now - ts).total_seconds() > PAYLOAD_STRIP_SECONDS:
+                        data = payload.get("data")
+                        if isinstance(data, dict):
+                            changed = False
+                            if data.get("prompt_preview") is not None:
+                                data["prompt_preview"] = None
+                                changed = True
+                            if data.get("response_preview") is not None:
+                                data["response_preview"] = None
+                                changed = True
+                            if changed:
+                                stripped += 1
+                                agent_modified = True
+
+                if agent_modified:
+                    self._agent_events[aid] = kept
+                    modified_agents.add(aid)
+                    if not kept:
+                        empty_agents.append(aid)
+
+            for aid in modified_agents:
+                self._persist_agent_events(aid)
+
+            # Clean up empty partitions
+            for aid in empty_agents:
+                del self._agent_events[aid]
+                fp = self._data_dir / "events" / f"{aid}.json"
+                if fp.exists():
+                    fp.unlink()
 
         return {
             "ttl_pruned": ttl_pruned,
             "cold_pruned": cold_pruned,
-            "total_pruned": total_pruned,
+            "payload_stripped": stripped,
+            "total_pruned": ttl_pruned + cold_pruned,
         }
 
     def _is_event_within_retention(
@@ -1999,17 +2324,33 @@ class JsonStorageBackend:
         """Check if a cold event type is within its shorter retention window.
 
         Non-cold event types always return True (kept by this filter).
+        Also checks payload-kind-level cold retention for custom events.
         """
         event_type = row.get("event_type")
+
+        # Check event-type-level cold retention
         max_age_seconds = COLD_EVENT_RETENTION.get(event_type)
-        if max_age_seconds is None:
-            # Not a cold event type — keep it
-            return True
-        ts = _parse_dt(row.get("timestamp"))
-        if ts is None:
-            return True
-        age = (now - ts).total_seconds()
-        return age <= max_age_seconds
+        if max_age_seconds is not None:
+            ts = _parse_dt(row.get("timestamp"))
+            if ts is None:
+                return True
+            age = (now - ts).total_seconds()
+            return age <= max_age_seconds
+
+        # Check payload-kind-level cold retention (for custom events)
+        if event_type == "custom":
+            payload = row.get("payload")
+            if isinstance(payload, dict):
+                kind = payload.get("kind")
+                max_age = COLD_PAYLOAD_RETENTION.get(kind)
+                if max_age is not None:
+                    ts = _parse_dt(row.get("timestamp"))
+                    if ts is None:
+                        return True
+                    age = (now - ts).total_seconds()
+                    return age <= max_age
+
+        return True
 
     # ───────────────────────────────────────────────────────────────────
     #  AGGREGATE RETENTION & PRUNING

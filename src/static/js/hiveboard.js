@@ -212,8 +212,9 @@ function fmtDuration(ms) {
 }
 function fmtCost(c, costSource) {
   if (c == null) return '—';
-  if (costSource === 'estimated') return '~$' + c.toFixed(2);
-  return '$' + c.toFixed(2);
+  var decimals = (c > 0 && c < 0.01) ? 4 : 2;
+  if (costSource === 'estimated') return '~$' + c.toFixed(decimals);
+  return '$' + c.toFixed(decimals);
 }
 function timeAgo(ts) {
   if (!ts) return '—';

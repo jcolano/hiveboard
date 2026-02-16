@@ -619,6 +619,35 @@ class TaskSummary(BaseModel):
     total_tokens_out: int = 0
 
 
+class TaskRunRecord(BaseModel):
+    """Pre-computed task run record — one row per (task_id, task_run_id)."""
+    tenant_id: str
+    task_id: str
+    task_run_id: str
+    agent_id: str
+    project_id: str | None = None
+    task_type: str | None = None
+    environment: str = "production"
+    started_at: str
+    completed_at: str | None = None
+    derived_status: str = "processing"
+    duration_ms: int | None = None
+    trigger_type: str | None = None
+    event_count: int = 0
+    action_count: int = 0
+    llm_call_count: int = 0
+    error_count: int = 0
+    plan_step_count: int = 0
+    plan_completed_count: int = 0
+    total_cost: float = 0.0
+    total_tokens_in: int = 0
+    total_tokens_out: int = 0
+    has_escalation: bool = False
+    has_human_intervention: bool = False
+    has_plan: bool = False
+    has_reflection: bool = False
+
+
 class TimelineSummary(BaseModel):
     """Task timeline response — API Spec Section 4.4."""
     task_id: str

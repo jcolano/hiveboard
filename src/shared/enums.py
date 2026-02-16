@@ -212,9 +212,19 @@ PRUNE_INTERVAL_SECONDS = 300  # 5 minutes — background prune cycle
 INVITE_EXPIRY_SECONDS = 604800      # 7 days
 
 COLD_EVENT_RETENTION: dict[str, int] = {
-    EventType.HEARTBEAT: 600,          # 10 minutes
-    EventType.ACTION_STARTED: 86400,   # 24 hours
+    EventType.HEARTBEAT: 600,           # 10 minutes
+    EventType.ACTION_STARTED: 86400,    # 24 hours
+    EventType.ACTION_COMPLETED: 604800, # 7 days
+    EventType.ACTION_FAILED: 604800,    # 7 days
 }
+
+# Payload-kind cold retention (for custom events)
+COLD_PAYLOAD_RETENTION: dict[str, int] = {
+    "queue_snapshot": 3600,   # 1 hour — only latest matters
+    "scheduled": 3600,        # 1 hour — only latest matters
+}
+
+PAYLOAD_STRIP_SECONDS = 259200  # 3 days — strip large fields from old llm_call events
 
 AGGREGATE_RETENTION_DAYS = 90
 

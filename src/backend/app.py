@@ -90,7 +90,7 @@ async def lifespan(app: FastAPI):
             result["total_pruned"],
             result["ttl_pruned"],
             result["cold_pruned"],
-            len(storage._tables["events"]),
+            storage._total_event_count(),
         )
 
     app.state.storage = storage
@@ -152,7 +152,7 @@ async def _prune_loop(storage: JsonStorageBackend):
                     total,
                     result["ttl_pruned"],
                     result["cold_pruned"],
-                    len(storage._tables["events"]),
+                    storage._total_event_count(),
                 )
             # Prune old aggregate buckets
             agg_result = await storage.prune_aggregates()
@@ -584,6 +584,20 @@ async def ingest(body: IngestRequest, request: Request):
 
         storage._persist("agent_hourly")
         storage._persist("model_hourly")
+
+    # Step 7c: Update task_runs
+    if accepted_events:
+        from backend.aggregator import get_or_create_task_run, update_task_run
+        modified_task_runs = False
+        for ev in accepted_events:
+            if ev.task_id and ev.task_run_id:
+                run_bucket = get_or_create_task_run(
+                    storage._tables["task_runs"], tenant_id, ev.task_id, ev.task_run_id,
+                )
+                update_task_run(run_bucket, ev)
+                modified_task_runs = True
+        if modified_task_runs:
+            storage._persist("task_runs")
 
     # Step 8: Project-agent junction
     for pid in project_ids_seen:
@@ -1874,6 +1888,15 @@ async def rebuild_aggregates_endpoint(request: Request):
     storage = request.app.state.storage
     result = await rebuild_aggregates(storage)
     return {"status": "rebuilt", "buckets": result}
+
+
+@app.post("/v1/admin/rebuild-task-runs")
+async def admin_rebuild_task_runs(request: Request):
+    """Rebuild task_runs table from raw events (admin)."""
+    from backend.aggregator import rebuild_task_runs
+    storage = request.app.state.storage
+    count = await rebuild_task_runs(storage)
+    return {"status": "rebuilt", "task_runs": count}
 
 
 # ═══════════════════════════════════════════════════════════════════════════

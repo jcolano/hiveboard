@@ -421,6 +421,8 @@ class StorageBackend(Protocol):
         self,
         tenant_id: str,
         task_id: str,
+        *,
+        agent_id: str | None = None,
     ) -> list[Event]:
         """All events for a task, chronologically ordered.
 

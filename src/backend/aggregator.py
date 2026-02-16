@@ -96,8 +96,8 @@ def update_agent_hourly(bucket: dict[str, Any], event: Any) -> None:
 
     elif et == "task_completed":
         _inc(bucket, "tasks_completed")
-        _inc(bucket, "task_duration_count")
         if event.duration_ms:
+            _inc(bucket, "task_duration_count")
             _inc(bucket, "task_duration_sum_ms", event.duration_ms)
         task_type = event.task_type
         if task_type:
@@ -105,8 +105,8 @@ def update_agent_hourly(bucket: dict[str, Any], event: Any) -> None:
 
     elif et == "task_failed":
         _inc(bucket, "tasks_failed")
-        _inc(bucket, "task_duration_count")
         if event.duration_ms:
+            _inc(bucket, "task_duration_count")
             _inc(bucket, "task_duration_sum_ms", event.duration_ms)
         task_type = event.task_type
         if task_type:
@@ -187,6 +187,13 @@ def update_agent_hourly(bucket: dict[str, Any], event: Any) -> None:
         c["tokens_in_sum"] = c.get("tokens_in_sum", 0) + tokens_in
         c["tokens_out_sum"] = c.get("tokens_out_sum", 0) + tokens_out
         c["cost_sum"] = c.get("cost_sum", 0) + cost
+
+        # Cost source tracking
+        cost_source = data.get("cost_source")
+        if cost_source == "reported":
+            _inc(bucket, "reported_cost", cost)
+        elif cost_source == "estimated":
+            _inc(bucket, "estimated_cost", cost)
 
     # ── Issue tracking (payload kind) ──
     if payload_kind == "issue":
@@ -270,6 +277,13 @@ def update_model_hourly(bucket: dict[str, Any], event: Any) -> None:
     c["count"] = c.get("count", 0) + 1
     c["cost_sum"] = c.get("cost_sum", 0) + cost
 
+    # Cost source tracking
+    cost_source = data.get("cost_source")
+    if cost_source == "reported":
+        _inc(bucket, "reported_cost", cost)
+    elif cost_source == "estimated":
+        _inc(bucket, "estimated_cost", cost)
+
 
 # ───────────────────────────────────────────────────────────────────────
 #  REBUILD FROM RAW EVENTS
@@ -287,7 +301,7 @@ async def rebuild_aggregates(storage: Any) -> dict[str, int]:
     storage._tables["agent_hourly"] = []
     storage._tables["model_hourly"] = []
 
-    for row in storage._tables["events"]:
+    for row in storage._iter_events():
         ev = Event(**row)
         tenant_id = ev.tenant_id
         hour = _hour_key(ev.timestamp)
@@ -316,3 +330,156 @@ async def rebuild_aggregates(storage: Any) -> dict[str, int]:
         "agent_hourly": len(storage._tables["agent_hourly"]),
         "model_hourly": len(storage._tables["model_hourly"]),
     }
+
+
+# ───────────────────────────────────────────────────────────────────────
+#  TASK RUNS — Pre-computed per (task_id, task_run_id)
+# ───────────────────────────────────────────────────────────────────────
+
+def get_or_create_task_run(
+    table: list[dict[str, Any]],
+    tenant_id: str,
+    task_id: str,
+    task_run_id: str,
+) -> dict[str, Any]:
+    """Find or create a task_run row in the given table."""
+    for row in table:
+        if (
+            row.get("tenant_id") == tenant_id
+            and row.get("task_id") == task_id
+            and row.get("task_run_id") == task_run_id
+        ):
+            return row
+    new_row: dict[str, Any] = {
+        "tenant_id": tenant_id,
+        "task_id": task_id,
+        "task_run_id": task_run_id,
+        "derived_status": "processing",
+        "event_count": 0,
+        "action_count": 0,
+        "llm_call_count": 0,
+        "error_count": 0,
+        "plan_step_count": 0,
+        "plan_completed_count": 0,
+        "total_cost": 0.0,
+        "total_tokens_in": 0,
+        "total_tokens_out": 0,
+        "has_escalation": False,
+        "has_human_intervention": False,
+        "has_plan": False,
+        "has_reflection": False,
+    }
+    table.append(new_row)
+    return new_row
+
+
+def update_task_run(bucket: dict[str, Any], event: Any) -> None:
+    """Update a task_run bucket from a single Event."""
+    bucket["event_count"] = bucket.get("event_count", 0) + 1
+
+    # Set initial fields from first event
+    if "agent_id" not in bucket:
+        bucket["agent_id"] = event.agent_id
+    if "started_at" not in bucket:
+        bucket["started_at"] = event.timestamp
+
+    # Always update common fields
+    if event.agent_id:
+        bucket["agent_id"] = event.agent_id
+    if event.project_id:
+        bucket["project_id"] = event.project_id
+    if event.task_type:
+        bucket["task_type"] = event.task_type
+    if event.environment:
+        bucket["environment"] = event.environment
+
+    et = event.event_type
+    payload = event.payload or {}
+    data = payload.get("data", {}) if isinstance(payload, dict) else {}
+    if not isinstance(data, dict):
+        data = {}
+    payload_kind = payload.get("kind") if isinstance(payload, dict) else None
+
+    if et == "task_started":
+        bucket["started_at"] = event.timestamp
+        trigger_type = data.get("source") or data.get("trigger_type")
+        if trigger_type:
+            bucket["trigger_type"] = trigger_type
+
+    elif et == "task_completed":
+        bucket["completed_at"] = event.timestamp
+        bucket["derived_status"] = "completed"
+        if event.duration_ms is not None:
+            bucket["duration_ms"] = event.duration_ms
+
+    elif et == "task_failed":
+        bucket["completed_at"] = event.timestamp
+        bucket["derived_status"] = "failed"
+        bucket["error_count"] = bucket.get("error_count", 0) + 1
+        if event.duration_ms is not None:
+            bucket["duration_ms"] = event.duration_ms
+
+    elif et == "escalated":
+        bucket["has_escalation"] = True
+        if bucket.get("derived_status") == "processing":
+            bucket["derived_status"] = "escalated"
+
+    elif et in ("approval_requested", "approval_received"):
+        bucket["has_human_intervention"] = True
+        if et == "approval_requested" and bucket.get("derived_status") == "processing":
+            bucket["derived_status"] = "waiting"
+        elif et == "approval_received" and bucket.get("derived_status") == "waiting":
+            bucket["derived_status"] = "processing"
+
+    elif et == "action_started":
+        bucket["action_count"] = bucket.get("action_count", 0) + 1
+
+    elif et == "action_failed":
+        bucket["error_count"] = bucket.get("error_count", 0) + 1
+
+    # LLM call payload kind
+    if payload_kind == "llm_call":
+        bucket["llm_call_count"] = bucket.get("llm_call_count", 0) + 1
+        bucket["total_cost"] = bucket.get("total_cost", 0.0) + (data.get("cost", 0) or 0)
+        bucket["total_tokens_in"] = bucket.get("total_tokens_in", 0) + (data.get("tokens_in", 0) or 0)
+        bucket["total_tokens_out"] = bucket.get("total_tokens_out", 0) + (data.get("tokens_out", 0) or 0)
+
+    # Plan created payload kind
+    if payload_kind == "plan_created":
+        bucket["has_plan"] = True
+        steps = data.get("steps", [])
+        if isinstance(steps, list):
+            bucket["plan_step_count"] = len(steps)
+
+    # Plan step with action=completed
+    if payload_kind == "plan_step":
+        action = data.get("action")
+        if action == "completed":
+            bucket["plan_completed_count"] = bucket.get("plan_completed_count", 0) + 1
+
+    # Reflection payload kind
+    if payload_kind == "reflection":
+        bucket["has_reflection"] = True
+
+
+async def rebuild_task_runs(storage: Any) -> int:
+    """Rebuild task_runs table from raw events.
+
+    Clears and re-processes all events. Returns count of task_runs created.
+    """
+    from shared.models import Event
+
+    storage._tables["task_runs"] = []
+
+    for row in storage._iter_events():
+        ev = Event(**row)
+        if not ev.task_id or not ev.task_run_id:
+            continue
+        run_bucket = get_or_create_task_run(
+            storage._tables["task_runs"],
+            ev.tenant_id, ev.task_id, ev.task_run_id,
+        )
+        update_task_run(run_bucket, ev)
+
+    storage._persist("task_runs")
+    return len(storage._tables["task_runs"])
