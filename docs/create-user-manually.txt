@@ -1,0 +1,1 @@
+Invoke-RestMethod -Uri "https://mlbackend.net/loophive/v1/users" -Method POST -Headers @{"Authorization"="Bearer hb_live_dev000000000000000000000000000000";"Content-Type"="application/json"} -Body '{"email":"jc@demo.com","name":"JC","role":"owner","password":"demo1234"}'

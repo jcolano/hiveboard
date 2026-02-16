@@ -461,7 +461,16 @@ async function fetchTimeline(taskId) {
   // ★ Feature 5: Store error chains from response
   var errorChains = data.error_chains || [];
 
-  TIMELINES[taskId] = { plan: plan, nodes: nodes, actionTree: actionTree, errorChains: errorChains };
+  TIMELINES[taskId] = {
+    plan: plan, nodes: nodes, actionTree: actionTree, errorChains: errorChains,
+    agentId: data.agent_id || '',
+    taskType: data.task_type || '',
+    status: data.derived_status || '',
+    startedAt: data.started_at || '',
+    completedAt: data.completed_at || null,
+    durationMs: data.duration_ms || null,
+    totalCost: data.total_cost || null
+  };
 }
 
 // ★ Feature 7: Richer event data extraction
@@ -873,41 +882,24 @@ function renderPlanBar() {
   document.getElementById('planLabel').textContent = `Plan · ${total} steps`;
   document.getElementById('planProgress').textContent = `${completed}/${total} completed`;
   document.getElementById('planSteps').innerHTML = plan.steps.map(s =>
-    `<div class="plan-step ${s.status}"><div class="plan-step-tooltip">${escHtml(s.desc)}</div></div>`
+    `<div class="plan-step ${s.status}"><div class="plan-step-bar"></div><div class="plan-step-label" title="${escHtml(s.desc)}">${escHtml(s.desc)}</div></div>`
   ).join('');
   planBar.classList.add('visible');
 }
 
 function renderTimeline() {
   const treeCanvas = document.getElementById('actionTreeCanvas');
-  const flatCanvas = document.getElementById('timelineCanvas');
   const tl = TIMELINES[selectedTask];
   pinnedNode = null;
   document.getElementById('pinnedDetail').classList.remove('visible');
   renderPlanBar();
   renderDurationBreakdown();
 
-  // Update toggle state
-  document.querySelectorAll('.view-toggle-btn').forEach(function(btn) {
-    btn.classList.toggle('active', btn.dataset.mode === timelineViewMode);
-  });
-
-  if (timelineViewMode === 'tree') {
-    // ★ Tree view
-    flatCanvas.style.display = 'none';
-    treeCanvas.style.display = '';
-    if (!tl || !tl.actionTree) {
-      // Fallback: no tree data, show flat
-      treeCanvas.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🌳</span>No tree data available</div>';
-      return;
-    }
-    treeCanvas.innerHTML = renderActionTree();
-  } else {
-    // Flat view (original behavior)
-    treeCanvas.style.display = 'none';
-    flatCanvas.style.display = '';
-    renderFlatTimeline();
+  if (!tl || !tl.actionTree) {
+    treeCanvas.innerHTML = '<div class="empty-state"><span class="empty-state-icon">🌳</span>No tree data available</div>';
+    return;
   }
+  treeCanvas.innerHTML = renderActionTree();
 }
 
 function renderFlatTimeline() {
@@ -1640,6 +1632,7 @@ async function selectTask(taskId) {
   renderTasks();
   await fetchTimeline(taskId);
   renderTimeline();
+  openTaskModal(taskId);
 }
 
 function updateTimelineHeader() {
@@ -1903,23 +1896,134 @@ function openActionDetailFromTree(el) {
 
   if (!found) return;
 
-  // Show in pinned detail panel
-  var color = found.status === 'failed' || found.status === 'error' ? 'var(--error)' : 'var(--active)';
+  var isFailed = found.status === 'failed' || found.status === 'error';
+  var color = isFailed ? 'var(--error)' : 'var(--active)';
   var name = found.name || found.action_name || 'Action';
   var dur = found.duration_ms != null ? fmtDuration(found.duration_ms) : '';
   document.getElementById('pinnedTitle').innerHTML = '<span style="color: ' + color + '">\u25CF</span> ' + escHtml(name) + (dur ? ' <span style="color: var(--text-muted); font-weight: 400; font-size: 10px; margin-left: 8px">' + dur + '</span>' : '');
 
-  var bodyHtml = '<div class="detail-col">';
-  bodyHtml += '<div class="detail-row"><span class="detail-key">action_id</span><span class="detail-val">' + escHtml(found.action_id || '\u2014') + '</span></div>';
-  bodyHtml += '<div class="detail-row"><span class="detail-key">status</span><span class="detail-val">' + escHtml(found.status || '\u2014') + '</span></div>';
+  // ── Section 1: Core fields ──
+  var bodyHtml = '<div class="detail-section-label">Identity</div>';
+  bodyHtml += '<div class="detail-col">';
+  bodyHtml += '<div class="detail-row"><span class="detail-key">action_id</span><span class="detail-val detail-val-mono">' + escHtml(found.action_id || '\u2014') + '</span></div>';
+  if (found.parent_action_id) bodyHtml += '<div class="detail-row"><span class="detail-key">parent</span><span class="detail-val detail-val-mono">' + escHtml(found.parent_action_id) + '</span></div>';
+  bodyHtml += '<div class="detail-row"><span class="detail-key">status</span><span class="detail-val' + (isFailed ? ' detail-val-error' : '') + '">' + escHtml(found.status || '\u2014') + '</span></div>';
   if (found.duration_ms != null) bodyHtml += '<div class="detail-row"><span class="detail-key">duration</span><span class="detail-val">' + fmtDuration(found.duration_ms) + '</span></div>';
-  if (found.error_message || found.exception_message) bodyHtml += '<div class="detail-row"><span class="detail-key">error</span><span class="detail-val" style="color:var(--error)">' + escHtml(found.error_message || found.exception_message) + '</span></div>';
-  if (found.summary) bodyHtml += '<div class="detail-row"><span class="detail-key">summary</span><span class="detail-val">' + escHtml(found.summary) + '</span></div>';
-  if (found.tool_args) bodyHtml += '<div class="detail-row"><span class="detail-key">args</span><span class="detail-val">' + escHtml(typeof found.tool_args === 'string' ? found.tool_args : JSON.stringify(found.tool_args)) + '</span></div>';
+  var childCount = (found.children || []).length;
+  if (childCount > 0) bodyHtml += '<div class="detail-row"><span class="detail-key">children</span><span class="detail-val">' + childCount + ' sub-actions</span></div>';
   bodyHtml += '</div>';
+
+  // ── Section 2: Error details ──
+  var errorMsg = found.error_message || found.exception_message || null;
+  var errorType = found.error_type || found.exception_type || '';
+  if (errorMsg) {
+    bodyHtml += '<div class="detail-section-label">Error</div>';
+    bodyHtml += '<div class="detail-col">';
+    if (errorType) bodyHtml += '<div class="detail-row"><span class="detail-key">type</span><span class="detail-val detail-val-error">' + escHtml(errorType) + '</span></div>';
+    bodyHtml += '<div class="detail-pre-block detail-val-error">' + escHtml(errorMsg) + '</div>';
+    bodyHtml += '</div>';
+  }
+
+  // ── Section 3: Summary ──
+  if (found.summary) {
+    bodyHtml += '<div class="detail-section-label">Summary</div>';
+    bodyHtml += '<div class="detail-pre-block">' + escHtml(found.summary) + '</div>';
+  }
+
+  // ── Section 4: Tool data from node ──
+  if (found.tool_args || found.tool_result || found.tool_category) {
+    bodyHtml += '<div class="detail-section-label">Tool</div>';
+    bodyHtml += '<div class="detail-col">';
+    if (found.tool_category) bodyHtml += '<div class="detail-row"><span class="detail-key">category</span><span class="detail-val">' + escHtml(found.tool_category) + '</span></div>';
+    if (found.http_status) bodyHtml += '<div class="detail-row"><span class="detail-key">http_status</span><span class="detail-val">' + found.http_status + '</span></div>';
+    if (found.result_size_bytes) bodyHtml += '<div class="detail-row"><span class="detail-key">result_size</span><span class="detail-val">' + found.result_size_bytes + ' bytes</span></div>';
+    bodyHtml += '</div>';
+    if (found.tool_args) {
+      bodyHtml += '<div class="detail-sub-label">Arguments</div>';
+      bodyHtml += '<div class="detail-pre-block">' + escHtml(typeof found.tool_args === 'string' ? found.tool_args : JSON.stringify(found.tool_args, null, 2)) + '</div>';
+    }
+    if (found.tool_result) {
+      bodyHtml += '<div class="detail-sub-label">Result</div>';
+      bodyHtml += '<div class="detail-pre-block">' + escHtml(typeof found.tool_result === 'string' ? found.tool_result : JSON.stringify(found.tool_result, null, 2)) + '</div>';
+    }
+  }
+
+  // ── Section 5: Extract rich data from raw events ──
+  var events = found.events || [];
+  if (events.length > 0) {
+    // Timestamps
+    var startedEvt = events.find(function(e) { return e.event_type === 'action_started'; });
+    var completedEvt = events.find(function(e) { return e.event_type === 'action_completed' || e.event_type === 'action_failed'; });
+
+    bodyHtml += '<div class="detail-section-label">Timeline</div>';
+    bodyHtml += '<div class="detail-col">';
+    if (startedEvt) bodyHtml += '<div class="detail-row"><span class="detail-key">started</span><span class="detail-val">' + fmtTimestamp(startedEvt.timestamp) + '</span></div>';
+    if (completedEvt) bodyHtml += '<div class="detail-row"><span class="detail-key">ended</span><span class="detail-val">' + fmtTimestamp(completedEvt.timestamp) + '</span></div>';
+    if (startedEvt && startedEvt.severity) bodyHtml += '<div class="detail-row"><span class="detail-key">severity</span><span class="detail-val">' + escHtml(startedEvt.severity) + '</span></div>';
+    bodyHtml += '</div>';
+
+    // Extract payload data from events
+    events.forEach(function(evt, i) {
+      if (!evt.payload) return;
+      var p = evt.payload;
+      var pData = p.data || {};
+      var hasContent = false;
+
+      // Check if there's meaningful payload data beyond what we already displayed
+      var interesting = {};
+      if (p.kind) interesting.kind = p.kind;
+      if (p.summary && p.summary !== found.summary) interesting.summary = p.summary;
+      if (pData.tool_category) interesting.tool_category = pData.tool_category;
+      if (pData.http_status) interesting.http_status = pData.http_status;
+      if (pData.result_size_bytes) interesting.result_size = pData.result_size_bytes + ' bytes';
+      if (pData.args && !found.tool_args) interesting.args = pData.args;
+      if (pData.result && !found.tool_result) interesting.result = pData.result;
+      if (pData.success !== undefined) interesting.success = pData.success;
+      if (pData.error && !errorMsg) interesting.error = pData.error;
+      if (pData.action_name) interesting.action_name = pData.action_name;
+      if (pData.function) interesting.function = pData.function;
+
+      var keys = Object.keys(interesting);
+      if (keys.length === 0) return;
+
+      bodyHtml += '<div class="detail-section-label">Payload (' + escHtml(evt.event_type) + ')</div>';
+      bodyHtml += '<div class="detail-col">';
+      keys.forEach(function(k) {
+        var v = interesting[k];
+        var display = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
+        if (display.length > 200) {
+          bodyHtml += '<div class="detail-row"><span class="detail-key">' + escHtml(k) + '</span></div>';
+          bodyHtml += '<div class="detail-pre-block">' + escHtml(display) + '</div>';
+        } else {
+          bodyHtml += '<div class="detail-row"><span class="detail-key">' + escHtml(k) + '</span><span class="detail-val">' + escHtml(display) + '</span></div>';
+        }
+      });
+      bodyHtml += '</div>';
+    });
+  }
+
+  // ── Section 6: Event log ──
+  if (events.length > 0) {
+    bodyHtml += '<div class="detail-section-label detail-section-dim">Events (' + events.length + ')</div>';
+    bodyHtml += '<div class="detail-col">';
+    events.forEach(function(evt) {
+      var label = (evt.event_type || '').replace(/_/g, ' ');
+      var ts = fmtTimestamp(evt.timestamp);
+      bodyHtml += '<div class="detail-row"><span class="detail-key">' + escHtml(label) + '</span><span class="detail-val">' + ts + '</span></div>';
+    });
+    bodyHtml += '</div>';
+  }
 
   document.getElementById('pinnedBody').innerHTML = bodyHtml;
   document.getElementById('pinnedDetail').classList.add('visible');
+}
+
+function fmtTimestamp(ts) {
+  if (!ts) return '\u2014';
+  try {
+    var d = new Date(ts);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + '.' + String(d.getMilliseconds()).padStart(3, '0');
+  } catch(e) { return escHtml(ts); }
 }
 
 // ★ Activity stream → LLM modal
@@ -1943,13 +2047,124 @@ function openLlmDetailFromStream(eventId) {
   });
 }
 
-// ★ Escape key closes LLM modal
+// ★ Escape key closes LLM modal or task modal
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && llmModalOpen) {
-    closeLlmModal();
-    e.stopPropagation();
+  if (e.key === 'Escape') {
+    if (llmModalOpen) { closeLlmModal(); e.stopPropagation(); return; }
+    var taskOverlay = document.getElementById('taskModalOverlay');
+    if (taskOverlay && taskOverlay.classList.contains('visible')) { closeTaskModal(); e.stopPropagation(); }
   }
 });
+
+// ═══════════════════════════════════════════════════
+//  TASK DETAIL MODAL
+// ═══════════════════════════════════════════════════
+
+function openTaskModal(taskId) {
+  var tl = TIMELINES[taskId];
+  if (!tl) return;
+  renderTaskModal(taskId, tl);
+}
+
+function closeTaskModal() {
+  var overlay = document.getElementById('taskModalOverlay');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+function countActionNodes(nodes) {
+  var c = 0;
+  (nodes || []).forEach(function(n) {
+    if (n.kind !== 'llm_call' && n.type !== 'llm_call') c++;
+    c += countActionNodes(n.children);
+  });
+  return c;
+}
+
+function renderActionTreeFlat(nodes, depth) {
+  var html = '';
+  (nodes || []).forEach(function(n) {
+    var indent = depth * 20;
+    var color = n.status === 'failed' ? 'var(--error)' : (n.status === 'success' || n.status === 'completed') ? 'var(--success)' : 'var(--text-muted)';
+    if (n.kind === 'llm_call' || n.type === 'llm_call') color = 'var(--llm)';
+    var dur = n.duration_ms != null ? fmtDuration(n.duration_ms) : '';
+    html += '<div class="task-modal-action" style="padding-left: ' + indent + 'px">';
+    html += '<div class="task-modal-action-dot" style="background: ' + color + '"></div>';
+    html += '<div class="task-modal-action-name">' + escHtml(n.name || n.action_id || '') + '</div>';
+    html += '<div class="task-modal-action-dur">' + dur + '</div>';
+    html += '</div>';
+    if (n.children && n.children.length > 0) {
+      html += renderActionTreeFlat(n.children, depth + 1);
+    }
+  });
+  return html;
+}
+
+function renderTaskModal(taskId, tl) {
+  var overlay = document.getElementById('taskModalOverlay');
+  var modal = document.getElementById('taskModalContent');
+  if (!overlay || !modal) return;
+
+  // Status badge
+  var statusClr = statusColor[tl.status] || 'var(--text-muted)';
+  var statusText = tl.status || 'unknown';
+
+  // Header
+  var html = '<div class="task-modal-header">';
+  html += '<div>';
+  html += '<div class="task-modal-title">' + escHtml(taskId) + '</div>';
+  html += '<div class="task-modal-meta">';
+  if (tl.agentId) html += escHtml(tl.agentId);
+  if (tl.taskType) html += ' &middot; ' + escHtml(tl.taskType);
+  html += ' &middot; <span style="color: ' + statusClr + '">' + escHtml(statusText) + '</span>';
+  html += '</div>';
+  html += '</div>';
+  html += '<button class="task-modal-close" onclick="closeTaskModal()">&times;</button>';
+  html += '</div>';
+
+  // Stats strip
+  var actionCount = 0;
+  var llmCount = 0;
+  var treeNodes = Array.isArray(tl.actionTree) ? tl.actionTree : (tl.actionTree ? [tl.actionTree] : []);
+  actionCount = countActionNodes(treeNodes);
+  (tl.nodes || []).forEach(function(n) { if (n.kind === 'llm_call') llmCount++; });
+
+  html += '<div class="task-modal-stats">';
+  html += '<div class="task-modal-stat"><div class="task-modal-stat-label">Duration</div><div class="task-modal-stat-val">' + fmtDuration(tl.durationMs) + '</div></div>';
+  html += '<div class="task-modal-stat"><div class="task-modal-stat-label">Actions</div><div class="task-modal-stat-val">' + actionCount + '</div></div>';
+  html += '<div class="task-modal-stat"><div class="task-modal-stat-label">LLM Calls</div><div class="task-modal-stat-val" style="color: var(--llm)">' + llmCount + '</div></div>';
+  html += '<div class="task-modal-stat"><div class="task-modal-stat-label">Cost</div><div class="task-modal-stat-val">' + fmtCost(tl.totalCost) + '</div></div>';
+  html += '</div>';
+
+  // Plan section
+  if (tl.plan && tl.plan.steps && tl.plan.steps.length > 0) {
+    var completed = tl.plan.steps.filter(function(s) { return s.status === 'completed'; }).length;
+    html += '<div class="task-modal-section">';
+    html += '<div class="task-modal-section-label">Plan &mdash; ' + completed + '/' + tl.plan.steps.length + ' steps</div>';
+    tl.plan.steps.forEach(function(s) {
+      var icon = '&#9675;';  // circle for pending
+      var iconColor = 'var(--text-muted)';
+      if (s.status === 'completed') { icon = '&#10003;'; iconColor = 'var(--success)'; }
+      else if (s.status === 'active') { icon = '&#9656;'; iconColor = 'var(--active)'; }
+      else if (s.status === 'failed') { icon = '&#10007;'; iconColor = 'var(--error)'; }
+      html += '<div class="task-modal-plan-step">';
+      html += '<div class="task-modal-plan-icon" style="color: ' + iconColor + '">' + icon + '</div>';
+      html += '<div class="task-modal-plan-text">' + escHtml(s.desc) + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Actions section
+  if (treeNodes.length > 0) {
+    html += '<div class="task-modal-section">';
+    html += '<div class="task-modal-section-label">Actions</div>';
+    html += renderActionTreeFlat(treeNodes, 0);
+    html += '</div>';
+  }
+
+  modal.innerHTML = html;
+  overlay.classList.add('visible');
+}
 
 // ═══════════════════════════════════════════════════
 //  TOAST NOTIFICATIONS

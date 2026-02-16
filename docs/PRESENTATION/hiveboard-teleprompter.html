@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HiveBoard — Teleprompter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    color: #F5F5F5;
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 36px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    overflow-y: auto;
+  }
+
+  /* CONTROL BAR */
+  .controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #333;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+    color: #999;
+    font-family: 'Segoe UI', sans-serif;
+  }
+
+  .controls button {
+    background: #222;
+    color: #F5F5F5;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 80px;
+  }
+
+  .controls button:hover {
+    background: #333;
+    border-color: #666;
+  }
+
+  .controls button.active {
+    background: #c2410c;
+    border-color: #c2410c;
+    color: #fff;
+  }
+
+  .controls button.reset-btn {
+    background: #333;
+    border-color: #555;
+  }
+
+  .controls button.reset-btn:hover {
+    background: #444;
+  }
+
+  .speed-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .speed-label {
+    color: #888;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .speed-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 180px;
+    height: 6px;
+    background: #333;
+    border-radius: 3px;
+    outline: none;
+  }
+
+  .speed-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #F59E0B;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .speed-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #F59E0B;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+
+  .speed-value {
+    color: #F59E0B;
+    font-weight: 700;
+    font-size: 15px;
+    min-width: 45px;
+    text-align: center;
+  }
+
+  .timer {
+    margin-left: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: #F59E0B;
+    min-width: 70px;
+    text-align: right;
+  }
+
+  .timer.warning { color: #DC2626; }
+
+  .hotkeys {
+    color: #555;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .hotkeys kbd {
+    background: #222;
+    border: 1px solid #444;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: monospace;
+    color: #888;
+  }
+
+  /* CONTENT */
+  .content {
+    padding: 80px 12% 100vh 12%;
+  }
+
+  .beat-marker {
+    color: #F59E0B;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-top: 80px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #333;
+  }
+
+  .beat-marker:first-child {
+    margin-top: 20px;
+  }
+
+  .visual-note {
+    color: #666;
+    font-size: 16px;
+    font-style: italic;
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+  }
+
+  .line {
+    margin-bottom: 28px;
+  }
+
+  .pause {
+    color: #555;
+    font-size: 22px;
+    font-style: italic;
+    margin-bottom: 28px;
+    padding-left: 20px;
+    border-left: 3px solid #333;
+  }
+
+  .key-line {
+    color: #FCD34D;
+    font-weight: 600;
+  }
+
+  .emphasis {
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  .stage-dir {
+    color: #c2410c;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #222;
+    margin: 40px 0;
+  }
+
+  /* Reading guide line */
+  .guide-line {
+    position: fixed;
+    top: 38%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(245, 158, 11, 0.15);
+    pointer-events: none;
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<!-- CONTROL BAR -->
+<div class="controls">
+  <button id="playBtn" onclick="toggleScroll()">&#9654; Play</button>
+  <button class="reset-btn" onclick="resetScroll()">&#8634; Reset</button>
+  
+  <div class="speed-group">
+    <span class="speed-label">Speed</span>
+    <input type="range" class="speed-slider" id="speedSlider" min="1" max="10" step="0.5" value="5">
+    <span class="speed-value" id="speedValue">1.0x</span>
+  </div>
+
+  <div class="hotkeys">
+    <kbd>Space</kbd> play/pause &nbsp; <kbd>&uarr;</kbd><kbd>&darr;</kbd> speed &nbsp; <kbd>R</kbd> reset
+  </div>
+
+  <div class="timer" id="timer">0:00</div>
+</div>
+
+<!-- GUIDE LINE -->
+<div class="guide-line"></div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ==================== BEAT 1 ==================== -->
+<div class="beat-marker">Beat 1 &mdash; Story &middot; 0:00 &middot; On Camera</div>
+<div class="visual-note">Camera. Direct to lens. Good light.</div>
+
+<div class="line">Two weeks ago, I deployed an AI agent that worked perfectly.</div>
+
+<div class="line">It classified tickets. Drafted responses. Escalated when it should.</div>
+
+<div class="line">In testing, it passed everything.</div>
+
+<div class="pause">&mdash; pause &mdash;</div>
+
+<div class="line key-line">Seventy-two unit tests. All green.</div>
+
+<div class="line">Then I pushed it to production.</div>
+
+<div class="stage-dir">&darr; Slower</div>
+
+<div class="line emphasis">And it started costing forty dollars an hour.</div>
+
+<div class="line">No crash. No alert. No obvious failure.</div>
+
+<div class="line">Just quiet, invisible drift.</div>
+
+<div class="pause">&mdash; beat &mdash;</div>
+
+<div class="line">And I realized something uncomfortable.</div>
+
+<div class="line">We've built agents that can reason.</div>
+
+<div class="line emphasis">But we haven't built the tools to supervise them.</div>
+
+<hr class="divider">
+
+<!-- ==================== BEAT 2 ==================== -->
+<div class="beat-marker">Beat 2 &mdash; Escalation &middot; 0:30 &middot; On Camera</div>
+
+<div class="line">AI agents don't fail like traditional software.</div>
+
+<div class="line">They don't always throw exceptions.</div>
+
+<div class="line">They make decisions. They retry. They degrade. They choose expensive models when cheaper ones would work.</div>
+
+<div class="line">And when you deploy them, you go blind.</div>
+
+<div class="stage-dir">&darr; Faster, building urgency</div>
+
+<div class="line">Is it stuck? Did it hallucinate? Why is it burning money?</div>
+
+<div class="line">Every team deploying AI agents is about to hit this wall.</div>
+
+<div class="line">And the tool you need doesn't exist.</div>
+
+<div class="pause">&mdash; pause &mdash;</div>
+
+<div class="line emphasis">So we built it.</div>
+
+<div class="line key-line">This is HiveBoard.</div>
+
+<div class="stage-dir">&check; Cut to dashboard</div>
+
+<hr class="divider">
+
+<!-- ==================== BEAT 3 ==================== -->
+<div class="beat-marker">Beat 3 &mdash; Reveal + Investigation &middot; 0:55 &middot; Dashboard</div>
+<div class="visual-note">Dashboard is on screen. You're doing voiceover while navigating.</div>
+
+<div class="pause">&mdash; 1 sec silence, let dashboard land &mdash;</div>
+
+<div class="line">This is live.</div>
+
+<div class="line">Five AI agents running inside a real company.</div>
+
+<div class="line">Sales. Support. Marketing. CRM hygiene. Coordination.</div>
+
+<div class="line">In two seconds, I know the state of the entire fleet.</div>
+
+<div class="line">Red floats to the top. Green sinks.</div>
+
+<div class="line">But the real power shows up when something goes wrong.</div>
+
+<div class="stage-dir">&rarr; Hover Sage, then click</div>
+
+<div class="line">Sage has an issue. I click in.</div>
+
+<div class="pause">&mdash; pause as timeline renders &mdash;</div>
+
+<div class="line">This is the task timeline.</div>
+
+<div class="line">Every step the agent took, rendered visually.</div>
+
+<div class="stage-dir">&rarr; Hover across nodes slowly</div>
+
+<div class="line">Classification. Knowledge base search. LLM response generation.</div>
+
+<div class="line emphasis">And right here &mdash; the failure.</div>
+
+<div class="pause">&mdash; 1 sec pause on failure node &mdash;</div>
+
+<div class="stage-dir">&rarr; Click failure node</div>
+
+<div class="line">Email delivery failed.</div>
+
+<div class="line">Two retries. Then escalation.</div>
+
+<div class="line">I can see the exact error. The exact moment it happened.</div>
+
+<div class="stage-dir">&rarr; Click permalink</div>
+
+<div class="line">And this timeline has a permalink.</div>
+
+<div class="line">If someone asks, "What happened?" I paste the link.</div>
+
+<div class="line key-line">Fifteen seconds from question to root cause.</div>
+
+<div class="line emphasis">That's what supervision looks like.</div>
+
+<hr class="divider">
+
+<!-- ==================== BEAT 4 ==================== -->
+<div class="beat-marker">Beat 4 &mdash; Cost Reframe &middot; 1:40 &middot; Dashboard &rarr; Camera</div>
+<div class="visual-note">Click Costs tab. Cost Explorer on screen.</div>
+
+<div class="line">And here's the part that surprised me.</div>
+
+<div class="line">Cost Explorer.</div>
+
+<div class="line">Every dollar broken down by model and by agent.</div>
+
+<div class="stage-dir">&rarr; Hover cost breakdown</div>
+
+<div class="line">I can see when an agent is using an expensive model for work a smaller model could handle.</div>
+
+<div class="line">That visibility alone reduced real agent operations from forty dollars an hour to eight.</div>
+
+<div class="line emphasis">Eighty percent reduction.</div>
+
+<div class="stage-dir">&check; Cut to camera</div>
+
+<div class="line">Not better prompts. Not new architecture.</div>
+
+<div class="line emphasis">Just seeing.</div>
+
+<div class="pause">&mdash; beat &mdash;</div>
+
+<div class="line key-line">The problem wasn't intelligence.</div>
+
+<div class="line key-line">The problem was observability.</div>
+
+<hr class="divider">
+
+<!-- ==================== BEAT 5 ==================== -->
+<div class="beat-marker">Beat 5 &mdash; Claude as the Team &middot; 2:05 &middot; Camera + One-Pagers</div>
+<div class="visual-note">On camera. One-pagers flash behind you during key claims.</div>
+
+<div class="stage-dir">&darr; Energy shift &mdash; new chapter</div>
+
+<div class="line">Now here's the part that matters for this room.</div>
+
+<div class="line emphasis">I built this in forty-eight hours.</div>
+
+<div class="line">Using three Claude Opus 4.6 instances.</div>
+
+<div class="line">Not as autocomplete.</div>
+
+<div class="line emphasis">As a team.</div>
+
+<div class="visual-note">&rarr; Flash Hive Method One-Pager</div>
+
+<div class="line">One acted as product manager &mdash; writing specifications and defining audits.</div>
+
+<div class="line">Two acted as development teams.</div>
+
+<div class="line">After every phase, they audited each other against the spec.</div>
+
+<div class="visual-note">&rarr; Metrics bar visible</div>
+
+<div class="line">Four hundred fifty checkpoints.</div>
+
+<div class="line">Twelve critical bugs caught.</div>
+
+<div class="visual-note">&rarr; Flash THE JOURNEY One-Pager</div>
+
+<div class="line key-line">Seventy-two passing unit tests missed every one of them.</div>
+
+<div class="line">Only four percent of time was coding. The rest was specification, design, and adversarial review.</div>
+
+<div class="stage-dir">&darr; Direct to lens. Let it land.</div>
+
+<div class="line key-line">Claude wasn't assisting development.</div>
+
+<div class="line key-line">It was the development team.</div>
+
+<div class="line">And that rigor is why this product works.</div>
+
+<hr class="divider">
+
+<!-- ==================== BEAT 5B ==================== -->
+<div class="beat-marker">Beat 5B &mdash; Zero-Friction Onboarding &middot; 2:33 &middot; Camera</div>
+<div class="visual-note">On camera. Optional flash of Docs or Repo.</div>
+
+<div class="line">And here's what makes this real for other teams.</div>
+
+<div class="line emphasis">I built a Claude Code Skill.</div>
+
+<div class="line">If you already have an agentic codebase, you don't read a setup guide. You don't wire logs manually. You don't refactor.</div>
+
+<div class="line emphasis">You type one slash command.</div>
+
+<div class="pause">&mdash; brief beat &mdash;</div>
+
+<div class="line">Claude reads your architecture. Understands your framework. And walks you through integration &mdash; from discovery to minimal instrumentation to enhanced sensors to verification.</div>
+
+<div class="line">What used to be a thirty-minute integration document becomes a five-minute interactive session.</div>
+
+<div class="line key-line">Observability becomes a pull request.</div>
+
+<hr class="divider">
+
+<!-- ==================== BEAT 6 ==================== -->
+<div class="beat-marker">Beat 6 &mdash; Inevitable Close &middot; 2:48 &middot; Camera</div>
+<div class="visual-note">Slower pace. Final chapter. Quick flashes of Repo, Dashboard, Docs.</div>
+
+<div class="line">AI agents are moving into production.</div>
+
+<div class="line">Not prototypes. Not demos. Production.</div>
+
+<div class="line">And when they do, observability isn't optional. It's infrastructure.</div>
+
+<div class="visual-note">&rarr; Quick flash: GitHub &rarr; Dashboard &rarr; Docs</div>
+
+<div class="line">HiveBoard is open source.</div>
+
+<div class="line">It's live.</div>
+
+<div class="line">You can try it right now.</div>
+
+<div class="stage-dir">&darr; Back to camera. Direct to lens. Final lines.</div>
+
+<div class="line key-line">We've built agents that can think.</div>
+
+<div class="line key-line">Now we need systems that can see.</div>
+
+<div class="pause">&mdash; beat &mdash;</div>
+
+<div class="line key-line">HiveBoard makes AI agents production-grade.</div>
+
+<div class="stage-dir">&check; End card</div>
+
+</div>
+
+<script>
+  let scrolling = false;
+  let scrollSpeed = 5;  // pixels per second (not per frame)
+  let animationId = null;
+  let timerInterval = null;
+  let elapsedSeconds = 0;
+  let pixelAccumulator = 0;
+  let lastTimestamp = null;
+
+  const playBtn = document.getElementById('playBtn');
+  const speedSlider = document.getElementById('speedSlider');
+  const speedValue = document.getElementById('speedValue');
+  const timerEl = document.getElementById('timer');
+
+  // Slider maps 1-10 → pixels per second (20-200 px/sec range)
+  // Sweet spot for reading at 36px font is ~30-60 px/sec
+  function sliderToSpeed(val) {
+    return val * 10;  // 1=10px/s, 3=30px/s, 5=50px/s, 10=100px/s
+  }
+
+  function speedToLabel(pxPerSec) {
+    return (pxPerSec / 50).toFixed(1) + 'x';
+  }
+
+  speedSlider.addEventListener('input', function() {
+    scrollSpeed = sliderToSpeed(parseFloat(speedSlider.value));
+    speedValue.textContent = speedToLabel(scrollSpeed);
+  });
+
+  // Initialize display
+  scrollSpeed = sliderToSpeed(parseFloat(speedSlider.value));
+  speedValue.textContent = speedToLabel(scrollSpeed);
+
+  function toggleScroll() {
+    if (scrolling) {
+      pauseScroll();
+    } else {
+      startScroll();
+    }
+  }
+
+  function startScroll() {
+    scrolling = true;
+    lastTimestamp = null;
+    pixelAccumulator = 0;
+    playBtn.innerHTML = '&#9646;&#9646; Pause';
+    playBtn.classList.add('active');
+    if (!timerInterval) {
+      timerInterval = setInterval(function() {
+        elapsedSeconds++;
+        updateTimer();
+      }, 1000);
+    }
+    doScroll();
+  }
+
+  function pauseScroll() {
+    scrolling = false;
+    playBtn.innerHTML = '&#9654; Play';
+    playBtn.classList.remove('active');
+    if (animationId) {
+      cancelAnimationFrame(animationId);
+      animationId = null;
+    }
+    if (timerInterval) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+  }
+
+  function resetScroll() {
+    pauseScroll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    elapsedSeconds = 0;
+    updateTimer();
+  }
+
+  function updateTimer() {
+    var min = Math.floor(elapsedSeconds / 60);
+    var sec = elapsedSeconds % 60;
+    timerEl.textContent = min + ':' + (sec < 10 ? '0' : '') + sec;
+    if (elapsedSeconds >= 165) {
+      timerEl.classList.add('warning');
+    } else {
+      timerEl.classList.remove('warning');
+    }
+  }
+
+  function doScroll(timestamp) {
+    if (!scrolling) return;
+
+    if (lastTimestamp !== null) {
+      var deltaMs = timestamp - lastTimestamp;
+      // Convert px/sec to actual pixels this frame
+      pixelAccumulator += (scrollSpeed * deltaMs) / 1000;
+
+      // Only scroll whole pixels
+      if (pixelAccumulator >= 1) {
+        var px = Math.floor(pixelAccumulator);
+        window.scrollBy(0, px);
+        pixelAccumulator -= px;
+      }
+    }
+
+    lastTimestamp = timestamp;
+    animationId = requestAnimationFrame(doScroll);
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.code === 'Space') {
+      e.preventDefault();
+      toggleScroll();
+    }
+    if (e.code === 'ArrowUp') {
+      e.preventDefault();
+      var val = Math.min(10, parseFloat(speedSlider.value) + 0.5);
+      speedSlider.value = val;
+      scrollSpeed = sliderToSpeed(val);
+      speedValue.textContent = speedToLabel(scrollSpeed);
+    }
+    if (e.code === 'ArrowDown') {
+      e.preventDefault();
+      var val = Math.max(1, parseFloat(speedSlider.value) - 0.5);
+      speedSlider.value = val;
+      scrollSpeed = sliderToSpeed(val);
+      speedValue.textContent = speedToLabel(scrollSpeed);
+    }
+    if (e.code === 'KeyR' && !e.metaKey && !e.ctrlKey) {
+      resetScroll();
+    }
+  });
+</script>
+
+</body>
+</html>

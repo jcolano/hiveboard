@@ -85,11 +85,6 @@
                             <div class="timeline-task-meta" id="tlMeta"></div>
                         </div>
                         <div class="timeline-header-right">
-                            <!-- ★ Tree/Flat toggle -->
-                            <div class="view-toggle">
-                                <button class="view-toggle-btn active" data-mode="tree" onclick="toggleTimelineView('tree')">Tree</button>
-                                <button class="view-toggle-btn" data-mode="flat" onclick="toggleTimelineView('flat')">Flat</button>
-                            </div>
                             <div class="permalink-btn" onclick="copyPermalink()">⧉ Permalink</div>
                         </div>
                     </div>
@@ -105,18 +100,16 @@
                         <div class="plan-steps" id="planSteps"></div>
                     </div>
 
-                    <!-- ★ Feature 4: Action Tree canvas (for tree view) -->
-                    <div class="action-tree-canvas" id="actionTreeCanvas"></div>
-
-                    <!-- Flat timeline canvas (for flat view, hidden by default) -->
-                    <div class="timeline-canvas" id="timelineCanvas" style="display:none;"></div>
-
-                    <div class="pinned-detail" id="pinnedDetail">
-                        <div class="pinned-detail-header">
-                            <div class="pinned-detail-title" id="pinnedTitle">—</div>
-                            <button class="pinned-detail-close" onclick="unpinDetail()">✕ Close</button>
+                    <!-- ★ Tree + inline detail split -->
+                    <div class="tree-split">
+                        <div class="action-tree-canvas" id="actionTreeCanvas"></div>
+                        <div class="pinned-detail" id="pinnedDetail">
+                            <div class="pinned-detail-header">
+                                <div class="pinned-detail-title" id="pinnedTitle">—</div>
+                                <button class="pinned-detail-close" onclick="unpinDetail()">✕ Close</button>
+                            </div>
+                            <div class="pinned-detail-body" id="pinnedBody"></div>
                         </div>
-                        <div class="pinned-detail-body" id="pinnedBody"></div>
                     </div>
                 </div>
 
@@ -205,6 +198,11 @@
     <!-- LLM Detail Modal -->
     <div class="llm-modal-overlay" id="llmModalOverlay" onclick="if(event.target===this) closeLlmModal()">
         <div class="llm-modal" id="llmModalContent"></div>
+    </div>
+
+    <!-- Task Detail Modal -->
+    <div class="task-modal-overlay" id="taskModalOverlay" onclick="if(event.target===this) closeTaskModal()">
+        <div class="task-modal" id="taskModalContent"></div>
     </div>
 
     <script src="/static/js/common.js?v=20260214"></script>

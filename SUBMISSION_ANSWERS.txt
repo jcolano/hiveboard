@@ -1,0 +1,61 @@
+Project Name: 
+===============
+HiveBoard — The Datadog for AI Agents
+
+Selected Hackathon Track (Problem Statement): 
+=============================================
+Problem Statement One: Build a Tool That Should Exist. HiveBoard is the observability platform every team deploying AI agents wishes existed. Today, teams deploy agents and go blind: no visibility into what's running, what's stuck, what's costing money, or why something silently failed. HiveBoard eliminates that blind spot.
+
+Project Description
+========================
+HiveBoard is the Datadog for AI Agents. It is framework-agnostic observability for production AI. 
+
+Agents don't fail like software; they drift, retry, and silently burn money. HiveBoard makes the invisible visible.
+
+Five views: 
+Fleet (live status, heartbeats, queue depth).
+Cost (every LLM call by model and agent , reduced $40/hr to $8/hr, 80% savings from visibility alone).
+Analytics (error clustering, heatmaps, plain-English commentary).
+Agent View (per-agent medical chart with full LLM logs), and Insights (38 structured questions with health scoring).
+Open-source SDK (pip install hiveloop) with 80+ sensors across three progressive layers. 
+
+Claude Code Skill integrates any agentic codebase in ~5 minutes via one slash command.
+
+Built in 4 days using three Claude Opus 4.6 instances as a coordinated team: PM, and two dev teams cross-auditing each other's code.  ~4% coding time; the rest was specs, design, and adversarial review.
+
+
+
+Public GitHub Repository: https://github.com/jcolano/hiveboard
+========================
+
+Demo Video: https://youtu.be/WyH-GVFeOpo
+=============
+
+Thoughts and feedback on building with Opus 4.6: 
+====================================================
+I used 3 Opus 4.6 instances working as a coordinated team (one PM, two devs (CLI and CLOUD). One instance auditing another's code against a shared spec catches contract mismatches that unit tests structurally cannot find. Opus 4.6 maintained spec fidelity across long, complex documents (5 data model versions) without losing precision on field names, types, or edge cases.
+Most surprising: divergent thinking between instances. Given identical context, CLI produced technically-oriented output while Cloud leaned functional. Neither was wrong; both were incomplete. Together they covered more ground than either alone. This became a core feature of the methodology.
+Where I pushed hardest: the UI/UX redesign. Real data revealed the dashboard was an "information graveyard." All 3 instances brainstormed solutions, the PM synthesized perspectives into a new spec, dev teams rebuilt the frontend. Only 3 new endpoints needed, spec quality paying off.
+Practical tip: build large artifacts section-by-section. 
+
+
+Working with three Opus 4.6 instances as a coordinated team,  not as autocomplete, but as actual development roles,  was the most surprising part of this build.
+The cross-audit pattern was the breakthrough. Having one instance audit another's code against a shared specification catches contract mismatches that unit tests structurally cannot find. Opus 4.6 maintained spec fidelity across long, complex documents (our data model spec went through 5 versions) without losing precision on field names, types, or edge cases. That kind of sustained attention to detail across context is what made the method work.
+
+What impressed me most was the divergent thinking between instances. Given identical context and prompts, the CLI instance consistently produced technically-oriented output while the Cloud instance leaned functional. 
+
+Neither was wrong,  both were incomplete. 
+
+Together they covered more ground than either alone. This wasn't a bug; it became a core feature of the methodology.
+
+Where I pushed Opus 4.6 hardest was the UI/UX redesign. After real data revealed the initial dashboard was an "information graveyard,  data present, meaning absent," I asked all three instances to brainstorm solutions. The PM synthesized their divergent perspectives into a new spec, and the dev teams rebuilt the entire frontend. The architecture was sound enough that only 3 new API endpoints were needed. That's spec quality paying off.
+
+One practical learning: for large artifacts (full HTML dashboards, comprehensive docs), building section-by-section with explicit instructions to maintain detail prevents context window degradation. 
+
+Opus 4.6 handles this well when you structure the work,  it doesn't lose fidelity in section 8 because of what it built in section 2.
+
+The ratio tells the story: ~8 hours coding, ~88  hours on specs, audits, and design. Opus 4.6 didn't just write code faster:  it made the entire engineering process more rigorous.
+
+The code almost wrote itself because the specs left nothing ambiguous.
+
+
