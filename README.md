@@ -30,7 +30,7 @@
 <p align="center">
   <strong>🔴 <a href="https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000">Try It Live</a></strong> &nbsp;·&nbsp;
   <strong>📖 <a href="https://hiveboard.net/docs/user-manual.html">Documentation</a></strong> &nbsp;·&nbsp;
-  <strong>🎬 <a href="#demo-video">Watch the Demo</a></strong>
+  <strong>🎬 <a href="https://youtu.be/lLWr9_1cgNw">Watch the Demo</a></strong>
 </p>
 
 ---
