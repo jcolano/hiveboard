@@ -516,8 +516,10 @@ body {
             <span id="connectionText">Connected</span>
         </div>
         <select class="env-selector" id="envSelector">
+            <option value="">all</option>
             <option>production</option>
             <option>staging</option>
+            <option>development</option>
         </select>
     </div>
 </div>
@@ -617,7 +619,7 @@ body {
 <div class="toast-container" id="toastContainer"></div>
 
 <!-- Common utilities -->
-<script src="/static/js/common.js"></script>
+<script src="/static/js/common.js?v=20260217"></script>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -1262,7 +1264,7 @@ function renderQ4() {
         '<span class="insights-card-label">LLM Cost/Task</span><span class="insights-card-qid">Q4d</span></div>' +
         '<div class="insights-card-body">' +
         '<div class="insights-metric-row">' +
-        '<span class="insights-big-number small">$' + currentCpt.toFixed(2) + '</span>' +
+        '<span class="insights-big-number small">$' + currentCpt.toFixed(4) + '</span>' +
         trendHtml(tCpt, true) + '</div>' +
         '<div class="sparkline-container">' + buildSparkline(costPerTaskData, 'var(--llm)', 'gCostTask') + '</div>' +
         '</div></div>';
@@ -1658,9 +1660,9 @@ function renderQ17() {
         '<div class="insights-card-header"><span class="insights-card-label">Total Spend</span>' +
         '<span class="insights-card-qid">Q17</span></div>' +
         '<div class="insights-card-body">' +
-        '<div class="insights-big-number">$' + total.toFixed(2) + '</div>' +
+        '<div class="insights-big-number">$' + total.toFixed(4) + '</div>' +
         '<div class="text-xs muted mt-8">' + insightsRange + ' window</div>' +
-        (estimated > 0 ? '<div class="text-xs muted mt-8">Reported: $' + reported.toFixed(2) + ' \u00B7 Estimated: ~$' + estimated.toFixed(2) + '</div>' : '') +
+        (estimated > 0 ? '<div class="text-xs muted mt-8">Reported: $' + reported.toFixed(4) + ' \u00B7 Estimated: ~$' + estimated.toFixed(4) + '</div>' : '') +
         '</div></div>';
 }
 
@@ -1686,9 +1688,9 @@ function renderQ18() {
         '<span class="insights-card-qid">Q18</span></div>' +
         '<div class="insights-card-body">' +
         '<div class="insights-metric-row">' +
-        '<span class="insights-big-number small">$' + avgCpt.toFixed(3) + '</span>' +
+        '<span class="insights-big-number small">$' + avgCpt.toFixed(4) + '</span>' +
         trendHtml(trend, true) + '</div>' +
-        '<div class="text-xs muted mt-8">$' + totalCost.toFixed(2) + ' across ' + totalTasks + ' tasks</div>' +
+        '<div class="text-xs muted mt-8">$' + totalCost.toFixed(4) + ' across ' + totalTasks + ' tasks</div>' +
         '</div></div>';
 }
 
@@ -1791,8 +1793,9 @@ function buildAreaChart(data, labels, color, gradientId, height, prefix) {
 
     // Y-axis labels
     var yLabels = '';
-    yLabels += '<text x="2" y="' + (pad + 4) + '" fill="var(--text-muted)" font-size="9" font-family="var(--font-mono)">' + prefix + max.toFixed(2) + '</text>';
-    yLabels += '<text x="2" y="' + (h - pad + 2) + '" fill="var(--text-muted)" font-size="9" font-family="var(--font-mono)">' + prefix + min.toFixed(2) + '</text>';
+    var yDecimals = prefix === '$' ? 4 : 2;
+    yLabels += '<text x="2" y="' + (pad + 4) + '" fill="var(--text-muted)" font-size="9" font-family="var(--font-mono)">' + prefix + max.toFixed(yDecimals) + '</text>';
+    yLabels += '<text x="2" y="' + (h - pad + 2) + '" fill="var(--text-muted)" font-size="9" font-family="var(--font-mono)">' + prefix + min.toFixed(yDecimals) + '</text>';
 
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" height="' + height + '" preserveAspectRatio="none" style="width:100%;">' +
         '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">' +
@@ -1820,8 +1823,8 @@ function renderQ22() {
         return '<div class="insights-bar-row">' +
             '<span class="insights-bar-label">' + escHtml(m.model || 'unknown') + '</span>' +
             '<div class="insights-bar-track"><div class="insights-bar-fill" style="width:' + pct + '%;background:var(--llm);">' +
-            (parseInt(pct) > 25 ? '$' + (m.cost || 0).toFixed(2) : '') + '</div></div>' +
-            '<span class="insights-bar-value">$' + (m.cost || 0).toFixed(2) + '</span></div>';
+            (parseInt(pct) > 25 ? '$' + (m.cost || 0).toFixed(4) : '') + '</div></div>' +
+            '<span class="insights-bar-value">$' + (m.cost || 0).toFixed(4) + '</span></div>';
     }).join('');
 
     return '<div class="insights-card">' +
@@ -1845,8 +1848,8 @@ function renderQ23() {
         return '<div class="insights-bar-row">' +
             '<span class="insights-bar-label nav-link" onclick="selectInsightsAgent(\'' + escHtml(a.agent_id || a.agent || '') + '\')">' + escHtml(a.agent_id || a.agent || 'unknown') + '</span>' +
             '<div class="insights-bar-track"><div class="insights-bar-fill" style="width:' + pct + '%;background:var(--accent);">' +
-            (parseInt(pct) > 25 ? '$' + (a.cost || 0).toFixed(2) : '') + '</div></div>' +
-            '<span class="insights-bar-value">$' + (a.cost || 0).toFixed(2) + '</span></div>';
+            (parseInt(pct) > 25 ? '$' + (a.cost || 0).toFixed(4) : '') + '</div></div>' +
+            '<span class="insights-bar-value">$' + (a.cost || 0).toFixed(4) + '</span></div>';
     }).join('');
 
     return '<div class="insights-card">' +
@@ -1868,7 +1871,7 @@ function renderQ24() {
     var rows = top.map(function(c) {
         return '<tr>' +
             '<td>' + escHtml(c.model || '?') + '</td>' +
-            '<td>$' + (c.cost || 0).toFixed(3) + '</td>' +
+            '<td>$' + (c.cost || 0).toFixed(4) + '</td>' +
             '<td>' + fmtTokens(c.tokens_in) + '/' + fmtTokens(c.tokens_out) + '</td>' +
             '<td>' + fmtDuration(c.duration_ms) + '</td>' +
             '</tr>';
@@ -2000,9 +2003,9 @@ function detectCostSpike() {
     var last = costData[costData.length - 1];
     var ratio = avg > 0 ? last / avg : 0;
 
-    if (ratio > 3) return { name: 'Cost Spike', status: 'error', summary: 'Last interval cost is ' + ratio.toFixed(1) + 'x the average.', detail: 'Last: $' + last.toFixed(3) + ', Avg: $' + avg.toFixed(3) };
-    if (ratio > 2) return { name: 'Cost Spike', status: 'warn', summary: 'Cost is ' + ratio.toFixed(1) + 'x average \u2014 worth watching.', detail: 'Last: $' + last.toFixed(3) + ', Avg: $' + avg.toFixed(3) };
-    return { name: 'Cost Spike', status: 'ok', summary: 'Cost is within normal range.', detail: 'Last: $' + last.toFixed(3) + ', Avg: $' + avg.toFixed(3) };
+    if (ratio > 3) return { name: 'Cost Spike', status: 'error', summary: 'Last interval cost is ' + ratio.toFixed(1) + 'x the average.', detail: 'Last: $' + last.toFixed(4) + ', Avg: $' + avg.toFixed(4) };
+    if (ratio > 2) return { name: 'Cost Spike', status: 'warn', summary: 'Cost is ' + ratio.toFixed(1) + 'x average \u2014 worth watching.', detail: 'Last: $' + last.toFixed(4) + ', Avg: $' + avg.toFixed(4) };
+    return { name: 'Cost Spike', status: 'ok', summary: 'Cost is within normal range.', detail: 'Last: $' + last.toFixed(4) + ', Avg: $' + avg.toFixed(4) };
 }
 
 function detectErrorBurst() {
@@ -2178,8 +2181,8 @@ function renderQ32() {
         '<div class="insights-card-header"><span class="insights-card-label">Period Cost</span>' +
         '<span class="insights-card-qid">Q32</span></div>' +
         '<div class="insights-card-body">' +
-        '<div class="insights-big-number small">$' + total.toFixed(2) + '</div>' +
-        '<div class="text-xs muted mt-8">Avg: $' + (summary.avg_cost_per_task || 0).toFixed(3) + '/task</div>' +
+        '<div class="insights-big-number small">$' + total.toFixed(4) + '</div>' +
+        '<div class="text-xs muted mt-8">Avg: $' + (summary.avg_cost_per_task || 0).toFixed(4) + '/task</div>' +
         '</div></div>';
 }
 
@@ -2206,7 +2209,7 @@ function renderQ33() {
             '<td><span class="insights-badge ' + statusCls + '">' + escHtml(r.status) + '</span></td>' +
             '<td>' + r.completed + '</td>' +
             '<td style="color:' + rateColor + ';font-weight:600;">' + r.rate.toFixed(0) + '%</td>' +
-            '<td>$' + r.cost.toFixed(2) + '</td>' +
+            '<td>$' + r.cost.toFixed(4) + '</td>' +
             '</tr>';
     }).join('');
 
@@ -2273,7 +2276,7 @@ function renderQ35() {
         '</div>' +
         '<div class="roi-result" id="roiResult">' +
         '<div class="roi-result-item"><div class="val" id="roiManualCost">$0</div><div class="lbl">Manual Cost</div></div>' +
-        '<div class="roi-result-item"><div class="val" id="roiAiCost" style="color:var(--llm);">$' + totalCost.toFixed(2) + '</div><div class="lbl">AI Cost</div></div>' +
+        '<div class="roi-result-item"><div class="val" id="roiAiCost" style="color:var(--llm);">$' + totalCost.toFixed(4) + '</div><div class="lbl">AI Cost</div></div>' +
         '<div class="roi-result-item"><div class="val" id="roiSavings">$0</div><div class="lbl">Savings</div></div>' +
         '<div class="roi-result-item"><div class="val" id="roiMultiplier">0x</div><div class="lbl">ROI Multiplier</div></div>' +
         '</div></div></div>';
@@ -2303,9 +2306,9 @@ function calculateROI() {
     var savingsEl = document.getElementById('roiSavings');
     var multiEl = document.getElementById('roiMultiplier');
 
-    if (manualEl) manualEl.textContent = '$' + manualCost.toFixed(2);
+    if (manualEl) manualEl.textContent = '$' + manualCost.toFixed(4);
     if (savingsEl) {
-        savingsEl.textContent = '$' + savings.toFixed(2);
+        savingsEl.textContent = '$' + savings.toFixed(4);
         savingsEl.style.color = savings >= 0 ? 'var(--success)' : 'var(--error)';
     }
     if (multiEl) multiEl.textContent = multiplier.toFixed(1) + 'x';
@@ -2446,7 +2449,7 @@ function renderQ38() {
     checks.push({ label: 'No active issues', pass: issueCount === 0, value: issueCount + ' issues' });
 
     var cpt = summary ? (summary.avg_cost_per_task || 0) : 0;
-    checks.push({ label: 'Cost/task < $1.00', pass: cpt < 1.0, value: '$' + cpt.toFixed(3) });
+    checks.push({ label: 'Cost/task < $1.00', pass: cpt < 1.0, value: '$' + cpt.toFixed(4) });
 
     var multiAgent = insAgents.length >= 2;
     checks.push({ label: 'Multi-agent fleet', pass: multiAgent, value: insAgents.length + ' agent(s)' });

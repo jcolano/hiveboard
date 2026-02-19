@@ -157,7 +157,7 @@ function formatEventSentence(e) {
     model: e.model ? shortModelName(e.model) : null,
     llmName: e.llmName ? escHtml(e.llmName) : (e.summary ? escHtml(e.summary) : null),
     tokensIn: e.tokensIn != null ? fmtTokens(e.tokensIn) : null,
-    cost: e.cost != null ? '$' + e.cost.toFixed(3) : null,
+    cost: e.cost != null ? '$' + e.cost.toFixed(4) : null,
     approver: e.approver ? escHtml(e.approver) : null,
     issueSeverity: e.issueSeverity ? escHtml(e.issueSeverity) : null,
     category: e.category ? escHtml(e.category) : null,
@@ -212,9 +212,8 @@ function fmtDuration(ms) {
 }
 function fmtCost(c, costSource) {
   if (c == null) return '—';
-  var decimals = (c > 0 && c < 0.01) ? 4 : 2;
-  if (costSource === 'estimated') return '~$' + c.toFixed(decimals);
-  return '$' + c.toFixed(decimals);
+  if (costSource === 'estimated') return '~$' + c.toFixed(4);
+  return '$' + c.toFixed(4);
 }
 function timeAgo(ts) {
   if (!ts) return '—';
@@ -258,7 +257,7 @@ async function apiFetch(path, params) {
   }
   try {
     const resp = await fetch(url.toString(), {
-      headers: { 'Authorization': 'Bearer ' + CONFIG.apiKey },
+      headers: { 'Authorization': 'Bearer ' + CONFIG.accessId },
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     return await resp.json();
@@ -585,7 +584,7 @@ function renderHive() {
     let pipelineHtml = '';
     const badges = [];
     if (a.queueDepth > 0) badges.push(`<span class="queue-badge ${a.queueDepth > 5 ? 'high' : ''}">Q:${a.queueDepth}</span>`);
-    if (a.activeIssues > 0) badges.push(`<span class="issue-indicator"><span class="issue-dot"></span>${a.activeIssues} issue${a.activeIssues > 1 ? 's' : ''}</span>`);
+    if (a.activeIssues > 0) badges.push(`<span class="issue-indicator clickable" onclick="event.stopPropagation(); openAgentDetail('${a.id}', 'pipeline')"><span class="issue-dot"></span>${a.activeIssues} issue${a.activeIssues > 1 ? 's' : ''}</span>`);
     if (a.processingSummary) badges.push(`<span class="processing-line">↳ ${escHtml(a.processingSummary)}</span>`);
     if (badges.length > 0) pipelineHtml = `<div class="agent-card-pipeline">${badges.join('')}</div>`;
 
@@ -633,7 +632,7 @@ function renderSummary() {
   const summary = metricsData && metricsData.summary ? metricsData.summary : {};
   const successRate = summary.success_rate != null ? Math.round(summary.success_rate) + '%' : '—';
   const avgDur = summary.avg_duration_ms != null ? fmtDuration(summary.avg_duration_ms) : '—';
-  const totalCost = summary.total_cost != null ? '$' + summary.total_cost.toFixed(2) : '—';
+  const totalCost = summary.total_cost != null ? '$' + summary.total_cost.toFixed(4) : '—';
 
   document.getElementById('summaryBar').innerHTML = `
     <div class="summary-stat"><div class="stat-label">Total Agents</div><div class="stat-value">${AGENTS.length}</div></div>
@@ -784,7 +783,7 @@ function renderActionTreeNode(node, errorChains, depth) {
   if (nodeType === 'llm' && node.tokens_in != null) {
     if (node.model) detailParts.push(`<span class="model-tag">${escHtml(node.model)}</span>`);
     detailParts.push(tokenBarHtml(node.tokens_in, node.tokens_out));
-    if (node.cost != null) detailParts.push(`<span class="cost-tag">$${node.cost.toFixed(3)}</span>`);
+    if (node.cost != null) detailParts.push(`<span class="cost-tag">$${node.cost.toFixed(4)}</span>`);
   } else if (node.summary) {
     detailParts.push(escHtml(node.summary));
   } else if (node.tool_args) {
@@ -1103,7 +1102,7 @@ function buildStreamDetailTags(e) {
   if (e.kind === 'llm_call' || e.type === 'llm_call') {
     if (e.model) tags.push(`<span class="stream-detail-tag llm">${escHtml(e.model)}</span>`);
     if (e.tokensIn != null || e.tokensOut != null) tags.push(`<span class="stream-detail-tag tokens">${fmtTokens(e.tokensIn)} in → ${fmtTokens(e.tokensOut)} out</span>`);
-    if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(3)}</span>`);
+    if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(4)}</span>`);
     if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
     var streamPromptDot = (e.promptPreview || e.responsePreview) ? '<span class="has-prompt-dot" title="Prompt/response available"></span>' : '';
     tags.push(`<span class="stream-detail-btn" onclick="event.stopPropagation(); openLlmDetailFromStream('${escHtml(e.eventId)}')">${streamPromptDot}&#x2922; Details</span>`);
@@ -1111,7 +1110,7 @@ function buildStreamDetailTags(e) {
   // Task events
   else if (e.type.startsWith('task_')) {
     if (e.durationMs != null) tags.push(`<span class="stream-detail-tag duration">${fmtDuration(e.durationMs)}</span>`);
-    if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(2)} total</span>`);
+    if (e.cost != null) tags.push(`<span class="stream-detail-tag cost">$${e.cost.toFixed(4)} total</span>`);
   }
   // Action failures
   else if (e.type === 'action_failed' || (e.severity === 'error' && e.errorMessage)) {
@@ -1237,9 +1236,12 @@ function renderAgentDetail() {
 
   const issues = pl.issues || [];
   if (issues.length > 0) {
-    pHtml += `<div class="pipeline-section"><div class="pipeline-section-header"><div class="pipeline-section-title">Active Issues</div><div class="pipeline-badge" style="color: var(--error);">${issues.length}</div></div>`;
-    pHtml += `<table class="pipeline-table"><thead><tr><th>Issue</th><th>Severity</th><th>Category</th><th>Occurrences</th></tr></thead><tbody>`;
-    issues.forEach(iss => { pHtml += `<tr><td>${escHtml(iss.summary)}</td><td><span class="severity-badge severity-${iss.severity || 'medium'}">${iss.severity || '—'}</span></td><td>${escHtml(iss.category || '—')}</td><td>×${iss.occurrence_count || iss.occurrences || 1}</td></tr>`; });
+    pHtml += `<div class="pipeline-section"><div class="pipeline-section-header"><div class="pipeline-section-title">Active Issues</div><div class="pipeline-badge" style="color: var(--error);">${issues.length}</div><button class="resolve-all-btn" onclick="resolveAllIssues('${agent.id}')">Clear All</button></div>`;
+    pHtml += `<table class="pipeline-table"><thead><tr><th>Issue</th><th>Severity</th><th>Category</th><th>Occurrences</th><th></th></tr></thead><tbody>`;
+    issues.forEach(iss => {
+      var issId = escHtml(iss.issue_id || iss.summary || '');
+      pHtml += `<tr><td>${escHtml(iss.summary)}</td><td><span class="severity-badge severity-${iss.severity || 'medium'}">${iss.severity || '—'}</span></td><td>${escHtml(iss.category || '—')}</td><td>×${iss.occurrence_count || iss.occurrences || 1}</td><td><button class="resolve-btn" onclick="resolveIssue('${agent.id}', '${issId}')">Resolve</button></td></tr>`;
+    });
     pHtml += `</tbody></table></div>`;
   }
 
@@ -1309,13 +1311,13 @@ function renderCostExplorer() {
       <span class="cost-range-label">${rangeLabels[currentCostRange] || currentCostRange}</span>
       <div class="view-toggle">${rangeBtns}</div>
     </div>
-    <div class="cost-stat"><div class="stat-label">Total Cost</div><div class="stat-value purple">${hasEstimates ? '~' : ''}$${totalCost.toFixed(2)}</div></div>
+    <div class="cost-stat"><div class="stat-label">Total Cost</div><div class="stat-value purple">${hasEstimates ? '~' : ''}$${totalCost.toFixed(4)}</div></div>
     <div class="cost-stat"><div class="stat-label">LLM Calls</div><div class="stat-value">${totalCalls}</div></div>
     <div class="cost-stat"><div class="stat-label">Tokens In</div><div class="stat-value">${fmtTokens(totalIn)}</div></div>
     <div class="cost-stat"><div class="stat-label">Tokens Out</div><div class="stat-value">${fmtTokens(totalOut)}</div></div>
-    <div class="cost-stat"><div class="stat-label">Avg Cost/Call</div><div class="stat-value">$${avgCost.toFixed(3)}</div></div>
-    ${hasEstimates ? `<div class="cost-stat"><div class="stat-label">Reported</div><div class="stat-value">$${reportedCost.toFixed(2)}</div></div>
-    <div class="cost-stat"><div class="stat-label">Estimated</div><div class="stat-value" title="Server-estimated costs may differ from actual billing">~$${estimatedCost.toFixed(2)}</div></div>` : ''}
+    <div class="cost-stat"><div class="stat-label">Avg Cost/Call</div><div class="stat-value">$${avgCost.toFixed(4)}</div></div>
+    ${hasEstimates ? `<div class="cost-stat"><div class="stat-label">Reported</div><div class="stat-value">$${reportedCost.toFixed(4)}</div></div>
+    <div class="cost-stat"><div class="stat-label">Estimated</div><div class="stat-value" title="Server-estimated costs may differ from actual billing">~$${estimatedCost.toFixed(4)}</div></div>` : ''}
   `;
 
   let html = '';
@@ -1325,7 +1327,7 @@ function renderCostExplorer() {
     html += `<div><div class="cost-section-title">Cost by Model</div><table class="cost-table"><thead><tr><th>Model</th><th>Calls</th><th>Tokens In</th><th>Tokens Out</th><th>Cost</th><th></th></tr></thead><tbody>`;
     byModel.forEach(m => {
       const mEst = (m.estimated_cost || 0) > 0;
-      const mCostStr = mEst ? '~$' + (m.cost || 0).toFixed(2) : '$' + (m.cost || 0).toFixed(2);
+      const mCostStr = mEst ? '~$' + (m.cost || 0).toFixed(4) : '$' + (m.cost || 0).toFixed(4);
       const mTitle = mEst ? 'title="Includes server-estimated costs"' : '';
       const modelName = m.model || '—';
       const isExpanded = costExpandedModel === modelName;
@@ -1345,7 +1347,7 @@ function renderCostExplorer() {
     sortedAgents.forEach(a => {
       const agentId = a.agent_id || a.agent || '—';
       const aEst = (a.estimated_cost || 0) > 0;
-      const aCostStr = aEst ? '~$' + (a.cost || 0).toFixed(2) : '$' + (a.cost || 0).toFixed(2);
+      const aCostStr = aEst ? '~$' + (a.cost || 0).toFixed(4) : '$' + (a.cost || 0).toFixed(4);
       const aTitle = aEst ? 'title="Includes server-estimated costs"' : '';
       const isExpanded = costExpandedAgent === agentId;
       const chevron = isExpanded ? '▾' : '▸';
@@ -1517,7 +1519,7 @@ function renderFleetPipeline() {
       html += `<tr class="${isHigh ? 'fleet-row-attention' : ''}" onclick="openAgentDetail('${agentId}')" style="cursor:pointer;">
         <td><span class="clickable-entity" style="color:var(--accent)">${escHtml(agentId)}</span></td>
         <td><span class="queue-badge ${qd > 5 ? 'high' : ''}">${qd}</span></td>
-        <td>${iss > 0 ? `<span class="issue-indicator"><span class="issue-dot"></span>${iss}</span>` : '<span style="color:var(--text-muted)">0</span>'}</td>
+        <td>${iss > 0 ? `<span class="issue-indicator clickable" onclick="event.stopPropagation(); openAgentDetail('${agentId}', 'pipeline')"><span class="issue-dot"></span>${iss}</span>` : '<span style="color:var(--text-muted)">0</span>'}</td>
         <td>${td > 0 ? td : '<span style="color:var(--text-muted)">0</span>'}</td>
         <td style="color:${oldest !== '—' ? 'var(--warning)' : 'var(--text-muted)'}">${escHtml(oldest)}</td>
         <td>${isHigh ? '<span style="color:var(--warning);font-weight:600;">Needs attention</span>' : '<span style="color:var(--success)">OK</span>'}</td>
@@ -1529,6 +1531,32 @@ function renderFleetPipeline() {
   }
 
   container.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════
+//  ISSUE RESOLUTION
+// ═══════════════════════════════════════════════════
+
+async function resolveIssue(agentId, issueId) {
+  var result = await apiPost('/v1/agents/' + encodeURIComponent(agentId) + '/issues/' + encodeURIComponent(issueId) + '/resolve');
+  if (result) {
+    showToast('Issue resolved');
+    await fetchPipelineData(agentId);
+    renderAgentDetail();
+    await fetchFleetPipeline();
+    renderFleetPipeline();
+  }
+}
+
+async function resolveAllIssues(agentId) {
+  var result = await apiPost('/v1/agents/' + encodeURIComponent(agentId) + '/issues/resolve-all');
+  if (result) {
+    showToast('All issues resolved');
+    await fetchPipelineData(agentId);
+    renderAgentDetail();
+    await fetchFleetPipeline();
+    renderFleetPipeline();
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -1565,13 +1593,14 @@ function switchView(view) {
   renderHive();
 }
 
-async function openAgentDetail(agentId) {
+async function openAgentDetail(agentId, tab) {
   agentDetailAgent = agentId;
   selectedAgent = agentId;
-  activeDetailTab = 'tasks';
+  var targetTab = tab || 'tasks';
+  activeDetailTab = targetTab;
   await fetchPipelineData(agentId);
   switchView('agentDetail');
-  switchDetailTab('tasks');
+  switchDetailTab(targetTab);
   renderStream();
   updateFilterBar();
 }
@@ -2192,12 +2221,12 @@ function connectWebSocket() {
     var wsUrl;
     if (CONFIG.wsUrl) {
       // Production: use AWS API Gateway WebSocket URL
-      wsUrl = CONFIG.wsUrl + '?token=' + encodeURIComponent(CONFIG.apiKey);
+      wsUrl = CONFIG.wsUrl + '?token=' + encodeURIComponent(CONFIG.accessId);
     } else {
       // Local: derive from HTTP endpoint (current behavior)
       var url = new URL(CONFIG.endpoint);
       var wsProto = url.protocol === 'https:' ? 'wss:' : 'ws:';
-      wsUrl = wsProto + '//' + url.host + '/v1/stream?token=' + encodeURIComponent(CONFIG.apiKey);
+      wsUrl = wsProto + '//' + url.host + '/v1/stream?token=' + encodeURIComponent(CONFIG.accessId);
     }
     ws = new WebSocket(wsUrl);
 
@@ -2207,7 +2236,7 @@ function connectWebSocket() {
       stopPolling();
       ws.send(JSON.stringify({
         action: 'subscribe',
-        token: CONFIG.apiKey,
+        token: CONFIG.accessId,
         channels: ['events', 'agents'],
         filters: {
           environment: document.getElementById('envSelector').value,

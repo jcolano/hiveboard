@@ -11,6 +11,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
+  <a href="#claude-agent-sdk-integration">Claude Agent SDK</a> •
   <a href="#the-problem">The Problem</a> •
   <a href="#what-hiveboard-does">What It Does</a> •
   <a href="#hiveloop-sdk">HiveLoop SDK</a> •
@@ -69,14 +70,12 @@ Product overview, architecture, and the story behind HiveBoard.
 
 We built a custom **Claude Code Skill** that lets any developer instrument their AI agents with HiveBoard in under 5 minutes. Just point Claude Code at your project, and the Skill walks through setup interactively — initializing HiveLoop, registering agents, wiring up decorators, and validating the dashboard connection. What used to be 30 minutes of reading docs and manual config is now a guided conversation.
 
-### 🔗 Claude Agent SDK Integration — One Hook, Full Observability *(Coming Soon)*
+### 🔗 Claude Agent SDK Integration — One Hook, Full Observability
 ```python
 hooks=hiveloop_hooks(api_key="hb_live_xxx")
 ```
 
-Add one hook to any [Claude Agent SDK](https://docs.anthropic.com/en/docs/agent-sdk) agent and get full HiveBoard observability — heartbeats, task timelines, tool action tracking, subagent pipelines — with zero manual instrumentation. The integration maps the Agent SDK's lifecycle hooks directly to HiveLoop events, so every `Read`, `Edit`, `Bash`, and `Grep` call becomes a visible node in your dashboard.
-
-> ⚡ **Status:** Currently in testing. We're pushing to ship before the hackathon deadline, but either way — this drops within hours.
+Add one hook to any [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview) agent and get full HiveBoard observability — heartbeats, task timelines, tool action tracking, subagent pipelines — with zero manual instrumentation. The integration maps the Agent SDK's lifecycle hooks directly to HiveLoop events, so every `Read`, `Edit`, `Bash`, and `Grep` call becomes a visible node in your dashboard. See the full [integration guide below](#claude-agent-sdk-integration).
 
 ---
 
@@ -182,6 +181,86 @@ with agent.task("task-123", project="my-project", type="processing") as task:
 ```
 
 Now you have task timelines with action tracking and LLM cost breakdowns in the Cost Explorer.
+
+---
+
+## Claude Agent SDK Integration
+
+If you're building agents with Anthropic's [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview), HiveBoard plugs in with **two additional lines of code** — no manual instrumentation needed.
+
+The Claude Agent SDK gives your agent built-in tools for reading files, running commands, editing code, and more. HiveBoard's integration uses the SDK's [hooks system](https://platform.claude.com/docs/en/agent-sdk/hooks) to automatically capture every tool call, LLM interaction, and session lifecycle event, turning them into a full observability timeline on your dashboard.
+
+### Setup
+
+```python
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions
+from hiveloop.integrations.claude_agent_sdk import hiveloop_hooks    # 1. Import the hooks
+
+async def main():
+    async for message in query(
+        prompt="Find and fix the bug in auth.py",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Read", "Edit", "Bash"],
+            hooks=hiveloop_hooks(api_key="hb_live_xxx"),              # 2. Pass them in
+        ),
+    ):
+        print(message)  # Claude reads the file, finds the bug, edits it
+
+asyncio.run(main())
+```
+
+That's it. Your Claude agent now reports to HiveBoard automatically.
+
+### What You Get
+
+Once `hiveloop_hooks` is wired in, every agent session is fully instrumented:
+
+| Event | What HiveBoard Shows |
+|-------|---------------------|
+| **Session start/end** | Task timeline with duration, success/failure status |
+| **Tool calls** (`Read`, `Edit`, `Bash`, `Grep`, ...) | Individual action nodes in the task timeline with duration tracking |
+| **LLM calls** | Token counts, model used, cost per call |
+| **Subagent spawns** (`Task` tool) | Child agents in the pipeline view, linked to the parent session |
+| **Errors & exceptions** | Error events with severity, surfaced in stuck detection and alerts |
+
+No decorators, no manual event calls, no config files. The hooks capture the SDK's native lifecycle and translate it into HiveLoop events.
+
+### Configuration Options
+
+`hiveloop_hooks` accepts the same options as `hiveloop.init`:
+
+```python
+hooks = hiveloop_hooks(
+    api_key="hb_live_xxx",
+    endpoint="https://your-hiveboard-server.com",  # Default: http://localhost:8000
+    agent_name="bug-fixer",                         # Shows up as the agent ID on the dashboard
+    heartbeat_interval=30,                          # Seconds between heartbeats (default: 30)
+)
+```
+
+### Works With Everything the SDK Supports
+
+The integration is transparent to the rest of your SDK configuration. Combine it with subagents, MCP servers, custom permissions, or session resumption — HiveBoard observes it all:
+
+```python
+options = ClaudeAgentOptions(
+    allowed_tools=["Read", "Edit", "Bash", "Grep", "Task"],
+    hooks=hiveloop_hooks(api_key="hb_live_xxx"),
+    agents={
+        "code-reviewer": AgentDefinition(
+            description="Reviews code for quality and security.",
+            prompt="Analyze code and suggest improvements.",
+            tools=["Read", "Glob", "Grep"],
+        )
+    },
+    mcp_servers={
+        "playwright": {"command": "npx", "args": ["@playwright/mcp@latest"]}
+    },
+)
+```
+
+Both the parent agent and any subagents it spawns will appear on the HiveBoard dashboard with full timelines.
 
 ---
 

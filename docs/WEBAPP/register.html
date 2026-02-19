@@ -302,10 +302,18 @@ body {
             </div>
 
             <div class="key-reveal-box">
-                <div class="key-reveal-label">API Key</div>
+                <div class="key-reveal-label">API Key <span style="opacity:0.6;font-size:0.85em">(for SDK — keep secret)</span></div>
                 <div class="key-reveal-value">
                     <div class="key-reveal-text" id="apiKeyDisplay">—</div>
                     <button class="btn-copy" id="copyKeyBtn">Copy</button>
+                </div>
+            </div>
+
+            <div class="key-reveal-box" style="margin-top:10px">
+                <div class="key-reveal-label">Dashboard Access ID <span style="opacity:0.6;font-size:0.85em">(read-only, safe to share)</span></div>
+                <div class="key-reveal-value">
+                    <div class="key-reveal-text" id="accessIdDisplay">—</div>
+                    <button class="btn-copy" id="copyAccessIdBtn">Copy</button>
                 </div>
             </div>
 
@@ -334,8 +342,9 @@ body {
 // ═══════════════════════════════════════
 // API CONFIG
 // ═══════════════════════════════════════
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
+const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = _isLocal
+    ? 'http://localhost:8451'
     : 'https://mlbackend.net/loophive';
 
 async function apiPost(endpoint, data) {
@@ -352,7 +361,7 @@ function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
 
 // Redirect if already logged in
 if (localStorage.getItem('hb_token')) {
-    window.location.href = 'home.html';
+    navTo('home.html');
 }
 
 // ═══════════════════════════════════════
@@ -482,13 +491,17 @@ form.addEventListener('submit', async function(e) {
 // ═══════════════════════════════════════
 function showApiKeyReveal(data, email) {
     document.getElementById('apiKeyDisplay').textContent = data.api_key || '—';
+    document.getElementById('accessIdDisplay').textContent = data.access_id || '—';
     document.getElementById('tenantNameDisplay').textContent = data.tenant?.name || '';
     document.getElementById('tenantSlugDisplay').textContent = data.tenant?.slug || '';
     document.getElementById('userEmailDisplay').textContent = email;
 
-    // Store tenant_id for login page
+    // Store credentials
     if (data.tenant?.tenant_id) {
         localStorage.setItem('hb_tenant_id', data.tenant.tenant_id);
+    }
+    if (data.access_id) {
+        localStorage.setItem('hiveboard_access_id', data.access_id);
     }
 
     // Pre-fill email on login page
@@ -499,6 +512,16 @@ function showApiKeyReveal(data, email) {
 
 document.getElementById('copyKeyBtn').addEventListener('click', function() {
     const key = document.getElementById('apiKeyDisplay').textContent;
+    if (!key || key === '—') return;
+    navigator.clipboard.writeText(key).then(() => {
+        this.textContent = 'Copied!';
+        this.classList.add('copied');
+        setTimeout(() => { this.textContent = 'Copy'; this.classList.remove('copied'); }, 2000);
+    });
+});
+
+document.getElementById('copyAccessIdBtn').addEventListener('click', function() {
+    const key = document.getElementById('accessIdDisplay').textContent;
     if (!key || key === '—') return;
     navigator.clipboard.writeText(key).then(() => {
         this.textContent = 'Copied!';
@@ -537,6 +560,26 @@ function setLoading(on) {
     submitBtn.disabled = on;
     submitBtn.classList.toggle('loading', on);
 }
+</script>
+<script>
+(function() {
+    var aid = new URLSearchParams(window.location.search).get('accessId') || localStorage.getItem('hiveboard_access_id') || '';
+    if (!aid) return;
+    function appendAid(url) {
+        if (!url || url.startsWith('http') || url.startsWith('//') || url.startsWith('#')) return url;
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        if (url.indexOf('accessId=') !== -1) return url;
+        return url + sep + 'accessId=' + encodeURIComponent(aid);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[href]').forEach(function(a) {
+            if (a.href && a.getAttribute('href').indexOf('.html') !== -1) {
+                a.setAttribute('href', appendAid(a.getAttribute('href')));
+            }
+        });
+    });
+    window.navTo = function(url) { window.location.href = appendAid(url); };
+})();
 </script>
 </body>
 </html>

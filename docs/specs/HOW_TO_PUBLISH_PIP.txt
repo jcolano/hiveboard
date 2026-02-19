@@ -1,0 +1,22 @@
+ Build & Publish Instructions
+
+  # 1. cd into the SDK package root
+  cd src/sdk
+
+  # 2. Build the distribution (creates dist/ with .tar.gz + .whl)
+  python -m build
+
+  # 3. Check the build looks right (should list integrations/claude_agent_sdk.py)
+  tar tzf dist/hiveloop-0.2.0.tar.gz | Select-String claude
+
+  # 4. Upload to PyPI
+  python -m twine upload dist/hiveloop-0.2.0*
+
+  If you don't have build or twine installed:
+
+  pip install build twine
+
+  For TestPyPI first (optional):
+
+  python -m twine upload --repository testpypi dist/hiveloop-0.2.0*
+  pip install --index-url https://test.pypi.org/simple/ hiveloop==0.2.0

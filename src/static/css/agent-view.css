@@ -1009,8 +1009,12 @@
 .av-pipe-group-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 8px;
     margin-bottom: 8px;
+}
+
+.av-pipe-group-header .resolve-all-btn {
+    margin-left: auto;
 }
 
 .av-pipe-group-title {
@@ -1047,6 +1051,12 @@
 
 .av-pipe-item:last-child {
     margin-bottom: 0;
+}
+
+.av-pipe-item .resolve-btn {
+    margin-left: auto;
+    flex-shrink: 0;
+    align-self: center;
 }
 
 .av-pipe-icon {

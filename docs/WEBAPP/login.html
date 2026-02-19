@@ -199,6 +199,9 @@ body {
             <div class="auth-footer">
                 Don't have an account? <a href="register.html">Create one</a>
             </div>
+            <div class="auth-footer" style="margin-top:10px">
+                Just need an API key? <a href="quickstart.html">Quick start →</a>
+            </div>
         </div>
 
     </div>
@@ -208,8 +211,9 @@ body {
 // ═══════════════════════════════════════
 // API CONFIG
 // ═══════════════════════════════════════
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
+const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = _isLocal
+    ? 'http://localhost:8451'
     : 'https://mlbackend.net/loophive';
 
 async function apiPost(endpoint, data) {
@@ -224,7 +228,7 @@ async function apiPost(endpoint, data) {
 
 // Redirect if already logged in
 if (localStorage.getItem('hb_token')) {
-    window.location.href = 'home.html';
+    navTo('home.html');
 }
 
 // Pre-fill email from registration
@@ -287,7 +291,7 @@ loginForm.addEventListener('submit', async function(e) {
             if (res.data.tenant_name) localStorage.setItem('hb_tenant_name', res.data.tenant_name);
             if (res.data.tenant_slug) localStorage.setItem('hb_tenant_slug', res.data.tenant_slug);
 
-            window.location.href = 'home.html';
+            navTo('home.html');
         } else if (res.status === 401) {
             showError('Invalid email or password.');
         } else if (res.status === 429) {
@@ -320,6 +324,26 @@ function setLoading(btn, on) {
     btn.disabled = on;
     btn.classList.toggle('loading', on);
 }
+</script>
+<script>
+(function() {
+    var aid = new URLSearchParams(window.location.search).get('accessId') || localStorage.getItem('hiveboard_access_id') || '';
+    if (!aid) return;
+    function appendAid(url) {
+        if (!url || url.startsWith('http') || url.startsWith('//') || url.startsWith('#')) return url;
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        if (url.indexOf('accessId=') !== -1) return url;
+        return url + sep + 'accessId=' + encodeURIComponent(aid);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[href]').forEach(function(a) {
+            if (a.href && a.getAttribute('href').indexOf('.html') !== -1) {
+                a.setAttribute('href', appendAid(a.getAttribute('href')));
+            }
+        });
+    });
+    window.navTo = function(url) { window.location.href = appendAid(url); };
+})();
 </script>
 </body>
 </html>

@@ -228,8 +228,9 @@ body {
 // ═══════════════════════════════════════
 // API CONFIG
 // ═══════════════════════════════════════
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'http://localhost:8000'
+const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = _isLocal
+    ? 'http://localhost:8451'
     : 'https://mlbackend.net/loophive';
 
 async function apiPost(endpoint, data) {
@@ -289,7 +290,7 @@ form.addEventListener('submit', async function(e) {
             localStorage.setItem('hb_user', JSON.stringify(res.data.user));
             localStorage.setItem('hb_tenant_id', res.data.user.tenant_id);
 
-            window.location.href = 'home.html';
+            navTo('home.html');
         } else if (res.status === 404) {
             showGlobalError('This invitation link is invalid or has expired. Please ask the workspace owner to send a new invite.');
         } else if (res.status === 409) {
@@ -327,6 +328,26 @@ function setLoading(on) {
     submitBtn.disabled = on;
     submitBtn.classList.toggle('loading', on);
 }
+</script>
+<script>
+(function() {
+    var aid = new URLSearchParams(window.location.search).get('accessId') || localStorage.getItem('hiveboard_access_id') || '';
+    if (!aid) return;
+    function appendAid(url) {
+        if (!url || url.startsWith('http') || url.startsWith('//') || url.startsWith('#')) return url;
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        if (url.indexOf('accessId=') !== -1) return url;
+        return url + sep + 'accessId=' + encodeURIComponent(aid);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[href]').forEach(function(a) {
+            if (a.href && a.getAttribute('href').indexOf('.html') !== -1) {
+                a.setAttribute('href', appendAid(a.getAttribute('href')));
+            }
+        });
+    });
+    window.navTo = function(url) { window.location.href = appendAid(url); };
+})();
 </script>
 </body>
 </html>

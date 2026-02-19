@@ -65,6 +65,9 @@ _FIELD_LIMITS: dict[str, int] = {
     "group": MAX_GROUP_CHARS,
 }
 
+# Known event types for remapping unknown types to "custom"
+_VALID_EVENT_TYPES: set[str] = {et.value for et in EventType}
+
 
 def _validate_field_sizes(event: dict[str, Any]) -> None:
     """Warn and truncate if any string fields exceed spec limits."""
@@ -1131,7 +1134,9 @@ class Agent:
         """Build an event dict and enqueue it via transport.
 
         Auto-generates event_id, timestamp. Strips None values.
-        Applies severity auto-defaults. Never raises.
+        Applies severity auto-defaults. Remaps unknown event types
+        to "custom" with the original type preserved in payload.
+        Never raises.
         """
         try:
             event: dict[str, Any] = {
@@ -1139,6 +1144,17 @@ class Agent:
                 "timestamp": _utcnow_iso(),
             }
             event.update(kwargs)
+
+            # Remap unknown event types to "custom", preserving original
+            et_raw = event.get("event_type", "")
+            if et_raw not in _VALID_EVENT_TYPES:
+                event["event_type"] = EventType.CUSTOM
+                payload = event.get("payload")
+                if payload is None:
+                    payload = {}
+                    event["payload"] = payload
+                if isinstance(payload, dict):
+                    payload["original_event_type"] = et_raw
 
             # Apply severity auto-default if not set
             if event.get("severity") is None:

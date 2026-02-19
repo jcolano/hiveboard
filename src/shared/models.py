@@ -412,6 +412,25 @@ class InviteRecord(BaseModel):
     is_accepted: bool = False
 
 
+class QuickstartClaimRequest(BaseModel):
+    """POST /v1/auth/claim body."""
+    claim_token: str
+    email: str
+    password: str
+    name: str
+
+
+class PendingClaimRecord(BaseModel):
+    """Quickstart pending claim — no user until claimed."""
+    claim_id: str
+    tenant_id: str
+    claim_token_hash: str
+    created_at: datetime
+    expires_at: datetime
+    claimed_at: datetime | None = None
+    is_claimed: bool = False
+
+
 class ApiKeyCreateRequest(BaseModel):
     """POST /v1/api-keys body."""
     label: str
@@ -457,6 +476,7 @@ class AgentRecord(BaseModel):
     """Agent profile cache — Data Model Spec Section 3.4."""
     agent_id: str
     tenant_id: str
+    internal_id: str = ""  # UUID4, set by storage layer
     agent_type: str = "general"
     agent_version: str | None = None
     framework: str | None = "custom"
