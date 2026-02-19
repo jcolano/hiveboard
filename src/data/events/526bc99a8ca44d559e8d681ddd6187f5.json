@@ -3296,5 +3296,545 @@
       ]
     },
     "key_type": "live"
+  },
+  {
+    "event_id": "0ee9a829-c43a-480c-b335-8a36c9ce4eb9",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:48:59.959Z",
+    "received_at": "2026-02-19T20:49:03.913147+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 341,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "929d0c79-54f9-4842-9f45-e7b1383ad6c6",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:48:59.959Z",
+    "received_at": "2026-02-19T20:49:03.913147+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items, oldest 0s",
+      "data": {
+        "depth": 0,
+        "oldest_age_seconds": 0,
+        "items": [],
+        "processing": null
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "11d758d9-841f-4459-81cd-24d43efdbe61",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:00.599Z",
+    "received_at": "2026-02-19T20:49:03.913147+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "task_started",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "summary": "Task sales_bot-evt_8a60fb236914 started"
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "422c77d0-3b41-42f1-9681-5f1184ba90bd",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:22.966Z",
+    "received_at": "2026-02-19T20:49:27.166024+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "llm_call",
+      "summary": "create_plan \u2192 claude-haiku-4-5-20251001 (1322 in / 2235 out, $0.0099976)",
+      "data": {
+        "name": "create_plan",
+        "model": "claude-haiku-4-5-20251001",
+        "tokens_in": 1322,
+        "tokens_out": 2235,
+        "cost": 0.0099976,
+        "duration_ms": 22362,
+        "metadata": {
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0,
+          "stop_reason": "end_turn"
+        },
+        "cost_source": "reported"
+      },
+      "tags": [
+        "llm"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d9814474-40d2-4a98-acdf-7f7caed4e8ee",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:22.966Z",
+    "received_at": "2026-02-19T20:49:27.166024+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "plan_created",
+      "summary": "You are performing your periodic heartbeat check for NovaTech Solutions.\n\n## Step 1: Sync\nworkspace_read(action=\"sync\", filters={\"since\": \"<last_sync_timestamp>\"})\nIf no new notifications, skip to Step 5.\n\n## Step 2: Process Notifications by Priority\n\n### HIGH PRIORITY (handle first):\n- **dm**: A teammate sent you a direct message. Read it and respond ONLY if it contains\n  actionable info or a question. Simple acks like \"thanks\" or \"got it\" -> mark read, move on.\n- **task_assigned**: A teammate assigned you",
+      "data": {
+        "goal": "You are performing your periodic heartbeat check for NovaTech Solutions.\n\n## Step 1: Sync\nworkspace_read(action=\"sync\", filters={\"since\": \"<last_sync_timestamp>\"})\nIf no new notifications, skip to Step 5.\n\n## Step 2: Process Notifications by Priority\n\n### HIGH PRIORITY (handle first):\n- **dm**: A teammate sent you a direct message. Read it and respond ONLY if it contains\n  actionable info or a question. Simple acks like \"thanks\" or \"got it\" -> mark read, move on.\n- **task_assigned**: A teammate assigned you a task. Acknowledge briefly via DM, then work on it.\n- **mention**: Someone @mentioned you in a post. Read the post context and respond with a comment.\n- **thread_reply**: Someone replied to your post/comment. Check if a response is needed.\n- **inbound_submission** / **inbound_assigned**: NEW LEAD! Process immediately (see Step 3).\n- **deal_stage_changed**: A deal moved stages. Check if action needed.\n\n### MEDIUM PRIORITY:\n- **task_comment**: Someone commented on your task. Read and respond if needed.\n- **post_reply**: Someone replied to your post.\n\n## Step 3: Process New Leads\nFor each new lead:\n1. Create the company in CRM (crm_write entity=\"company\")\n2. Create the contact (crm_write entity=\"contact\")\n3. Create a deal (crm_write entity=\"deal\")\n4. Log a follow-up activity (crm_write entity=\"activity\")\n5. **COLLABORATION**: If the lead notes mention support tickets, bugs, or unresolved issues,\n   DM SupportBot asking about that customer's ticket history before proceeding.\n\n## Step 4: Mark Notifications Read\nworkspace_write(action=\"mark_read\")\n\n## Step 5: Pipeline Check\n- Check open deals (crm_search entity=\"deal\") for any stuck too long\n- If a deal just reached \"won\", DM SupportBot with handoff details and create a task for them\n\n## If nothing notable\nRespond with HEARTBEAT_OK\n",
+        "steps": [
+          {
+            "index": 0,
+            "description": "Sync workspace to retrieve all notifications since the last heartbeat check. This discovers what needs attention and whether further action is warranted."
+          },
+          {
+            "index": 1,
+            "description": "Check if notifications list is empty. If no new notifications since last sync, skip to Step 5 (pipeline check) as per task instructions."
+          },
+          {
+            "index": 2,
+            "description": "Process HIGH PRIORITY notifications in order: (a) For DMs: read content and respond only if actionable or questioning, otherwise mark_read. (b) For task_assigned: respond with brief ack via send_dm_notification, then todo_add the task. (c) For mentions/thread_replies: read context via workspace_read detail call, respond with feed_post if needed. (d) For inbound_submission/inbound_assigned (new leads): flag for Step 4 processing. (e) For deal_stage_changed: crm_search to verify stage and determine action. Process each notification type with appropriate tool."
+          },
+          {
+            "index": 3,
+            "description": "Process each new lead (from inbound_submission/inbound_assigned flagged in Step 3). For each lead: (1) Extract lead details from notification/submission. (2) Call crm_write to create company record (entity='company'). (3) Call crm_write to create contact record (entity='contact'). (4) Call crm_write to create deal record (entity='deal'). (5) Call crm_write to create follow-up activity (entity='activity'). (6) If lead notes mention support tickets/bugs/unresolved issues, send_dm_notification to SupportBot asking for ticket history before marking complete."
+          },
+          {
+            "index": 4,
+            "description": "Process MEDIUM PRIORITY notifications (task_comment, post_reply). For each: workspace_read to get context, determine if response needed, and respond via feed_post or send_dm_notification if required. Otherwise mark_read."
+          },
+          {
+            "index": 5,
+            "description": "Mark all processed notifications as read to clear the inbox. Call workspace_write with action='mark_read' to update the workspace state."
+          },
+          {
+            "index": 6,
+            "description": "Audit the sales pipeline: (1) Call crm_search entity='deal' with filters for open deals (status != 'won' and != 'lost'). (2) For each deal, check how long it's been in current stage (compare deal.updated_at to current time). (3) Flag deals stuck > 14 days without activity. (4) If any deal reached 'won' stage recently, extract handoff details (customer, deal amount, contact info) and send_dm_notification to SupportBot with handoff summary. (5) Create a todo_add or task reminder for SupportBot follow-up."
+          },
+          {
+            "index": 7,
+            "description": "Compile final heartbeat status. If any new leads processed, deals stuck detected, or high-priority actions taken, provide a summary. Otherwise, respond with HEARTBEAT_OK. Use feed_post or send_dm_notification to log status to team/manager if appropriate."
+          }
+        ],
+        "revision": 0
+      },
+      "tags": [
+        "plan",
+        "created"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "01b493ca-67fe-49e7-a824-0e27547b1887",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:22.966Z",
+    "received_at": "2026-02-19T20:49:27.166024+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "plan_step",
+      "summary": "Step 0 started: Sync workspace to retrieve all notifications since the last heartbeat check. This discovers what needs attention and whether further action is warranted.",
+      "data": {
+        "step_index": 0,
+        "total_steps": 8,
+        "action": "started",
+        "plan_revision": 0
+      },
+      "tags": [
+        "plan",
+        "step_started"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "184fb719-323a-432f-a988-ea33b3b84d7d",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:49:29.960Z",
+    "received_at": "2026-02-19T20:49:34.257579+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 371,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 1,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "9fe5aa3b-3bef-4d66-b656-81ec2922eaa1",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:49:29.960Z",
+    "received_at": "2026-02-19T20:49:34.257579+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items, oldest 0s",
+      "data": {
+        "depth": 0,
+        "oldest_age_seconds": 0,
+        "items": [],
+        "processing": {
+          "id": "evt_8a60fb236914",
+          "summary": "You are performing your periodic heartbeat check for NovaTech Solutions.\n\n## Ste",
+          "started_at": "2026-02-19T20:49:00.597592+00:00"
+        }
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "be085d4a-6599-4a13-8b24-66fa707f96eb",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:30.893Z",
+    "received_at": "2026-02-19T20:49:34.257579+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "llm_call",
+      "summary": "phase2_tool_use \u2192 claude-haiku-4-5-20251001 (1224 in / 208 out, $0.0018111999999999998)",
+      "data": {
+        "name": "phase2_tool_use",
+        "model": "claude-haiku-4-5-20251001",
+        "tokens_in": 1224,
+        "tokens_out": 208,
+        "cost": 0.0018111999999999998,
+        "duration_ms": 1225,
+        "prompt_preview": "Execute this action: Sync workspace to retrieve all notifications, messages, and events since last_sync_at=2026-02-17T20:49:00.600467+00:00. Use workspace_id=ws_1440ae7c3503. Return all notifications with type, timestamp, and content so we can prioritize what to handle.\n\nAvailable variables for refe",
+        "response_preview": "workspace_read({\"base_url\": \"http://localhost:8441/api/v1\", \"auth_token\": \"lc_cuMY-rI37TOXPr7gFGiI-xvxe8XAenQPqPIhFIX98ME\", \"workspace_id\": \"ws_1440ae7c3503\", \"action\": \"sync\", \"filters\": {\"since\": \"2026-02-17T20:49:00.600467+00:00\"}})",
+        "metadata": {
+          "turn_number": 1,
+          "chosen_tool": "workspace_read",
+          "stop_reason": "end_turn",
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_source": "reported"
+      },
+      "tags": [
+        "llm"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e8213e5d-38b1-499d-9839-f3c57c8e46e2",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:30.893Z",
+    "received_at": "2026-02-19T20:49:34.257579+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": "c6824633-950d-4569-aee7-d2a042b1c6a1",
+    "parent_action_id": null,
+    "event_type": "action_started",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "action_name": "workspace_read"
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0dc9cca5-361a-4669-8a15-5525f32baa3e",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:32.955Z",
+    "received_at": "2026-02-19T20:49:34.269749+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": "c6824633-950d-4569-aee7-d2a042b1c6a1",
+    "parent_action_id": null,
+    "event_type": "action_completed",
+    "severity": "info",
+    "status": "success",
+    "duration_ms": 2061,
+    "parent_event_id": null,
+    "payload": {
+      "action_name": "workspace_read",
+      "args": {
+        "base_url": "http://localhost:8441/api/v1",
+        "auth_token": "lc_cuMY-rI37TOXPr7gFGiI-xvxe8XAenQPqPIhFIX98ME",
+        "workspace_id": "ws_1440ae7c3503",
+        "action": "sync",
+        "filters": "{'since': '2026-02-17T20:49:00.600467+00:00'}"
+      },
+      "result_preview": "{\n  \"success\": true,\n  \"since\": \"2026-02-17T20:49:00.600467+00:00\",\n  \"topics\": [\n    {\n      \"id\": \"topic_e48d7b916f43\",\n      \"workspace_id\": \"ws_1440ae7c3503\",\n      \"name\": \"general\",\n      \"description\": \"General discussion for all team members\",\n      \"owner_id\": \"system\",\n      \"created_at\": \"2026-02-19T20:42:05.528964Z\"\n    },\n    {\n      \"id\": \"topic_6d35468e77c3\",\n      \"workspace_id\": \"ws_1440ae7c3503\",\n      \"name\": \"announcements\",\n      \"description\": \"Official workspace announceme",
+      "success": true,
+      "error": null,
+      "duration_ms": 2062,
+      "result_size_bytes": 8933
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "fcc6812d-fcdd-41b0-9ffd-37f092bb6d9e",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:32.956Z",
+    "received_at": "2026-02-19T20:49:34.269749+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "turn": 1,
+      "completed_steps_count": 1,
+      "completed_steps": [
+        "Initiated heartbeat check"
+      ],
+      "variables_count": 6,
+      "current_step": 0,
+      "error_context": null,
+      "pending_actions_count": 5,
+      "original_event_type": "state_mutation"
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f92ab0d9-9be0-4b9f-8fdb-b6d50ca42b79",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:32.956Z",
+    "received_at": "2026-02-19T20:49:34.269749+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "plan_step",
+      "summary": "Step 0 completed: Performing Step 1: Syncing workspace to retrieve all notifications since last heartbeat. This will reveal what needs attention.",
+      "data": {
+        "step_index": 0,
+        "total_steps": 8,
+        "action": "completed",
+        "turns": 1,
+        "plan_revision": 0
+      },
+      "tags": [
+        "plan",
+        "step_completed"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "b9bca73d-eff7-45ad-bacc-f92b66c7a014",
+    "tenant_id": "dev",
+    "agent_id": "sales_bot",
+    "agent_type": "general",
+    "project_id": "d711b340-caf2-42ef-b121-f2ce8cc2e5a5",
+    "timestamp": "2026-02-19T20:49:32.956Z",
+    "received_at": "2026-02-19T20:49:34.269749+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": "sales_bot-evt_8a60fb236914",
+    "task_type": "heartbeat",
+    "task_run_id": "08023591-33c9-4660-b2c0-7259f544c8a3",
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "plan_step",
+      "summary": "Step 1 started: Check if notifications list is empty. If no new notifications since last sync, skip to Step 5 (pipeline check) as per task instructions.",
+      "data": {
+        "step_index": 1,
+        "total_steps": 8,
+        "action": "started",
+        "plan_revision": 0
+      },
+      "tags": [
+        "plan",
+        "step_started"
+      ]
+    },
+    "key_type": "live"
   }
 ]

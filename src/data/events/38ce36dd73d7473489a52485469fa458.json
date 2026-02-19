@@ -930,5 +930,137 @@
       ]
     },
     "key_type": "live"
+  },
+  {
+    "event_id": "23dcf5dc-93a3-4bbf-9021-82778fb622ff",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:48:49.226Z",
+    "received_at": "2026-02-19T20:48:51.807541+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 360,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "9257dcfd-37d4-4286-8e53-d256562bb6da",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:48:49.226Z",
+    "received_at": "2026-02-19T20:48:51.807541+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f89e8efe-fcd2-4cc0-8fae-3c67939be5b5",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:49:19.237Z",
+    "received_at": "2026-02-19T20:49:19.353836+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 390,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "ff0d6c6e-8c8c-4f55-9caf-dd62f6fa801e",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:49:19.237Z",
+    "received_at": "2026-02-19T20:49:19.353836+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
   }
 ]

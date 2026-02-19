@@ -930,5 +930,137 @@
       ]
     },
     "key_type": "live"
+  },
+  {
+    "event_id": "6b263706-7da1-4e4d-8f7a-efe4bd45d1b5",
+    "tenant_id": "dev",
+    "agent_id": "ag_0tgg655l",
+    "agent_type": "Sales Manager",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:48:49.180Z",
+    "received_at": "2026-02-19T20:48:51.793372+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 360,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "98458930-8f34-4546-b5b5-b70ecf9336f8",
+    "tenant_id": "dev",
+    "agent_id": "ag_0tgg655l",
+    "agent_type": "Sales Manager",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:48:49.180Z",
+    "received_at": "2026-02-19T20:48:51.793372+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "09432be0-2eb1-4828-a94a-cf155928b16f",
+    "tenant_id": "dev",
+    "agent_id": "ag_0tgg655l",
+    "agent_type": "Sales Manager",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:49:19.189Z",
+    "received_at": "2026-02-19T20:49:19.334026+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 390,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "b1307d40-d065-4615-817c-761fcba3c57f",
+    "tenant_id": "dev",
+    "agent_id": "ag_0tgg655l",
+    "agent_type": "Sales Manager",
+    "project_id": null,
+    "timestamp": "2026-02-19T20:49:19.189Z",
+    "received_at": "2026-02-19T20:49:19.334026+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
   }
 ]
