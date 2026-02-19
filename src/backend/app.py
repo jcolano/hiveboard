@@ -58,6 +58,7 @@ from shared.models import (
     InviteRequest,
     LoginRequest,
     LoginResponse,
+    QuickstartClaimRequest,
     Page,
     PaginationInfo,
     AdminResetPasswordRequest,
@@ -185,6 +186,18 @@ async def _bootstrap_dev_tenant(storage: JsonStorageBackend):
         key_prefix=raw_key[:8],
         key_type="live",
         label="Development API Key",
+    )
+    # Bootstrap dev read key (access_id for dashboard)
+    from shared.enums import DEFAULT_ACCESS_ID_LABEL
+    dev_read_key = "hb_read_dev000000000000000000000000000000"
+    read_hash = hashlib.sha256(dev_read_key.encode()).hexdigest()
+    await storage.create_api_key(
+        key_id="dev-read-key",
+        tenant_id="dev",
+        key_hash=read_hash,
+        key_prefix=dev_read_key[:12],
+        key_type="read",
+        label=DEFAULT_ACCESS_ID_LABEL,
     )
     # Bootstrap dev owner user
     from backend.auth import hash_password
@@ -530,13 +543,8 @@ async def ingest(body: IngestRequest, request: Request):
     if accepted_events:
         last_event_type = accepted_events[-1].event_type
 
-    # Step 6: Batch insert
-    ingestion_key_type = getattr(request.state, "key_type", "live")
-    inserted = 0
-    if accepted_events:
-        inserted = await storage.insert_events(accepted_events, key_type=ingestion_key_type)
-
-    # Step 7: Agent cache update
+    # Step 6: Agent cache update — MUST run before insert_events
+    # so internal_id exists for event partitioning
     agent_record = None
     if accepted_events:
         last_ts = max(
@@ -558,6 +566,12 @@ async def ingest(body: IngestRequest, request: Request):
             last_task_id=last_task_id,
             last_project_id=last_project_id,
         )
+
+    # Step 7: Batch insert events
+    ingestion_key_type = getattr(request.state, "key_type", "live")
+    inserted = 0
+    if accepted_events:
+        inserted = await storage.insert_events(accepted_events, key_type=ingestion_key_type)
 
     # Step 7b: Update running aggregates
     if accepted_events:
@@ -802,6 +816,73 @@ async def get_agent_pipeline(
     tenant_id = request.state.tenant_id
     pipeline = await storage.get_pipeline(tenant_id, agent_id)
     return pipeline.model_dump(mode="json")
+
+
+# --- B2.3.3a: POST /v1/agents/{agent_id}/issues/{issue_id}/resolve ---
+
+@app.post("/v1/agents/{agent_id}/issues/{issue_id}/resolve")
+async def resolve_issue(
+    agent_id: str,
+    issue_id: str,
+    request: Request,
+):
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    now = _now_utc()
+    evt = Event(
+        event_id=f"sys-resolve-{uuid4().hex[:12]}",
+        tenant_id=tenant_id,
+        agent_id=agent_id,
+        timestamp=now.isoformat(),
+        received_at=now.isoformat(),
+        event_type="custom",
+        payload={
+            "kind": "issue",
+            "summary": issue_id,
+            "data": {
+                "issue_id": issue_id,
+                "action": "resolved",
+            },
+        },
+    )
+    await storage.insert_events([evt])
+    return {"resolved": issue_id}
+
+
+# --- B2.3.3a2: POST /v1/agents/{agent_id}/issues/resolve-all ---
+
+@app.post("/v1/agents/{agent_id}/issues/resolve-all")
+async def resolve_all_issues(
+    agent_id: str,
+    request: Request,
+):
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    pipeline = await storage.get_pipeline(tenant_id, agent_id)
+    now = _now_utc()
+    events = []
+    for iss in pipeline.issues:
+        iid = iss.get("issue_id") or iss.get("summary") or ""
+        events.append(Event(
+            event_id=f"sys-resolve-{uuid4().hex[:12]}",
+            tenant_id=tenant_id,
+            agent_id=agent_id,
+            timestamp=now.isoformat(),
+            received_at=now.isoformat(),
+            event_type="custom",
+            payload={
+                "kind": "issue",
+                "summary": iid,
+                "data": {
+                    "issue_id": iid,
+                    "action": "resolved",
+                },
+            },
+        ))
+    resolved = 0
+    if events:
+        resolved = await storage.insert_events(events)
+    return {"resolved": resolved}
 
 
 # --- B2.3.3b: GET /v1/pipeline (fleet-level) ---
@@ -2312,6 +2393,7 @@ async def login(body: LoginRequest, request: Request, tenant_id: str = Query(...
 async def register(body: RegisterRequest, request: Request):
     """Register a new tenant + owner user + default project + API key."""
     from backend.auth import generate_api_key, hash_password
+    from shared.enums import DEFAULT_ACCESS_ID_LABEL
     storage = request.app.state.storage
     logger = logging.getLogger("hiveboard.auth")
 
@@ -2378,6 +2460,19 @@ async def register(body: RegisterRequest, request: Request):
         created_by_user_id=user_id,
     )
 
+    # Generate read-only access_id for dashboard
+    raw_access_id, access_hash, access_prefix = generate_api_key("read")
+    access_key_id = str(uuid4())
+    await storage.create_api_key(
+        key_id=access_key_id,
+        tenant_id=tenant_id,
+        key_hash=access_hash,
+        key_prefix=access_prefix,
+        key_type="read",
+        label=DEFAULT_ACCESS_ID_LABEL,
+        created_by_user_id=user_id,
+    )
+
     logger.info("New registration: %s (tenant: %s)", body.email, slug)
 
     return JSONResponse(
@@ -2386,6 +2481,7 @@ async def register(body: RegisterRequest, request: Request):
             "user": _user_to_safe(user),
             "tenant": {"tenant_id": tenant_id, "name": body.tenant_name, "slug": slug},
             "api_key": raw_key,
+            "access_id": raw_access_id,
         },
     )
 
@@ -2397,6 +2493,197 @@ async def check_slug(slug: str, request: Request):
     normalized = slug.lower().replace(" ", "-")
     existing = await storage.get_tenant_by_slug(normalized)
     return {"slug": normalized, "available": existing is None}
+
+
+@app.get("/v1/access-id")
+async def get_access_id(request: Request):
+    """Return the active read key prefix + metadata for the current tenant."""
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    rec = await storage.get_active_read_key(tenant_id)
+    if rec is None:
+        return {"access_id": None}
+    return {
+        "access_id_prefix": rec.key_prefix,
+        "key_id": rec.key_id,
+        "label": rec.label,
+        "created_at": rec.created_at.isoformat() if hasattr(rec.created_at, "isoformat") else str(rec.created_at),
+    }
+
+
+@app.post("/v1/access-id/regenerate")
+async def regenerate_access_id(request: Request):
+    """Revoke all active read keys and create a new one. JWT owner/admin only."""
+    from backend.auth import generate_api_key
+    from shared.enums import DEFAULT_ACCESS_ID_LABEL
+
+    auth_type = getattr(request.state, "auth_type", None)
+    if auth_type != "jwt":
+        raise HTTPException(403, {
+            "error": "jwt_required",
+            "message": "Access ID regeneration requires JWT authentication",
+            "status": 403,
+        })
+    _require_role(request, ["owner", "admin"])
+
+    storage = request.app.state.storage
+    tenant_id = request.state.tenant_id
+    user_id = request.state.user_id
+
+    # Revoke all active read keys
+    for row in list(storage._tables["api_keys"]):
+        if row["tenant_id"] == tenant_id and row["key_type"] == "read" and row.get("is_active", True):
+            await storage.revoke_api_key(tenant_id, row["key_id"])
+
+    # Create new read key
+    raw_access_id, access_hash, access_prefix = generate_api_key("read")
+    access_key_id = str(uuid4())
+    await storage.create_api_key(
+        key_id=access_key_id,
+        tenant_id=tenant_id,
+        key_hash=access_hash,
+        key_prefix=access_prefix,
+        key_type="read",
+        label=DEFAULT_ACCESS_ID_LABEL,
+        created_by_user_id=user_id,
+    )
+
+    return {"access_id": raw_access_id}
+
+
+@app.post("/v1/auth/quickstart", status_code=201)
+async def quickstart(request: Request):
+    """1-click workspace creation — no user account required.
+
+    Creates a tenant, default project, and API key. Returns a claim_token
+    that can be used later to attach a real user via POST /v1/auth/claim.
+    """
+    from secrets import token_hex
+    from backend.auth import generate_api_key, generate_invite_token
+    from shared.enums import QUICKSTART_CLAIM_EXPIRY_SECONDS, DEFAULT_ACCESS_ID_LABEL
+
+    storage = request.app.state.storage
+    logger = logging.getLogger("hiveboard.auth")
+
+    tenant_id = str(uuid4())
+    slug = "quickstart-" + token_hex(4)
+
+    # Create tenant (auto-creates default project)
+    tenant = await storage.create_tenant(tenant_id, slug, slug)
+
+    # Generate API key
+    raw_key, key_hash, key_prefix = generate_api_key("live")
+    key_id = str(uuid4())
+    await storage.create_api_key(
+        key_id=key_id,
+        tenant_id=tenant_id,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        key_type="live",
+        label="Quickstart Key",
+        created_by_user_id=None,
+    )
+
+    # Generate read-only access_id for dashboard
+    raw_access_id, access_hash, access_prefix = generate_api_key("read")
+    access_key_id = str(uuid4())
+    await storage.create_api_key(
+        key_id=access_key_id,
+        tenant_id=tenant_id,
+        key_hash=access_hash,
+        key_prefix=access_prefix,
+        key_type="read",
+        label=DEFAULT_ACCESS_ID_LABEL,
+        created_by_user_id=None,
+    )
+
+    # Generate claim token
+    raw_token, token_hash = generate_invite_token()
+    claim_id = str(uuid4())
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(seconds=QUICKSTART_CLAIM_EXPIRY_SECONDS)
+
+    await storage.create_pending_claim(
+        claim_id=claim_id,
+        tenant_id=tenant_id,
+        claim_token_hash=token_hash,
+        expires_at=expires_at,
+    )
+
+    logger.info("Quickstart workspace created: %s (tenant: %s)", slug, tenant_id)
+
+    return {
+        "tenant_id": tenant_id,
+        "tenant_name": slug,
+        "tenant_slug": slug,
+        "api_key": raw_key,
+        "access_id": raw_access_id,
+        "claim_token": raw_token,
+    }
+
+
+@app.post("/v1/auth/claim")
+async def claim_workspace(body: QuickstartClaimRequest, request: Request):
+    """Claim a quickstart workspace by providing credentials.
+
+    Attaches a real user (owner) to the previously-created tenant.
+    Returns the same shape as login/accept-invite (LoginResponse).
+    """
+    from backend.auth import hash_password, create_token
+
+    storage = request.app.state.storage
+
+    # Hash token and look up claim
+    token_hash = hashlib.sha256(body.claim_token.encode()).hexdigest()
+    claim = await storage.get_pending_claim_by_token_hash(token_hash)
+    if claim is None:
+        raise HTTPException(404, {
+            "error": "not_found",
+            "message": "Claim token not found or expired",
+            "status": 404,
+        })
+
+    # Check email not already registered
+    existing = await storage.get_user_by_email_global(body.email)
+    if existing:
+        raise HTTPException(409, {
+            "error": "email_exists",
+            "message": "Email already registered",
+            "status": 409,
+        })
+
+    # Create owner user in the claim's tenant
+    user_id = str(uuid4())
+    user = await storage.create_user(
+        user_id=user_id,
+        tenant_id=claim.tenant_id,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        name=body.name,
+        role="owner",
+    )
+
+    # Mark claim as used
+    await storage.mark_claim_used(claim.claim_id)
+
+    # Create JWT
+    token, expires_in = create_token(user.user_id, user.tenant_id, user.role)
+    safe = UserSafe(
+        user_id=user.user_id, tenant_id=user.tenant_id,
+        email=user.email, name=user.name, role=user.role,
+        is_active=user.is_active, created_at=user.created_at,
+        updated_at=user.updated_at, last_login_at=user.last_login_at,
+        settings=user.settings,
+    )
+
+    # Look up tenant for response
+    tenant = await storage.get_tenant(claim.tenant_id)
+
+    return LoginResponse(
+        token=token, expires_in=expires_in, user=safe,
+        tenant_name=tenant.name if tenant else None,
+        tenant_slug=tenant.slug if tenant else None,
+    ).model_dump(mode="json")
 
 
 @app.post("/v1/auth/accept-invite")

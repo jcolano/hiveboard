@@ -136,6 +136,10 @@ class StorageBackend(Protocol):
         """Returns True if key was found and revoked."""
         ...
 
+    async def get_active_read_key(self, tenant_id: str) -> ApiKeyRecord | None:
+        """SELECT TOP 1 ... FROM api_keys WHERE tenant_id=? AND key_type='read' AND is_active=1"""
+        ...
+
     # ───────────────────────────────────────────────────────────────────
     #  USERS
     # ───────────────────────────────────────────────────────────────────

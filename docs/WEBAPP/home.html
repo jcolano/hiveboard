@@ -671,6 +671,32 @@ body {
         </div>
     </div>
 
+    <!-- ─── DASHBOARD ACCESS ID ─── -->
+    <div class="panel" id="panel-accessid">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title"><span class="hl">Dashboard Access ID</span></div>
+                <div class="panel-desc">Read-only credential for dashboard access. Safe to share — cannot ingest events.</div>
+            </div>
+        </div>
+
+        <div class="key-reveal" id="accessIdReveal" style="display:none">
+            <div class="key-reveal-label">New Access ID Generated</div>
+            <div class="key-reveal-row">
+                <div class="key-reveal-text" id="newAccessIdValue">—</div>
+                <button class="btn-secondary" id="copyNewAccessId">Copy</button>
+            </div>
+            <div class="key-reveal-warn">⚠ Save this Access ID now — the full value won't be shown again.</div>
+        </div>
+
+        <div class="card">
+            <div id="accessIdInfo" style="padding:16px">Loading…</div>
+            <div style="padding:0 16px 16px">
+                <button class="btn-primary" id="regenerateAccessId">Regenerate Access ID</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ─── API KEYS ─── -->
     <div class="panel" id="panel-apikeys">
         <div class="panel-header">
@@ -831,7 +857,8 @@ body {
 // ═══════════════════════════════════════
 // API CONFIG & AUTH
 // ═══════════════════════════════════════
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = _isLocal
     ? 'http://localhost:8000'
     : 'https://mlbackend.net/loophive';
 
@@ -908,6 +935,7 @@ function initApp() {
     }
 
     setupProjects();
+    setupAccessId();
     setupApiKeys();
     if (isOwnerOrAdmin()) setupTeam();
     fetchBackendVersion();
@@ -1058,7 +1086,7 @@ function logout() {
     localStorage.removeItem('hb_tenant_name');
     localStorage.removeItem('hb_tenant_slug');
     sessionStorage.clear();
-    window.location.href = 'login.html';
+    navTo('login.html');
 }
 
 // ═══════════════════════════════════════
@@ -1223,6 +1251,53 @@ function deleteProject(id, name) {
             } catch (err) {}
         }
     );
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  D A S H B O A R D   A C C E S S   I D
+// ═══════════════════════════════════════════════════════════════
+function setupAccessId() {
+    document.getElementById('regenerateAccessId').addEventListener('click', regenerateAccessId);
+    document.getElementById('copyNewAccessId').addEventListener('click', function() {
+        copyText(document.getElementById('newAccessIdValue').textContent, this);
+    });
+    loadAccessId();
+}
+
+async function loadAccessId() {
+    const info = document.getElementById('accessIdInfo');
+    try {
+        const res = await apiCall('/v1/access-id', 'GET');
+        if (!res.ok) { info.textContent = 'Failed to load Access ID.'; return; }
+        if (res.data.access_id_prefix) {
+            info.innerHTML = '<div style="font-family:monospace;font-size:14px">' + esc(res.data.access_id_prefix) + '…</div>'
+                + '<div style="margin-top:4px;font-size:12px;opacity:0.6">' + esc(res.data.label || '') + ' · Created ' + fmtDate(res.data.created_at) + '</div>';
+        } else {
+            info.textContent = 'No active Access ID. Click "Regenerate" to create one.';
+        }
+    } catch (err) {
+        info.textContent = 'Failed to load Access ID.';
+    }
+}
+
+async function regenerateAccessId() {
+    if (!confirm('Regenerate Access ID? The current one will stop working immediately.')) return;
+    const info = document.getElementById('accessIdInfo');
+    try {
+        const res = await apiCall('/v1/access-id/regenerate', 'POST');
+        if (res.ok && res.data.access_id) {
+            document.getElementById('newAccessIdValue').textContent = res.data.access_id;
+            document.getElementById('accessIdReveal').style.display = '';
+            document.getElementById('accessIdReveal').classList.add('visible');
+            localStorage.setItem('hiveboard_access_id', res.data.access_id);
+            loadAccessId();
+        } else {
+            alert(res.data?.message || 'Failed to regenerate Access ID.');
+        }
+    } catch (err) {
+        alert('Failed to regenerate Access ID.');
+    }
 }
 
 
@@ -1552,6 +1627,26 @@ function esc(str) {
     d.textContent = str;
     return d.innerHTML;
 }
+</script>
+<script>
+(function() {
+    var aid = new URLSearchParams(window.location.search).get('accessId') || localStorage.getItem('hiveboard_access_id') || '';
+    if (!aid) return;
+    function appendAid(url) {
+        if (!url || url.startsWith('http') || url.startsWith('//') || url.startsWith('#')) return url;
+        var sep = url.indexOf('?') === -1 ? '?' : '&';
+        if (url.indexOf('accessId=') !== -1) return url;
+        return url + sep + 'accessId=' + encodeURIComponent(aid);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('a[href]').forEach(function(a) {
+            if (a.href && a.getAttribute('href').indexOf('.html') !== -1) {
+                a.setAttribute('href', appendAid(a.getAttribute('href')));
+            }
+        });
+    });
+    window.navTo = function(url) { window.location.href = appendAid(url); };
+})();
 </script>
 </body>
 </html>

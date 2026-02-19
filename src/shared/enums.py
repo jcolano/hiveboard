@@ -210,6 +210,8 @@ PRUNE_INTERVAL_SECONDS = 300  # 5 minutes — background prune cycle
 # ---------------------------------------------------------------------------
 
 INVITE_EXPIRY_SECONDS = 604800      # 7 days
+QUICKSTART_CLAIM_EXPIRY_SECONDS = 2_592_000  # 30 days
+DEFAULT_ACCESS_ID_LABEL = "Dashboard Access (default)"
 
 COLD_EVENT_RETENTION: dict[str, int] = {
     EventType.HEARTBEAT: 600,           # 10 minutes
@@ -225,6 +227,8 @@ COLD_PAYLOAD_RETENTION: dict[str, int] = {
 }
 
 PAYLOAD_STRIP_SECONDS = 259200  # 3 days — strip large fields from old llm_call events
+
+ISSUE_STALE_SECONDS = 86400  # 24 hours — auto-resolve issues with no new occurrences
 
 AGGREGATE_RETENTION_DAYS = 90
 

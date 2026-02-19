@@ -2,7 +2,8 @@
 // Used by hiveboard.js and insights.js
 
 // -- Environment Detection --
-var _isLocal = (window.location.hostname === 'localhost'
+var _isLocal = (!window.location.hostname
+  || window.location.hostname === 'localhost'
   || window.location.hostname === '127.0.0.1');
 
 var CONFIG = {
@@ -12,21 +13,21 @@ var CONFIG = {
   wsUrl: _isLocal
     ? null
     : 'wss://85g4pm5cg9.execute-api.us-east-1.amazonaws.com/production/',
-  apiKey: new URLSearchParams(window.location.search).get('apiKey')
-    || localStorage.getItem('hiveboard_api_key')
-    || (_isLocal ? 'hb_live_dev000000000000000000000000000000' : ''),
+  accessId: new URLSearchParams(window.location.search).get('accessId')
+    || localStorage.getItem('hiveboard_access_id')
+    || (_isLocal ? 'hb_read_dev000000000000000000000000000000' : ''),
   pollInterval: 5000,
   maxStreamEvents: 50,
   refreshInterval: 30000,
 };
 
-// Persist API key to localStorage when resolved from URL param (P3-09-W1 fix)
-if (CONFIG.apiKey && new URLSearchParams(window.location.search).get('apiKey')) {
-  localStorage.setItem('hiveboard_api_key', CONFIG.apiKey);
+// Persist access ID to localStorage when resolved from URL param
+if (CONFIG.accessId && new URLSearchParams(window.location.search).get('accessId')) {
+  localStorage.setItem('hiveboard_access_id', CONFIG.accessId);
 }
 
-// In production, if no API key, redirect to login
-if (!_isLocal && !CONFIG.apiKey) {
+// In production, if no access ID, redirect to login
+if (!_isLocal && !CONFIG.accessId) {
   window.location.href = '/login.html';
 }
 
@@ -56,8 +57,8 @@ function fmtDuration(ms) {
 
 function fmtCost(c, costSource) {
   if (c == null) return '\u2014';
-  if (costSource === 'estimated') return '~$' + c.toFixed(2);
-  return '$' + c.toFixed(2);
+  if (costSource === 'estimated') return '~$' + c.toFixed(4);
+  return '$' + c.toFixed(4);
 }
 
 function timeAgo(ts) {
@@ -102,12 +103,28 @@ async function apiFetch(path, params) {
   }
   try {
     var resp = await fetch(url.toString(), {
-      headers: { 'Authorization': 'Bearer ' + CONFIG.apiKey },
+      headers: { 'Authorization': 'Bearer ' + CONFIG.accessId },
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     return await resp.json();
   } catch (err) {
     console.warn('API fetch failed:', path, err.message);
+    showToast('API error: ' + path + ' \u2014 ' + err.message, true);
+    return null;
+  }
+}
+
+async function apiPost(path) {
+  var url = CONFIG.endpoint + path;
+  try {
+    var resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + CONFIG.accessId },
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  } catch (err) {
+    console.warn('API POST failed:', path, err.message);
     showToast('API error: ' + path + ' \u2014 ' + err.message, true);
     return null;
   }

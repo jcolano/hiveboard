@@ -21,6 +21,8 @@ PUBLIC_PATHS = {
     "/v1/auth/register",
     "/v1/auth/check-slug",
     "/v1/auth/accept-invite",
+    "/v1/auth/quickstart",
+    "/v1/auth/claim",
 }
 PUBLIC_PREFIXES = ("/v1/stream", "/static", "/ws/")
 

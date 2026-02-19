@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Loop Dashboard</title>
+
+    <link href="css/customer.css" rel="stylesheet" />
+
+</head>
+<body>
+    <div class="container">
+        <!-- Header with User Info -->
+        <div class="header">
+            <div class="header-left">
+                <h1>Agentic Loop</h1>
+                <p class="subtitle">Dashboard</p>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-email" id="user-email">Loading...</div>
+                    <div class="user-company" id="user-company"></div>
+                </div>
+                <span class="user-role" id="user-role"></span>
+                <button class="btn logout" onclick="logout()">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Quota Warning (shown when approaching limits) -->
+        <div id="quota-warning" class="quota-warning hidden"></div>
+
+        <!-- Main Navigation Tabs -->
+        <div class="main-tabs">
+            <button class="main-tab active" data-panel="dashboard">Dashboard</button>
+            <button class="main-tab" data-panel="agents">Agents</button>
+            <button class="main-tab" data-panel="skills">Skills</button>
+            <button class="main-tab" data-panel="chat">Chat</button>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- DASHBOARD PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-dashboard" class="panel active">
+            <!-- Health Ribbon -->
+            <div class="stats-bar" id="health-bar" style="border-left: 3px solid #16a34a; margin-top: 1.5rem;">
+                <div class="stat-item">
+                    <span class="stat-label">Status:</span>
+                    <span class="stat-value" id="stat-server">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">LLM:</span>
+                    <span class="stat-value" id="stat-llm">--</span>
+                </div>
+            </div>
+
+            <!-- Usage Stats -->
+            <div class="stats-bar" id="stats-bar" style="border-left: 3px solid #2563eb;">
+                <div class="stat-item">
+                    <span class="stat-label">My Agents:</span>
+                    <span class="stat-value" id="stat-agents">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">My Skills:</span>
+                    <span class="stat-value" id="stat-skills">--</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Tasks Today:</span>
+                    <span class="stat-value" id="stat-tasks">--</span>
+                </div>
+            </div>
+
+            <!-- Quick Run -->
+            <div class="form-section">
+                <div class="form-title">Quick Run</div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Agent</label>
+                        <select id="quick-agent">
+                            <option value="">Select an agent...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Skill (optional)</label>
+                        <select id="quick-skill">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Message</label>
+                        <textarea id="quick-message" placeholder="Enter your message..."></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn primary" onclick="quickRun()">Run Agent</button>
+                </div>
+                <div id="quick-response" class="response-box hidden"></div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="form-section">
+                <div class="form-title">Recent Activity</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Agent</th>
+                                <th>Status</th>
+                                <th>Duration</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-runs-table">
+                            <tr><td colspan="4" style="text-align: center;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- AGENTS PANEL (with sub-tabs) -->
+        <!-- ================================================================ -->
+        <div id="panel-agents" class="panel">
+            <!-- Sub-tabs for Agents panel -->
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-subpanel="agents-list">My Agents</button>
+                <button class="sub-tab" data-subpanel="agents-skills">Skills</button>
+                <button class="sub-tab" data-subpanel="agents-tasks">Tasks</button>
+                <button class="sub-tab" data-subpanel="agents-sessions">Sessions</button>
+                <button class="sub-tab" data-subpanel="agents-runs">History</button>
+            </div>
+
+            <!-- Agent Selector (shared across sub-panels, hidden on agents-list) -->
+            <div class="agent-selector" id="agent-selector" style="display: none;">
+                <label>Select Agent:</label>
+                <select id="selected-agent" onchange="onAgentSelected()">
+                </select>
+                <button class="btn" onclick="refreshCurrentSubPanel()">Refresh</button>
+            </div>
+
+            <!-- Agents List Sub-panel -->
+            <div id="subpanel-agents-list" class="sub-panel active">
+                <div class="form-actions" style="margin-bottom: 1rem;">
+                    <button class="btn primary" onclick="showAgentModal()">+ New Agent</button>
+                    <button class="btn" onclick="loadAgents()">Refresh</button>
+                </div>
+                <div class="cards-grid" id="agents-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">...</div>
+                        <p>Loading agents...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Skills Sub-panel -->
+            <div id="subpanel-agents-skills" class="sub-panel">
+                <div class="form-actions" style="margin-bottom: 1rem;">
+                    <button class="btn primary" onclick="showSkillEditorModal()">+ Create Skill</button>
+                    <button class="btn" onclick="loadAgentSkills()">Refresh</button>
+                </div>
+                <div class="cards-grid" id="agent-skills-list">
+                    <div class="empty-state">Select an agent to view skills</div>
+                </div>
+            </div>
+
+            <!-- Agent Tasks Sub-panel -->
+            <div id="subpanel-agents-tasks" class="sub-panel">
+                <div class="form-section">
+                    <div class="form-title">Create Task for <span id="task-agent-name">Agent</span></div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Task ID</label>
+                            <input type="text" id="task-id" placeholder="my_task">
+                        </div>
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" id="task-name" placeholder="My Task">
+                        </div>
+                        <div class="form-group">
+                            <label>Schedule Type</label>
+                            <select id="task-schedule-type" onchange="updateScheduleFields()">
+                                <option value="interval">Interval</option>
+                                <option value="cron">Cron</option>
+                                <option value="once">Once</option>
+                                <option value="event_only">Event Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="task-interval-group">
+                            <label>Interval (seconds)</label>
+                            <input type="number" id="task-interval" value="3600" min="60">
+                        </div>
+                        <div class="form-group hidden" id="task-cron-group">
+                            <label>Cron Expression</label>
+                            <input type="text" id="task-cron" placeholder="0 * * * *">
+                        </div>
+                        <div class="form-group full-width">
+                            <label>Task Content (Markdown)</label>
+                            <textarea id="task-content" placeholder="# Task Instructions&#10;&#10;Describe what the agent should do..."></textarea>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn primary" onclick="createAgentTask()">Create Task</button>
+                    </div>
+                </div>
+                <div class="cards-grid" id="agent-tasks-list">
+                    <div class="empty-state">Select an agent to view tasks</div>
+                </div>
+            </div>
+
+            <!-- Agent Sessions Sub-panel -->
+            <div id="subpanel-agents-sessions" class="sub-panel">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Session ID</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Messages</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agent-sessions-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Agent Runs Sub-panel -->
+            <div id="subpanel-agents-runs" class="sub-panel">
+                <div class="search-box">
+                    <input type="date" id="runs-date">
+                    <button class="btn primary" onclick="loadAgentRuns()">Filter</button>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Run ID</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                                <th>Turns</th>
+                                <th>Duration</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agent-runs-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- SKILLS PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-skills" class="panel">
+            <!-- Sub-tabs for Skills panel -->
+            <div class="sub-tabs">
+                <button class="sub-tab active" data-subpanel="skills-templates">Templates</button>
+                <button class="sub-tab" data-subpanel="skills-vendors">Vendor Skills</button>
+            </div>
+
+            <!-- Skill Templates Sub-panel -->
+            <div id="subpanel-skills-templates" class="sub-panel active">
+                <p style="font-size: 0.875rem; color: #78716c; margin: 1rem 0;">
+                    Browse skill templates to quickly add functionality to your agents.
+                </p>
+                <div class="cards-grid" id="templates-list">
+                    <div class="empty-state">Loading templates...</div>
+                </div>
+            </div>
+
+            <!-- Vendor Skills Sub-panel -->
+            <div id="subpanel-skills-vendors" class="sub-panel">
+                <p style="font-size: 0.875rem; color: #78716c; margin: 1rem 0;">
+                    Browse and install skills from approved vendors.
+                </p>
+                <div class="cards-grid" id="vendor-skills-list">
+                    <div class="empty-state">Loading vendor skills...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- CHAT PANEL -->
+        <!-- ================================================================ -->
+        <div id="panel-chat" class="panel">
+            <!-- Chat Setup Bar -->
+            <div class="stats-bar" style="border-left: 3px solid #7c3aed; margin-top: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div class="stat-item" style="flex: 1; min-width: 150px;">
+                    <span class="stat-label">Agent:</span>
+                    <select id="chat-agent-select" class="stat-value" style="background: white; border: 1px solid #d6d3d1; border-radius: 4px; padding: 0.25rem;" onchange="onChatAgentChange()">
+                        <option value="">Select agent...</option>
+                    </select>
+                </div>
+                <div class="stat-item" style="flex: 1; min-width: 150px;">
+                    <span class="stat-label">Skill (optional):</span>
+                    <select id="chat-skill-select" class="stat-value" style="background: white; border: 1px solid #d6d3d1; border-radius: 4px; padding: 0.25rem;">
+                        <option value="">Auto-match</option>
+                    </select>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Session:</span>
+                    <span class="stat-value" id="chat-session-id" style="font-family: monospace; font-size: 0.75rem;">New</span>
+                </div>
+                <div class="stat-item">
+                    <button class="btn" onclick="newChatSession()" title="Start new session">New Chat</button>
+                </div>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div id="chat-messages" style="flex: 1; min-height: 300px; max-height: calc(100vh - 350px); overflow-y: auto; padding: 1rem; background: #fafaf9; border: 1px solid #e7e5e4; border-radius: 4px; margin: 1rem 0;">
+                <div class="empty-state" id="chat-empty">
+                    Select an agent and type a message to start chatting.<br><br>
+                    Optionally select a skill to guide the conversation.
+                </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
+                <textarea id="chat-input" placeholder="Type your message..." style="flex: 1; min-height: 60px; max-height: 150px; resize: vertical; padding: 0.75rem; border: 1px solid #d6d3d1; border-radius: 4px; font-size: 0.875rem;" onkeydown="handleChatKeydown(event)"></textarea>
+                <button class="btn primary" onclick="sendChatMessage()" id="chat-send-btn" style="height: 60px; padding: 0 1.5rem;">
+                    <span id="chat-send-text">Send</span>
+                    <span id="chat-send-loading" class="loading" style="display: none;"></span>
+                </button>
+            </div>
+            <div style="font-size: 0.75rem; color: #78716c; margin-top: 0.5rem;">
+                Press Enter to send, Shift+Enter for new line
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal-backdrop" class="modal-backdrop hidden" onclick="closeModal()"></div>
+    <div id="modal" class="modal hidden">
+        <div class="modal-header">
+            <h2 id="modal-title">Modal</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+        </div>
+        <div class="modal-actions" id="modal-actions">
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="js/customer.js"></script>
+
+</body>
+</html>

@@ -30,6 +30,7 @@ from shared.enums import (
     COLD_PAYLOAD_RETENTION,
     EventType,
     INTERVAL_SECONDS,
+    ISSUE_STALE_SECONDS,
     PAYLOAD_STRIP_SECONDS,
     PLAN_LIMITS,
     RANGE_SECONDS,
@@ -54,6 +55,7 @@ from shared.models import (
     Event,
     FleetPipelineState,
     InviteRecord,
+    PendingClaimRecord,
     LlmCallRecord,
     MetricsResponse,
     MetricsSummary,
@@ -182,6 +184,7 @@ TABLE_FILES = [
     "alert_rules",
     "alert_history",
     "invites",
+    "pending_claims",
     "agent_hourly",
     "model_hourly",
     "task_runs",
@@ -198,7 +201,8 @@ class JsonStorageBackend:
         )
         self._tables: dict[str, list[dict[str, Any]]] = {}
         self._locks: dict[str, asyncio.Lock] = {}
-        self._agent_events: dict[str, list[dict[str, Any]]] = {}
+        self._agent_events: dict[str, list[dict[str, Any]]] = {}  # keyed by internal_id
+        self._internal_id_map: dict[tuple[str, str], str] = {}     # (tenant_id, agent_id) → internal_id
 
     # ───────────────────────────────────────────────────────────────────
     #  LIFECYCLE
@@ -248,12 +252,44 @@ class JsonStorageBackend:
                     self._agent_events[aid] = json.load(f)
         # else: fresh install — no events at all
 
+        # Build _internal_id_map from agents table; backfill missing internal_ids
+        backfilled = False
+        for row in self._tables.get("agents", []):
+            tid, aid = row["tenant_id"], row["agent_id"]
+            if not row.get("internal_id"):
+                row["internal_id"] = uuid4().hex
+                backfilled = True
+            self._internal_id_map[(tid, aid)] = row["internal_id"]
+        if backfilled:
+            self._persist("agents")
+
+        # Migrate event partition files from agent_id keys to internal_id keys
+        events_dir = self._data_dir / "events"
+        rekeyed: dict[str, list[dict[str, Any]]] = {}
+        for old_key, events in self._agent_events.items():
+            if not events:
+                rekeyed[old_key] = events
+                continue
+            sample = events[0]
+            tid = sample.get("tenant_id", "")
+            aid = sample.get("agent_id", "")
+            iid = self._internal_id_map.get((tid, aid))
+            if not iid:
+                iid = self._ensure_internal_id(tid, aid)
+            if old_key != iid:
+                old_fp = events_dir / f"{old_key}.json"
+                new_fp = events_dir / f"{iid}.json"
+                if old_fp.exists():
+                    os.replace(old_fp, new_fp)
+            rekeyed[iid] = events
+        self._agent_events = rekeyed
+
     async def close(self) -> None:
         for name in TABLE_FILES:
             if name in self._tables:
                 self._persist(name)
-        for agent_id in self._agent_events:
-            self._persist_agent_events(agent_id)
+        for iid in self._agent_events:
+            self._persist_agent_events(iid)
 
     def _persist(self, table: str) -> None:
         fp = self._data_dir / f"{table}.json"
@@ -267,10 +303,10 @@ class JsonStorageBackend:
         except OSError:
             pass
 
-    def _iter_events(self, agent_id: str | None = None):
+    def _iter_events(self, internal_id: str | None = None):
         """Iterate events, optionally scoped to one agent partition."""
-        if agent_id:
-            yield from self._agent_events.get(agent_id, [])
+        if internal_id:
+            yield from self._agent_events.get(internal_id, [])
         else:
             for events in self._agent_events.values():
                 yield from events
@@ -278,18 +314,46 @@ class JsonStorageBackend:
     def _total_event_count(self) -> int:
         return sum(len(v) for v in self._agent_events.values())
 
-    def _persist_agent_events(self, agent_id: str) -> None:
+    def _persist_agent_events(self, internal_id: str) -> None:
         events_dir = self._data_dir / "events"
         events_dir.mkdir(parents=True, exist_ok=True)
-        fp = events_dir / f"{agent_id}.json"
+        fp = events_dir / f"{internal_id}.json"
         tmp = fp.with_suffix(".json.tmp")
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(self._agent_events.get(agent_id, []), f, indent=2, default=str)
+            json.dump(self._agent_events.get(internal_id, []), f, indent=2, default=str)
         os.replace(tmp, fp)
         try:
             os.chmod(fp, 0o600)
         except OSError:
             pass
+
+    def _resolve_internal_id(self, tenant_id: str, agent_id: str) -> str | None:
+        """Look up internal_id for (tenant_id, agent_id). Returns None if agent not registered."""
+        return self._internal_id_map.get((tenant_id, agent_id))
+
+    def _ensure_internal_id(self, tenant_id: str, agent_id: str) -> str:
+        """Get or create internal_id. Creates a new UUID if agent is unknown."""
+        iid = self._internal_id_map.get((tenant_id, agent_id))
+        if iid:
+            return iid
+        iid = uuid4().hex
+        self._internal_id_map[(tenant_id, agent_id)] = iid
+        return iid
+
+    def _resolve_project_id(self, tenant_id: str, project_id: str) -> str:
+        """Resolve a project_id that may be a slug to the internal UUID.
+
+        If it already matches a UUID in the projects table, return as-is.
+        Otherwise try slug lookup. Returns the original value if no match.
+        """
+        for row in self._tables["projects"]:
+            if row["tenant_id"] == tenant_id and row["project_id"] == project_id:
+                return project_id
+        # Try slug match
+        for row in self._tables["projects"]:
+            if row["tenant_id"] == tenant_id and row["slug"] == project_id:
+                return row["project_id"]
+        return project_id
 
     # ───────────────────────────────────────────────────────────────────
     #  TENANTS
@@ -402,6 +466,12 @@ class JsonStorageBackend:
                     self._persist("api_keys")
                     return True
         return False
+
+    async def get_active_read_key(self, tenant_id: str) -> ApiKeyRecord | None:
+        for row in self._tables["api_keys"]:
+            if row["tenant_id"] == tenant_id and row["key_type"] == "read" and row.get("is_active", True):
+                return ApiKeyRecord(**row)
+        return None
 
     # ───────────────────────────────────────────────────────────────────
     #  USERS
@@ -732,9 +802,11 @@ class JsonStorageBackend:
 
             if existing is None:
                 # Create new
+                iid = uuid4().hex
                 rec = AgentRecord(
                     agent_id=agent_id,
                     tenant_id=tenant_id,
+                    internal_id=iid,
                     agent_type=agent_type,
                     agent_version=agent_version,
                     framework=framework,
@@ -751,7 +823,13 @@ class JsonStorageBackend:
                     stuck_threshold_seconds=stuck_threshold_seconds,
                 )
                 self._tables["agents"].append(rec.model_dump(mode="json"))
+                self._internal_id_map[(tenant_id, agent_id)] = iid
             else:
+                # Backfill internal_id if missing
+                if not existing.get("internal_id"):
+                    existing["internal_id"] = uuid4().hex
+                self._internal_id_map[(tenant_id, agent_id)] = existing["internal_id"]
+
                 # Compute previous status before updating
                 prev_agent = AgentRecord(**existing)
                 prev_status = derive_agent_status(prev_agent).value
@@ -811,6 +889,7 @@ class JsonStorageBackend:
         ]
         deleted = len(self._tables["agents"]) < before
         if deleted:
+            self._internal_id_map.pop((tenant_id, agent_id), None)
             self._persist("agents")
             self._persist("project_agents")
         return deleted
@@ -824,9 +903,10 @@ class JsonStorageBackend:
         project_id: str | None = None,
         limit: int = 50,
     ) -> list[AgentRecord]:
-        # If project_id, get agent_ids from junction table
+        # If project_id, resolve slug to UUID then get agent_ids from junction
         project_agent_ids: set[str] | None = None
         if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
             project_agent_ids = {
                 row["agent_id"]
                 for row in self._tables["project_agents"]
@@ -949,8 +1029,9 @@ class JsonStorageBackend:
                 row = evt.model_dump(mode="json")
                 if key_type:
                     row["key_type"] = key_type
-                self._agent_events.setdefault(evt.agent_id, []).append(row)
-                modified_agents.add(evt.agent_id)
+                iid = self._ensure_internal_id(evt.tenant_id, evt.agent_id)
+                self._agent_events.setdefault(iid, []).append(row)
+                modified_agents.add(iid)
                 inserted += 1
             for aid in modified_agents:
                 self._persist_agent_events(aid)
@@ -1034,8 +1115,9 @@ class JsonStorageBackend:
                 if row.get("tenant_id") == tenant_id and row.get("task_id") == task_id:
                     agent_id = row.get("agent_id")
                     break
+        iid = self._resolve_internal_id(tenant_id, agent_id) if agent_id else None
         rows = [
-            r for r in self._iter_events(agent_id=agent_id)
+            r for r in self._iter_events(internal_id=iid)
             if r["tenant_id"] == tenant_id and r.get("task_id") == task_id
         ]
         rows.sort(key=lambda r: r["timestamp"])
@@ -1059,8 +1141,11 @@ class JsonStorageBackend:
         key_type: str | None = None,
     ) -> list[dict[str, Any]]:
         """Filter events in memory — mirrors a SQL WHERE clause."""
+        if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
         results = []
-        for row in self._iter_events(agent_id=agent_id):
+        iid = self._resolve_internal_id(tenant_id, agent_id) if agent_id else None
+        for row in self._iter_events(internal_id=iid):
             if row["tenant_id"] != tenant_id:
                 continue
             if project_id and row.get("project_id") != project_id:
@@ -1126,9 +1211,10 @@ class JsonStorageBackend:
         )
         since_str = since.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # If project_id, resolve to set of agent_ids
+        # If project_id, resolve slug to UUID then find agent_ids
         project_agent_ids: set[str] | None = None
         if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
             project_agent_ids = {
                 row["agent_id"]
                 for row in self._tables["project_agents"]
@@ -1172,6 +1258,8 @@ class JsonStorageBackend:
         limit: int = 50,
         cursor: str | None = None,
     ) -> Page[TaskSummary]:
+        if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
         summaries: list[TaskSummary] = []
         for row in self._tables.get("task_runs", []):
             if row.get("tenant_id") != tenant_id:
@@ -1640,8 +1728,11 @@ class JsonStorageBackend:
         until: datetime | None = None,
     ) -> list[dict]:
         """Get events with payload.kind='llm_call'."""
+        if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
         results = []
-        for row in self._iter_events(agent_id=agent_id):
+        iid = self._resolve_internal_id(tenant_id, agent_id) if agent_id else None
+        for row in self._iter_events(internal_id=iid):
             if row["tenant_id"] != tenant_id:
                 continue
             if agent_id and row.get("agent_id") != agent_id:
@@ -1907,8 +1998,9 @@ class JsonStorageBackend:
         tenant_id: str,
         agent_id: str,
     ) -> PipelineState:
+        iid = self._resolve_internal_id(tenant_id, agent_id)
         custom_events = [
-            r for r in self._iter_events(agent_id=agent_id)
+            r for r in self._iter_events(internal_id=iid)
             if (
                 r["tenant_id"] == tenant_id
                 and r["event_type"] == "custom"
@@ -1983,9 +2075,18 @@ class JsonStorageBackend:
                 "summary": e["payload"].get("summary"),
                 "timestamp": e["timestamp"],
             }
+        # Stale = issue hasn't recurred within ISSUE_STALE_SECONDS of the
+        # agent's most recent event.  Using agent-relative time avoids
+        # pruning issues for agents that simply haven't sent events lately.
+        latest_agent_ts = max(
+            (_parse_dt(e["timestamp"]) for e in custom_events),
+            default=_now_utc(),
+        )
+        stale_cutoff = latest_agent_ts - timedelta(seconds=ISSUE_STALE_SECONDS)
         active_issues = [
             iss for iss in issues_by_id.values()
             if iss.get("action") not in ("resolved",)
+            and (_parse_dt(iss.get("timestamp")) or latest_agent_ts) >= stale_cutoff
         ]
 
         return PipelineState(
@@ -2090,6 +2191,8 @@ class JsonStorageBackend:
         project_id: str | None = None,
         is_enabled: bool | None = None,
     ) -> list[AlertRuleRecord]:
+        if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
         results = []
         for row in self._tables["alert_rules"]:
             if row["tenant_id"] != tenant_id:
@@ -2154,6 +2257,8 @@ class JsonStorageBackend:
         limit: int = 50,
         cursor: str | None = None,
     ) -> Page[AlertHistoryRecord]:
+        if project_id:
+            project_id = self._resolve_project_id(tenant_id, project_id)
         rows = []
         for row in self._tables["alert_history"]:
             if row["tenant_id"] != tenant_id:
@@ -2290,6 +2395,17 @@ class JsonStorageBackend:
                 fp = self._data_dir / "events" / f"{aid}.json"
                 if fp.exists():
                     fp.unlink()
+
+        # Prune expired or claimed pending_claims
+        async with self._locks["pending_claims"]:
+            before = len(self._tables["pending_claims"])
+            self._tables["pending_claims"] = [
+                row for row in self._tables["pending_claims"]
+                if not row.get("is_claimed", False)
+                and (_parse_dt(row.get("expires_at")) or now) > now
+            ]
+            if len(self._tables["pending_claims"]) < before:
+                self._persist("pending_claims")
 
         return {
             "ttl_pruned": ttl_pruned,
@@ -2475,6 +2591,54 @@ class JsonStorageBackend:
                 continue
             results.append(InviteRecord(**row))
         return results
+
+    # ───────────────────────────────────────────────────────────────────
+    #  PENDING CLAIMS — Quickstart flow
+    # ───────────────────────────────────────────────────────────────────
+
+    async def create_pending_claim(
+        self,
+        claim_id: str,
+        tenant_id: str,
+        claim_token_hash: str,
+        expires_at: datetime,
+    ) -> PendingClaimRecord:
+        now = _now_utc()
+        rec = PendingClaimRecord(
+            claim_id=claim_id,
+            tenant_id=tenant_id,
+            claim_token_hash=claim_token_hash,
+            created_at=now,
+            expires_at=expires_at,
+        )
+        async with self._locks["pending_claims"]:
+            self._tables["pending_claims"].append(rec.model_dump(mode="json"))
+            self._persist("pending_claims")
+        return rec
+
+    async def get_pending_claim_by_token_hash(
+        self, token_hash: str
+    ) -> PendingClaimRecord | None:
+        now = _now_utc()
+        for row in self._tables["pending_claims"]:
+            if (
+                row["claim_token_hash"] == token_hash
+                and not row.get("is_claimed", False)
+            ):
+                exp = _parse_dt(row["expires_at"])
+                if exp and exp > now:
+                    return PendingClaimRecord(**row)
+        return None
+
+    async def mark_claim_used(self, claim_id: str) -> bool:
+        async with self._locks["pending_claims"]:
+            for row in self._tables["pending_claims"]:
+                if row["claim_id"] == claim_id:
+                    row["is_claimed"] = True
+                    row["claimed_at"] = _now_utc().isoformat()
+                    self._persist("pending_claims")
+                    return True
+        return False
 
     # ───────────────────────────────────────────────────────────────────
     #  API KEY — USER FILTERED

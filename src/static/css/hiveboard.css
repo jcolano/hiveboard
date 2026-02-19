@@ -503,6 +503,8 @@ body {
     font-weight: 600;
     color: var(--error);
 }
+.issue-indicator.clickable { cursor: pointer; }
+.issue-indicator.clickable:hover { text-decoration: underline; }
 
 .issue-dot {
     width: 6px;
@@ -1623,6 +1625,29 @@ body {
 .severity-critical { background: rgba(185, 28, 28, 0.1); color: var(--stuck); }
 .severity-high { background: rgba(220, 38, 38, 0.08); color: var(--error); }
 .severity-medium { background: rgba(217, 119, 6, 0.08); color: var(--warning); }
+
+.resolve-btn, .resolve-all-btn {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.resolve-btn:hover, .resolve-all-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.resolve-all-btn {
+    margin-left: auto;
+}
 
 .pipeline-empty {
     padding: 24px;

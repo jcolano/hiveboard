@@ -44,8 +44,10 @@
                 <option value="">Select agent…</option>
             </select>
             <select class="env-selector" id="envSelector" onchange="onEnvChange()">
+                <option value="">all</option>
                 <option>production</option>
                 <option>staging</option>
+                <option>development</option>
             </select>
             <select class="av-range-selector" id="rangeSelector" onchange="onRangeChange()">
                 <option value="1h">1h</option>
@@ -191,7 +193,7 @@
 
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="/static/js/common.js?v=20260214"></script>
-    <script src="/static/js/agent-view.js?v=20260215b"></script>
+    <script src="/static/js/common.js?v=20260217"></script>
+    <script src="/static/js/agent-view.js?v=20260217"></script>
 </body>
 </html>

@@ -142,6 +142,30 @@ function avGetEnv() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  ISSUE RESOLUTION
+// ═══════════════════════════════════════════════════════
+
+async function avResolveIssue(issueId) {
+  if (!avSelectedAgent) return;
+  var result = await apiPost('/v1/agents/' + encodeURIComponent(avSelectedAgent) + '/issues/' + encodeURIComponent(issueId) + '/resolve');
+  if (result) {
+    showToast('Issue resolved');
+    await avFetchPipeline();
+    avRenderPipeline();
+  }
+}
+
+async function avResolveAllIssues() {
+  if (!avSelectedAgent) return;
+  var result = await apiPost('/v1/agents/' + encodeURIComponent(avSelectedAgent) + '/issues/resolve-all');
+  if (result) {
+    showToast('All issues resolved');
+    await avFetchPipeline();
+    avRenderPipeline();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  AGENT SELECTOR
 // ═══════════════════════════════════════════════════════
 
@@ -545,7 +569,7 @@ function avRenderPerformance() {
       + '<span class="av-perf-insight-value">' + ratio + '</span></div>';
   }
   if (costTotal != null && totalTasks > 0) {
-    var cpt = (costTotal / totalTasks).toFixed(3);
+    var cpt = (costTotal / totalTasks).toFixed(4);
     insightHtml += '<div class="av-perf-insight">'
       + '<span class="av-perf-insight-label">Cost/task:</span> '
       + '<span class="av-perf-insight-value">$' + cpt + '</span></div>';
@@ -822,18 +846,22 @@ function avRenderPipeline() {
   html += '<div class="av-pipe-group-header">';
   html += '<div class="av-pipe-group-title">Issues</div>';
   html += '<div class="av-pipe-group-count">' + issues.length + '</div>';
+  if (issues.length > 0) html += '<button class="resolve-all-btn" onclick="avResolveAllIssues()">Clear All</button>';
   html += '</div>';
   if (issues.length === 0) {
     html += '<div class="av-pipe-empty">None</div>';
   } else {
     issues.forEach(function(iss) {
+      var issId = iss.issue_id || iss.summary || '';
       html += '<div class="av-pipe-item">';
       html += '<span class="av-issue-severity ' + (iss.severity || 'medium') + '"></span>';
       html += '<div class="av-pipe-text">';
       html += '<strong>' + escHtml(iss.severity || '—') + '</strong> · ' + escHtml(iss.category || '—');
       html += '<div class="av-pipe-meta">' + escHtml(iss.context || '—');
       if (iss.occurrence_count) html += ' · seen ' + iss.occurrence_count + 'x';
-      html += '</div></div></div>';
+      html += '</div></div>';
+      html += '<button class="resolve-btn" onclick="avResolveIssue(\'' + escHtml(issId) + '\')">Resolve</button>';
+      html += '</div>';
     });
   }
   html += '</div>';
@@ -1074,7 +1102,7 @@ function avRenderAttention() {
     if (totalTasks > 0 && avCost.total_cost / totalTasks > 0.5) {
       items.push({
         type: 'warning', title: 'High Cost per Task',
-        body: '$' + (avCost.total_cost / totalTasks).toFixed(2) + '/task average. Total: ' + fmtCost(avCost.total_cost) + ' across ' + totalTasks + ' tasks.'
+        body: '$' + (avCost.total_cost / totalTasks).toFixed(4) + '/task average. Total: ' + fmtCost(avCost.total_cost) + ' across ' + totalTasks + ' tasks.'
       });
     }
   }
@@ -1195,9 +1223,9 @@ function avSetConnection(connected, text) {
 
 // WebSocket (simplified — status updates only)
 function avConnectWs() {
-  if (!CONFIG.wsUrl || !CONFIG.apiKey) return;
+  if (!CONFIG.wsUrl || !CONFIG.accessId) return;
   try {
-    avWs = new WebSocket(CONFIG.wsUrl + '?token=' + encodeURIComponent(CONFIG.apiKey));
+    avWs = new WebSocket(CONFIG.wsUrl + '?token=' + encodeURIComponent(CONFIG.accessId));
     avWs.onopen = function() {
       avSetConnection(true, 'Live');
       avWsRetry = 0;

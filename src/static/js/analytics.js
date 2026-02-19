@@ -32,7 +32,7 @@ var _tsTasks = null; // GET /v1/insights/timeseries?metric=tasks
 
 function esc(s)   { return s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function $(id)    { return document.getElementById(id); }
-function fmt$(v)  { return v == null || isNaN(v) ? '$0.00' : v < 0.01 ? '$'+v.toFixed(4) : '$'+v.toFixed(2); }
+function fmt$(v)  { return v == null || isNaN(v) ? '$0.0000' : '$'+v.toFixed(4); }
 function fmtN(n)  { return n == null ? '0' : Number(n).toLocaleString(); }
 function pct(p,t) { return t ? ((p/t)*100).toFixed(1) : '0.0'; }
 function hrs()    { return RANGE_HOURS[RANGE] || 24; }
@@ -75,8 +75,8 @@ function api(path, params) {
         if (params[k]!=null) qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));
     });
     if (qs.length) url += '?' + qs.join('&');
-    var apiKey = (typeof CONFIG !== 'undefined' && CONFIG.apiKey) ? CONFIG.apiKey
-        : (window.HB_API_KEY || localStorage.getItem('hb_api_key') || '');
+    var apiKey = (typeof CONFIG !== 'undefined' && CONFIG.accessId) ? CONFIG.accessId
+        : (window.HB_ACCESS_ID || localStorage.getItem('hiveboard_access_id') || '');
     return fetch(url, {
         headers: {
             'Authorization': 'Bearer ' + apiKey,
