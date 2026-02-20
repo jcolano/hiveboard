@@ -25,9 +25,12 @@ from ._enums import MAX_BATCH_EVENTS
 logger = logging.getLogger("hiveloop.transport")
 
 # Retry configuration
-_MAX_RETRIES = 5
+_MAX_RETRIES = 1
 _BACKOFF_BASE = 1.0
 _BACKOFF_CAP = 60.0
+
+# Circuit breaker: after this many consecutive failed cycles, stop sending
+_CIRCUIT_BREAKER_THRESHOLD = 3
 
 
 class _QueueItem:
@@ -60,6 +63,12 @@ class Transport:
         self._flush_interval = flush_interval
         self._batch_size = min(batch_size, MAX_BATCH_EVENTS)
         self._shutdown = False
+
+        # Circuit breaker: counts consecutive failed send cycles.
+        # After _CIRCUIT_BREAKER_THRESHOLD failures, we stop enqueueing
+        # new events to avoid blocking the application with retries.
+        self._consecutive_failures = 0
+        self._circuit_open = False
 
         # Thread-safe bounded queue — oldest events dropped when full
         self._queue: collections.deque[_QueueItem] = collections.deque(
@@ -94,7 +103,7 @@ class Transport:
 
     def enqueue(self, event: dict[str, Any], envelope: dict[str, Any]) -> None:
         """Add an event to the queue. Non-blocking, never raises."""
-        if self._shutdown:
+        if self._shutdown or self._circuit_open:
             return
         try:
             prev_len = len(self._queue)
@@ -206,6 +215,8 @@ class Transport:
                 resp = self._session.post(url, json=body, timeout=30)
 
                 if resp.status_code in (200, 207):
+                    # Success — reset circuit breaker
+                    self._consecutive_failures = 0
                     # Log any rejected events from partial success
                     if resp.status_code == 207:
                         try:
@@ -275,9 +286,19 @@ class Transport:
                 logger.error("Unexpected error sending batch", exc_info=True)
                 return False
 
+        self._consecutive_failures += 1
         logger.error(
-            "Exhausted %d retries. Dropping %d events.", _MAX_RETRIES, len(events)
+            "Exhausted %d retries. Dropping %d events. (failure %d/%d)",
+            _MAX_RETRIES, len(events),
+            self._consecutive_failures, _CIRCUIT_BREAKER_THRESHOLD,
         )
+        if self._consecutive_failures >= _CIRCUIT_BREAKER_THRESHOLD:
+            self._circuit_open = True
+            logger.error(
+                "Circuit breaker OPEN: %d consecutive failures. "
+                "HiveLoop reporting disabled until restart.",
+                self._consecutive_failures,
+            )
         return False
 
     # ------------------------------------------------------------------
