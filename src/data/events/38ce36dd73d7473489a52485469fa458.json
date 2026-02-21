@@ -70,72 +70,6 @@
     "key_type": "live"
   },
   {
-    "event_id": "f6782a14-41c3-4411-be84-bcb045ae0804",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:41:07.233Z",
-    "received_at": "2026-02-19T20:41:12.736194+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 30,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "c00fe648-23ab-4b53-b815-7c281b217f16",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:41:07.233Z",
-    "received_at": "2026-02-19T20:41:12.736194+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "custom",
-    "severity": "info",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "kind": "queue_snapshot",
-      "summary": "Queue: 0 items",
-      "data": {
-        "depth": 0
-      },
-      "tags": [
-        "queue"
-      ]
-    },
-    "key_type": "live"
-  },
-  {
     "event_id": "1af6cf1d-d6c9-4007-ad7a-c9501b77469f",
     "tenant_id": "dev",
     "agent_id": "main",
@@ -206,46 +140,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "92dccae8-c7e2-4b73-b540-058557fe028b",
+    "event_id": "be101c16-7023-4569-b349-58a684f56c7d",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:43:19.149Z",
-    "received_at": "2026-02-19T20:43:20.541407+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 30,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "aa1aff33-d19f-42bc-b276-f2d49e643e47",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:43:19.149Z",
-    "received_at": "2026-02-19T20:43:20.541407+00:00",
+    "timestamp": "2026-02-19T21:17:19.682Z",
+    "received_at": "2026-02-19T21:17:25.362597+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -272,46 +173,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "a9d195ff-719b-46ae-a592-4a6d4dad9cc9",
+    "event_id": "1ec01bbc-d54d-49dc-aabd-391835399838",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:43:49.154Z",
-    "received_at": "2026-02-19T20:43:54.794789+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 60,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "362a4197-75a6-4934-9adb-0f1459838043",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:43:49.154Z",
-    "received_at": "2026-02-19T20:43:54.794789+00:00",
+    "timestamp": "2026-02-19T21:17:49.694Z",
+    "received_at": "2026-02-19T21:17:51.843851+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -338,46 +206,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "a2898f05-b206-4bd4-8948-5232bae4cb45",
+    "event_id": "dc11c6f3-434f-4ebb-98b4-1637eb99a06f",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:44:19.162Z",
-    "received_at": "2026-02-19T20:44:24.235919+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 90,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "59e3ee5a-f0f9-428a-9429-32118a2aedf4",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:44:19.162Z",
-    "received_at": "2026-02-19T20:44:24.235919+00:00",
+    "timestamp": "2026-02-19T21:18:19.701Z",
+    "received_at": "2026-02-19T21:18:23.476894+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -404,46 +239,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "156a3342-1e32-412f-a25a-a7e70fedb93a",
+    "event_id": "688e0c68-4452-44ed-8960-4d45f58ef3a4",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:44:49.169Z",
-    "received_at": "2026-02-19T20:44:53.494386+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 120,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "252ce530-3f94-4786-bc92-8f612dcf0cfe",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:44:49.169Z",
-    "received_at": "2026-02-19T20:44:53.494386+00:00",
+    "timestamp": "2026-02-19T21:18:49.706Z",
+    "received_at": "2026-02-19T21:18:54.931509+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -470,46 +272,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "39649172-ab28-431f-8d07-8b699380a407",
+    "event_id": "162624bb-446b-4b7c-891c-aaed34a3ad91",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:45:19.172Z",
-    "received_at": "2026-02-19T20:45:22.747346+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 150,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "89594cd2-6f79-43ac-bb48-9018a2a74af7",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:45:19.172Z",
-    "received_at": "2026-02-19T20:45:22.747346+00:00",
+    "timestamp": "2026-02-19T21:19:19.720Z",
+    "received_at": "2026-02-19T21:19:26.452651+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -536,46 +305,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "d309439a-ce33-46b4-b810-e2e0b6956694",
+    "event_id": "4d589882-f804-4dbe-802e-2a86805fa276",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:45:49.186Z",
-    "received_at": "2026-02-19T20:45:51.997969+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 180,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "fc4fcbf6-b549-4e34-be36-906bacd5e61f",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:45:49.186Z",
-    "received_at": "2026-02-19T20:45:51.997969+00:00",
+    "timestamp": "2026-02-19T21:19:49.726Z",
+    "received_at": "2026-02-19T21:19:50.802237+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -602,46 +338,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "e47e919e-31f2-46f1-ae3a-7c20aa6a1c32",
+    "event_id": "4093af1f-5027-4851-8a54-b52683bdc794",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:46:19.192Z",
-    "received_at": "2026-02-19T20:46:21.271859+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 210,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "d4e0fee9-1a07-4945-a5ff-d32b14516e7b",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:46:19.192Z",
-    "received_at": "2026-02-19T20:46:21.271859+00:00",
+    "timestamp": "2026-02-19T21:20:19.739Z",
+    "received_at": "2026-02-19T21:20:22.202909+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -668,46 +371,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "08101f2f-af2c-4b9b-a511-61814a338a11",
+    "event_id": "c4146046-61a2-402d-b61c-6ff385d32941",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:46:49.196Z",
-    "received_at": "2026-02-19T20:46:52.612396+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 240,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "116a46d6-cce5-4c72-a8e5-f9f5e9c5780f",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:46:49.196Z",
-    "received_at": "2026-02-19T20:46:52.612396+00:00",
+    "timestamp": "2026-02-19T21:20:49.754Z",
+    "received_at": "2026-02-19T21:20:53.607538+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -734,46 +404,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "4623e412-0423-4d2c-8d38-f08ad208c86e",
+    "event_id": "f11f5dcb-c0cf-4d79-9a78-79f5cc170271",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:47:19.202Z",
-    "received_at": "2026-02-19T20:47:23.883257+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 270,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "f1c21858-b854-49b0-b35a-b724c7ec2235",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:47:19.202Z",
-    "received_at": "2026-02-19T20:47:23.883257+00:00",
+    "timestamp": "2026-02-19T21:21:19.762Z",
+    "received_at": "2026-02-19T21:21:20.043113+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -800,46 +437,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "eceddfcd-2c54-4c7d-b7a8-b4138f4fe1e0",
+    "event_id": "fe9f33fa-5ba5-45ac-8c01-55171bebd130",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:47:49.208Z",
-    "received_at": "2026-02-19T20:47:53.160351+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 300,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "cc30a129-20ac-4888-bcab-5ac4ac900aaa",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:47:49.208Z",
-    "received_at": "2026-02-19T20:47:53.160351+00:00",
+    "timestamp": "2026-02-19T21:21:49.767Z",
+    "received_at": "2026-02-19T21:21:54.461589+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -866,46 +470,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "be29bbe4-3faa-4a28-ac49-159318ba9a36",
+    "event_id": "60af2ac7-7bc8-4f63-9506-d190ab68d172",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:48:19.216Z",
-    "received_at": "2026-02-19T20:48:23.331075+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 330,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "219d2812-e58f-4dba-8a70-8a0b0f1db480",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:48:19.216Z",
-    "received_at": "2026-02-19T20:48:23.331075+00:00",
+    "timestamp": "2026-02-19T21:22:19.776Z",
+    "received_at": "2026-02-19T21:22:23.868112+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -932,46 +503,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "23dcf5dc-93a3-4bbf-9021-82778fb622ff",
+    "event_id": "93288f95-e473-472f-bf3f-01e79deb53bf",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:48:49.226Z",
-    "received_at": "2026-02-19T20:48:51.807541+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 360,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "9257dcfd-37d4-4286-8e53-d256562bb6da",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:48:49.226Z",
-    "received_at": "2026-02-19T20:48:51.807541+00:00",
+    "timestamp": "2026-02-19T21:22:49.776Z",
+    "received_at": "2026-02-19T21:22:50.346585+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -998,46 +536,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "f89e8efe-fcd2-4cc0-8fae-3c67939be5b5",
+    "event_id": "2ec65a66-9f4d-4b0f-8508-3fbfb4edbcd6",
     "tenant_id": "dev",
     "agent_id": "main",
     "agent_type": "general",
     "project_id": null,
-    "timestamp": "2026-02-19T20:49:19.237Z",
-    "received_at": "2026-02-19T20:49:19.353836+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 390,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "ff0d6c6e-8c8c-4f55-9caf-dd62f6fa801e",
-    "tenant_id": "dev",
-    "agent_id": "main",
-    "agent_type": "general",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:49:19.237Z",
-    "received_at": "2026-02-19T20:49:19.353836+00:00",
+    "timestamp": "2026-02-19T21:23:19.779Z",
+    "received_at": "2026-02-19T21:23:24.670599+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -1060,6 +565,2287 @@
       "tags": [
         "queue"
       ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "014b26e4-5e77-45c3-ab5b-f5371b1eda3e",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:23:49.794Z",
+    "received_at": "2026-02-19T21:23:53.952984+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "fb94c731-45f7-4a10-a5d9-114d35e06c8b",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:24:19.808Z",
+    "received_at": "2026-02-19T21:24:23.211899+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "4e7f4df1-74b7-4de5-8f73-6795b7dfab1b",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:24:49.811Z",
+    "received_at": "2026-02-19T21:24:52.478224+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "84bed8ab-991b-4615-b245-c6dd0785a4c9",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:25:19.824Z",
+    "received_at": "2026-02-19T21:25:29.612015+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "cdb4347f-4bc2-4655-8236-0eea79e3a0b5",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:25:49.828Z",
+    "received_at": "2026-02-19T21:25:58.768707+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "cca36a95-f025-4204-9ea4-638422e29ec8",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:26:19.833Z",
+    "received_at": "2026-02-19T21:26:25.161382+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "91543fb7-4ba8-482e-8f55-ed95a5122dc6",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:26:49.841Z",
+    "received_at": "2026-02-19T21:26:49.954847+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "ad4917a5-585c-45d0-891e-57a0db4093a2",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:27:19.846Z",
+    "received_at": "2026-02-19T21:27:24.699901+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "ec35fc75-60f0-41b2-a484-445620b1f1bf",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:27:49.859Z",
+    "received_at": "2026-02-19T21:27:52.827046+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "94b8a451-dbf9-4463-a046-b591e057780f",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:28:19.873Z",
+    "received_at": "2026-02-19T21:28:29.570273+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "c880ced7-ed55-4db1-8c40-86c756f4d48f",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:28:49.886Z",
+    "received_at": "2026-02-19T21:28:55.751574+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "8ea7b5f5-2b9c-458a-81f9-468f2dfff9e8",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:29:19.900Z",
+    "received_at": "2026-02-19T21:29:25.062130+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "12b74fdd-8a4c-4c7c-a903-6c9e4e24c54f",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:29:49.904Z",
+    "received_at": "2026-02-19T21:29:55.920661+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "072ee876-87a7-41a1-814c-3119629d0364",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:30:19.919Z",
+    "received_at": "2026-02-19T21:30:27.006523+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "3948dad9-7b2b-41d3-9abf-22ab9c8cef7c",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:30:49.922Z",
+    "received_at": "2026-02-19T21:30:56.327843+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "46770585-0f55-4535-8a05-460962b2ef7f",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:31:19.927Z",
+    "received_at": "2026-02-19T21:31:22.701957+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e1f9f134-c0ec-4200-811f-a676788f1c51",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:31:49.937Z",
+    "received_at": "2026-02-19T21:31:56.260869+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0a08daa8-3e33-46de-9c83-5848a954cde5",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:32:19.951Z",
+    "received_at": "2026-02-19T21:32:24.771249+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "81677c68-1bd1-438a-a552-381c110e5566",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:32:49.955Z",
+    "received_at": "2026-02-19T21:32:54.182760+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "56e16d16-6b11-4de5-bfc2-f3ce204b601d",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:33:19.970Z",
+    "received_at": "2026-02-19T21:33:23.567528+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "7d5b2d08-31f2-403e-ae7e-c786956b9777",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:33:49.973Z",
+    "received_at": "2026-02-19T21:33:55.000103+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e3852fa9-e43e-4a3c-8255-d86cbc02b6b0",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:34:19.977Z",
+    "received_at": "2026-02-19T21:34:26.433948+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "bd725560-9240-43fe-896c-2930eb71123c",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:34:49.982Z",
+    "received_at": "2026-02-19T21:34:52.850383+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "aa4622cc-5f81-4e9b-9c4e-804400a97199",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:35:19.988Z",
+    "received_at": "2026-02-19T21:35:26.363527+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "37b27b26-a567-43b6-938b-0699b47c5b66",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:35:49.993Z",
+    "received_at": "2026-02-19T21:35:52.834893+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "05f4c67b-1cf8-4dea-9d30-dee04e939e42",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:36:19.999Z",
+    "received_at": "2026-02-19T21:36:24.337955+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0bd61ec8-85ff-40a2-97af-2a0d9d99f1c0",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:36:50.001Z",
+    "received_at": "2026-02-19T21:36:53.703165+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f87e5893-dfae-49c1-948b-c23ae415a9b1",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:37:20.014Z",
+    "received_at": "2026-02-19T21:37:25.148721+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d5407779-35ed-454f-8145-649672870f8b",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:37:50.018Z",
+    "received_at": "2026-02-19T21:37:56.555658+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "862aca55-f580-4046-be53-2a6f2d50b377",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:58:29.163Z",
+    "received_at": "2026-02-19T21:58:35.084401+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "agent_registered",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "summary": "Agent main registered",
+      "data": {
+        "type": "general",
+        "version": "claude-sonnet-4-5-20250929",
+        "framework": "loopcore",
+        "stuck_threshold": 600
+      }
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "aada54dd-5458-43de-89be-dbcd246354d1",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:58:29.164Z",
+    "received_at": "2026-02-19T21:58:35.084401+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "model": "claude-sonnet-4-5-20250929",
+      "phase2_model": null,
+      "temperature": 0.0,
+      "max_tokens": 4096,
+      "max_turns": 30,
+      "timeout_seconds": 600,
+      "role": "",
+      "skills": [],
+      "tools_enabled": [],
+      "planning_enabled": false,
+      "reflection_enabled": false,
+      "learning_enabled": false,
+      "original_event_type": "config_snapshot"
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "73acf502-54de-4bf8-88e8-7fd21896d282",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:58:59.163Z",
+    "received_at": "2026-02-19T21:59:04.286880+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "8da38888-1d81-4b65-bed8-9f3ed68a6f2d",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:59:29.170Z",
+    "received_at": "2026-02-19T21:59:32.816412+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "3d1b9971-18e7-41a6-9c7c-984de975b5e9",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:59:59.171Z",
+    "received_at": "2026-02-19T22:00:09.563592+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f34a5c2e-d8fc-49cd-b2a0-36f840befd1b",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:00:29.183Z",
+    "received_at": "2026-02-19T22:00:35.304586+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "4e14b740-50b9-42e7-b553-50a8c5a60946",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:00:59.196Z",
+    "received_at": "2026-02-19T22:01:02.566774+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "de10b33a-791d-4f5b-bd97-e1b4f83b282c",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:01:29.210Z",
+    "received_at": "2026-02-19T22:01:35.598669+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e6f78016-33fd-41f2-8e78-c744ad8c833e",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:01:59.213Z",
+    "received_at": "2026-02-19T22:02:03.665342+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "a99da743-26b2-483d-b31f-9cb7a53c8d75",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:02:29.214Z",
+    "received_at": "2026-02-19T22:02:35.128288+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d922e4c5-0b73-4085-826d-f6898aea3f9e",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:02:59.212Z",
+    "received_at": "2026-02-19T22:03:04.427068+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "9f921c16-a9e0-4eb2-86d0-2a986de2e94a",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:03:29.217Z",
+    "received_at": "2026-02-19T22:03:31.590229+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "5970c8c6-deb7-4238-86c9-c976c395424b",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:03:59.223Z",
+    "received_at": "2026-02-19T22:04:03.827381+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6c2cacb0-ec26-4091-9898-c68c05eae0cf",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:04:29.223Z",
+    "received_at": "2026-02-19T22:04:36.048783+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d88c3487-90c4-41b0-8847-a943987e7ded",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:04:59.222Z",
+    "received_at": "2026-02-19T22:05:03.219978+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "8c685337-9d30-4dc5-8de2-52a7a39cc35f",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:05:29.221Z",
+    "received_at": "2026-02-19T22:05:35.451107+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6eae5031-0c38-4a90-9cf6-3d7bc5335360",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:05:59.233Z",
+    "received_at": "2026-02-19T22:06:02.665768+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "4f98ebe7-ea37-4707-b2e9-b9556f2be717",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:06:29.248Z",
+    "received_at": "2026-02-19T22:06:36.249701+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6accb2f1-cef3-438f-ad79-6bb77129acd7",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:06:59.246Z",
+    "received_at": "2026-02-19T22:07:05.511509+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "32075248-396b-4d18-b85f-14db3c40e32e",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:29.262Z",
+    "received_at": "2026-02-19T22:07:34.085472+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 540,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "de16130e-35a9-446c-a49d-42519f2df83d",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:29.262Z",
+    "received_at": "2026-02-19T22:07:34.085472+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6cc29f54-dca9-4529-a65c-a37396ad098f",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:59.261Z",
+    "received_at": "2026-02-19T22:08:02.659365+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 570,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "248d97de-bbb7-404b-afa9-ffe115e36c46",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:59.262Z",
+    "received_at": "2026-02-19T22:08:02.659365+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "c338ad1f-d2af-4157-ac78-c20614fcb208",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:29.265Z",
+    "received_at": "2026-02-19T22:08:31.140152+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 600,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "4643d512-648a-468d-857d-8dcb92c26461",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:29.266Z",
+    "received_at": "2026-02-19T22:08:31.140152+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "36cff2f8-8f25-444f-9c01-e59d0d662cbd",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:59.276Z",
+    "received_at": "2026-02-19T22:08:59.603890+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 630,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "29e50208-dc15-449c-9d4f-19d9309365f7",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:59.277Z",
+    "received_at": "2026-02-19T22:08:59.603890+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "98937ce5-29be-452b-a15e-cd5e5320bc6d",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:29.285Z",
+    "received_at": "2026-02-19T22:09:31.025171+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 660,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "cccb5ca4-3d95-4e45-9461-0fbc6b5b8861",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:29.286Z",
+    "received_at": "2026-02-19T22:09:31.025171+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "c403f10d-615d-45ad-bf65-f31bb11ad417",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:59.290Z",
+    "received_at": "2026-02-19T22:10:02.383459+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 690,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "b9641891-da48-4d28-9221-fd69bcc8c783",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:59.290Z",
+    "received_at": "2026-02-19T22:10:02.383459+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "fbd0f79d-475b-4a8a-9193-99590c72d785",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:29.303Z",
+    "received_at": "2026-02-19T22:10:33.867141+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 720,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "919c3ef1-cb85-4ec9-b50a-0132e7300016",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:29.303Z",
+    "received_at": "2026-02-19T22:10:33.867141+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "3ad68ecd-051c-4237-815e-7c5d3f42610e",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:59.316Z",
+    "received_at": "2026-02-19T22:11:00.278456+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 750,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "2b4773f3-90fe-4ca2-a4b5-a3a3d465387c",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:59.316Z",
+    "received_at": "2026-02-19T22:11:00.278456+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "a582e645-2b84-4487-8286-e20dc785f72c",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:29.315Z",
+    "received_at": "2026-02-19T22:11:29.617771+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 780,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d1f1d510-0805-4a43-901e-46303fbf95f8",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:29.315Z",
+    "received_at": "2026-02-19T22:11:29.617771+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e31b9184-5808-46bf-a585-0cbf8fbd1042",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:59.324Z",
+    "received_at": "2026-02-19T22:12:01.034385+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 810,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "fdfe81ff-10b4-4ed3-bd7f-00aee94bb5d5",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:59.324Z",
+    "received_at": "2026-02-19T22:12:01.034385+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "33b86dbe-cbfa-44bd-a8b7-2ca70d31f446",
+    "tenant_id": "dev",
+    "agent_id": "main",
+    "agent_type": "general",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:12:29.327Z",
+    "received_at": "2026-02-19T22:12:32.515169+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 840,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
     },
     "key_type": "live"
   }

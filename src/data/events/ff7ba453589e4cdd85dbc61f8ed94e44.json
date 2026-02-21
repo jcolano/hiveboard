@@ -70,72 +70,6 @@
     "key_type": "live"
   },
   {
-    "event_id": "2100ca25-6e5a-488a-acc4-e93b9d08b191",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:41:07.202Z",
-    "received_at": "2026-02-19T20:41:12.729203+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 30,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "f702b4f5-d83a-4c86-96f6-a1c6cd20db04",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:41:07.202Z",
-    "received_at": "2026-02-19T20:41:12.729203+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "custom",
-    "severity": "info",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "kind": "queue_snapshot",
-      "summary": "Queue: 0 items",
-      "data": {
-        "depth": 0
-      },
-      "tags": [
-        "queue"
-      ]
-    },
-    "key_type": "live"
-  },
-  {
     "event_id": "bf368192-4cbe-47a1-a1f7-776a0167a49a",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
@@ -206,46 +140,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "f9c13253-5df1-4c84-af38-078890572e33",
+    "event_id": "e13a8fca-6665-42e5-b09c-4c2b9333629e",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:43:19.133Z",
-    "received_at": "2026-02-19T20:43:20.534406+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 30,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "2f5fe274-effb-4f98-9891-f1270b50a7dd",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:43:19.134Z",
-    "received_at": "2026-02-19T20:43:20.534406+00:00",
+    "timestamp": "2026-02-19T21:17:19.683Z",
+    "received_at": "2026-02-19T21:17:25.377297+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -272,46 +173,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "2f7983fb-0089-4a59-8555-cc0422299be7",
+    "event_id": "f786e65a-b2d3-4cdc-b94f-ae765a5d9ccf",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:43:49.138Z",
-    "received_at": "2026-02-19T20:43:54.788283+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 60,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "29575d05-ee9a-41a8-93bb-6ff5563a6a08",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:43:49.138Z",
-    "received_at": "2026-02-19T20:43:54.788283+00:00",
+    "timestamp": "2026-02-19T21:17:49.694Z",
+    "received_at": "2026-02-19T21:17:51.853280+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -338,46 +206,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "112511d3-345b-42e9-810d-eb65046b486f",
+    "event_id": "7e477a33-adef-4c23-a735-d2e45f210fbf",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:44:19.147Z",
-    "received_at": "2026-02-19T20:44:24.228912+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 90,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "03a5d7ee-bf51-4273-aaad-2b5933be1d70",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:44:19.147Z",
-    "received_at": "2026-02-19T20:44:24.228912+00:00",
+    "timestamp": "2026-02-19T21:18:19.701Z",
+    "received_at": "2026-02-19T21:18:23.466805+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -404,46 +239,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "f36af018-c552-4065-ba84-05a6e2f8516a",
+    "event_id": "1a6cc9bf-ded4-4379-9d95-92e130dd14c3",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:44:49.152Z",
-    "received_at": "2026-02-19T20:44:53.486986+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 120,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "df044957-d018-41e1-94c6-639d46d94def",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:44:49.152Z",
-    "received_at": "2026-02-19T20:44:53.486986+00:00",
+    "timestamp": "2026-02-19T21:18:49.706Z",
+    "received_at": "2026-02-19T21:18:54.943088+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -470,46 +272,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "c96776de-ee9b-4f7f-993b-22d051ccaac4",
+    "event_id": "74f4b4a2-9040-478a-bcf1-e187de6b4d5d",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:45:19.157Z",
-    "received_at": "2026-02-19T20:45:22.741341+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 150,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "49d7c170-ec91-4d5f-89a4-fc9b2db015b7",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:45:19.157Z",
-    "received_at": "2026-02-19T20:45:22.741341+00:00",
+    "timestamp": "2026-02-19T21:19:19.720Z",
+    "received_at": "2026-02-19T21:19:26.462649+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -536,46 +305,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "35744881-b71f-4861-bd61-81316f35d011",
+    "event_id": "e1eba4b1-3dbf-4519-9b14-948e716045ba",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:45:49.171Z",
-    "received_at": "2026-02-19T20:45:51.990818+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 180,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "181a7ef9-35a1-4470-b692-0b6043fd6e70",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:45:49.172Z",
-    "received_at": "2026-02-19T20:45:51.990818+00:00",
+    "timestamp": "2026-02-19T21:19:49.725Z",
+    "received_at": "2026-02-19T21:19:50.791113+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -602,46 +338,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "d15e50c6-2563-4a51-a134-5826328a959e",
+    "event_id": "2aee546a-9446-4b4c-ba54-8eaea64a1a9d",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:46:19.176Z",
-    "received_at": "2026-02-19T20:46:21.265347+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 210,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "ad065d4a-ea72-434b-8b0b-d78249f3186e",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:46:19.176Z",
-    "received_at": "2026-02-19T20:46:21.265347+00:00",
+    "timestamp": "2026-02-19T21:20:19.739Z",
+    "received_at": "2026-02-19T21:20:22.211899+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -668,46 +371,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "9c8f0990-f903-4a86-a253-03b82db3e355",
+    "event_id": "5101694e-7d22-49d3-ad9c-b3ea57cb1b72",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:46:49.180Z",
-    "received_at": "2026-02-19T20:46:52.605889+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 240,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "c73dcbe9-553b-4278-9c96-332d8b763d7d",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:46:49.180Z",
-    "received_at": "2026-02-19T20:46:52.605889+00:00",
+    "timestamp": "2026-02-19T21:20:49.753Z",
+    "received_at": "2026-02-19T21:20:53.593037+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -734,46 +404,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "10787c57-40fe-439d-8bd1-b570179da354",
+    "event_id": "dac2bc07-138a-4faf-93fa-36e898e503ba",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:47:19.186Z",
-    "received_at": "2026-02-19T20:47:23.877583+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 270,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "1cbfd9fb-7ab1-43ce-be86-66947bc40720",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:47:19.186Z",
-    "received_at": "2026-02-19T20:47:23.877583+00:00",
+    "timestamp": "2026-02-19T21:21:19.761Z",
+    "received_at": "2026-02-19T21:21:20.033097+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -800,46 +437,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "37c1c469-ad1e-4516-9a63-eb4547ae6cc6",
+    "event_id": "b00a55ae-16e4-4a71-a6ea-8a4875def4ba",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:47:49.192Z",
-    "received_at": "2026-02-19T20:47:53.152366+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 300,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "b6489474-5046-4adb-9cc7-edfd5864849c",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:47:49.192Z",
-    "received_at": "2026-02-19T20:47:53.152366+00:00",
+    "timestamp": "2026-02-19T21:21:49.767Z",
+    "received_at": "2026-02-19T21:21:54.471589+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -866,46 +470,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "b79df603-66c1-4dba-9f89-66eba6ac4114",
+    "event_id": "e07509d1-be76-4790-86d4-b28eb96c0eb3",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:48:19.199Z",
-    "received_at": "2026-02-19T20:48:23.323252+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 330,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "f7282a7c-050d-4f50-b95f-caa66c2280d7",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:48:19.199Z",
-    "received_at": "2026-02-19T20:48:23.323252+00:00",
+    "timestamp": "2026-02-19T21:22:19.776Z",
+    "received_at": "2026-02-19T21:22:23.858113+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -932,46 +503,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "058fba42-d5ab-42b3-9aeb-6ca5d292939c",
+    "event_id": "8d22c485-ca52-4ade-9a4b-289513fc2e3c",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:48:49.210Z",
-    "received_at": "2026-02-19T20:48:51.800217+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 360,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "92e85822-738f-4b47-b9b9-846c2e8d42f2",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:48:49.210Z",
-    "received_at": "2026-02-19T20:48:51.800217+00:00",
+    "timestamp": "2026-02-19T21:22:49.776Z",
+    "received_at": "2026-02-19T21:22:50.335985+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -998,46 +536,13 @@
     "key_type": "live"
   },
   {
-    "event_id": "79bbe80d-ead3-47cb-aa34-b8eb1e310c99",
+    "event_id": "c3e0ab2f-f749-4923-bed7-e173b98d7b9d",
     "tenant_id": "dev",
     "agent_id": "ag_8hsi7r5k",
     "agent_type": "Social Market Researcher",
     "project_id": null,
-    "timestamp": "2026-02-19T20:49:19.221Z",
-    "received_at": "2026-02-19T20:49:19.342375+00:00",
-    "environment": "production",
-    "group": "default",
-    "task_id": null,
-    "task_type": null,
-    "task_run_id": null,
-    "correlation_id": null,
-    "action_id": null,
-    "parent_action_id": null,
-    "event_type": "heartbeat",
-    "severity": "debug",
-    "status": null,
-    "duration_ms": null,
-    "parent_event_id": null,
-    "payload": {
-      "uptime_seconds": 390,
-      "total_runs": 0,
-      "total_tokens": 0,
-      "total_cost": 0.0,
-      "consecutive_errors": 0,
-      "active_skills": [],
-      "heartbeats_fired": 0,
-      "heartbeats_skipped": 0
-    },
-    "key_type": "live"
-  },
-  {
-    "event_id": "1ccf214c-a7c7-4759-852f-9cae2f11f60a",
-    "tenant_id": "dev",
-    "agent_id": "ag_8hsi7r5k",
-    "agent_type": "Social Market Researcher",
-    "project_id": null,
-    "timestamp": "2026-02-19T20:49:19.221Z",
-    "received_at": "2026-02-19T20:49:19.342375+00:00",
+    "timestamp": "2026-02-19T21:23:19.779Z",
+    "received_at": "2026-02-19T21:23:24.681220+00:00",
     "environment": "production",
     "group": "default",
     "task_id": null,
@@ -1060,6 +565,2287 @@
       "tags": [
         "queue"
       ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "3bcfd831-b5d0-4368-a1b2-86df5df5168d",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:23:49.794Z",
+    "received_at": "2026-02-19T21:23:53.943977+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "3ad4e247-04f3-494d-bc5b-3479e32fb46e",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:24:19.808Z",
+    "received_at": "2026-02-19T21:24:23.197886+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e06d5645-d497-443c-a1bf-6a117de03355",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:24:49.811Z",
+    "received_at": "2026-02-19T21:24:52.487736+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "520cbe4a-9db7-48a4-a1eb-fa8514328a95",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:25:19.824Z",
+    "received_at": "2026-02-19T21:25:29.593600+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d43d32ba-1534-4b6d-9bbc-25fd91452b10",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:25:49.828Z",
+    "received_at": "2026-02-19T21:25:58.755094+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "a1041737-e791-425e-a773-3ad2b679e75c",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:26:19.833Z",
+    "received_at": "2026-02-19T21:26:25.172466+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "8b4882de-855c-4f01-80d6-093170d26366",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:26:49.841Z",
+    "received_at": "2026-02-19T21:26:49.966280+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "566f2616-726d-4bfb-998e-f299ccf19448",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:27:19.846Z",
+    "received_at": "2026-02-19T21:27:24.711453+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "78656df6-ed47-4bf5-a8f4-f0a8d14cb36c",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:27:49.859Z",
+    "received_at": "2026-02-19T21:27:52.816048+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6a16cceb-dc3b-4887-8108-5b2a9d92ae19",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:28:19.873Z",
+    "received_at": "2026-02-19T21:28:29.595278+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "4cbe5969-e98c-493a-9daa-302c24000688",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:28:49.887Z",
+    "received_at": "2026-02-19T21:28:55.763123+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "37c88124-9ca9-4d6f-abf4-5d4cd763e353",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:29:19.900Z",
+    "received_at": "2026-02-19T21:29:25.051613+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e36bb55a-5e6f-4dea-86c0-f4177306764f",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:29:49.904Z",
+    "received_at": "2026-02-19T21:29:55.904155+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "22b32d08-f58f-49f0-b108-cc1f28a6d139",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:30:19.919Z",
+    "received_at": "2026-02-19T21:30:26.994591+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "7299f2a0-7a86-40f1-93ae-beeeb9afe3f7",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:30:49.922Z",
+    "received_at": "2026-02-19T21:30:56.317163+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "1a83576c-415d-4783-ac3c-bf4919f37ea7",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:31:19.927Z",
+    "received_at": "2026-02-19T21:31:22.713038+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "2c7d0bb2-4210-4ddd-b757-303b874c1168",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:31:49.937Z",
+    "received_at": "2026-02-19T21:31:56.271861+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "dd341cfa-9860-4f63-89ec-eadfd316e6d0",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:32:19.952Z",
+    "received_at": "2026-02-19T21:32:24.782252+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "146bda77-dab9-4d81-8bf4-ffdb8aec6692",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:32:49.954Z",
+    "received_at": "2026-02-19T21:32:54.171726+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "2cadaf7a-11aa-4d0c-8b56-bbb25f88c5ba",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:33:19.970Z",
+    "received_at": "2026-02-19T21:33:23.581649+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "8fa0078d-12bb-44e7-8f6f-05c970b4413c",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:33:49.973Z",
+    "received_at": "2026-02-19T21:33:54.988100+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f5e02b34-870f-4610-9f5f-eb7386d410e2",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:34:19.978Z",
+    "received_at": "2026-02-19T21:34:26.444939+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "bd69188b-ae67-4e33-a300-22f7658ae3f8",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:34:49.981Z",
+    "received_at": "2026-02-19T21:34:52.838858+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d5c6814d-8740-41c0-af7f-fd6ff48da799",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:35:19.988Z",
+    "received_at": "2026-02-19T21:35:26.374606+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "714a9a08-7732-405a-9779-39f935c500cd",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:35:49.993Z",
+    "received_at": "2026-02-19T21:35:52.845407+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e460021f-bf56-45f3-8b95-488dfa732602",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:36:19.999Z",
+    "received_at": "2026-02-19T21:36:24.325949+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "1757126e-f6b8-4f54-a592-4820287b6b52",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:36:50.001Z",
+    "received_at": "2026-02-19T21:36:53.716167+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "28edda53-0488-4b58-bd0e-671f4625fe23",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:37:20.014Z",
+    "received_at": "2026-02-19T21:37:25.136720+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "c73fc25b-8e83-4991-9ddf-cacb5b80bc88",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:37:50.018Z",
+    "received_at": "2026-02-19T21:37:56.566659+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "214ef406-f890-4bda-8a0e-07b2130599bb",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:58:29.148Z",
+    "received_at": "2026-02-19T21:58:35.063426+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "agent_registered",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "summary": "Agent ag_8hsi7r5k registered",
+      "data": {
+        "type": "Social Market Researcher",
+        "version": "claude-sonnet-4-5-20250929",
+        "framework": "loopcore",
+        "stuck_threshold": 600
+      }
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "9ef89ce6-9118-4e69-924c-605ed809edfa",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:58:29.148Z",
+    "received_at": "2026-02-19T21:58:35.063426+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "model": "claude-sonnet-4-5-20250929",
+      "phase2_model": null,
+      "temperature": 0.0,
+      "max_tokens": 4096,
+      "max_turns": 30,
+      "timeout_seconds": 600,
+      "role": "Social Market Researcher",
+      "skills": [],
+      "tools_enabled": [],
+      "planning_enabled": false,
+      "reflection_enabled": false,
+      "learning_enabled": false,
+      "original_event_type": "config_snapshot"
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f44d1349-4195-4299-a4b2-e2a99a0b3706",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:58:59.147Z",
+    "received_at": "2026-02-19T21:59:04.268413+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "ba1bfde0-c175-4eec-9017-5cd6c5d842f5",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:59:29.154Z",
+    "received_at": "2026-02-19T21:59:32.810740+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "08c9e4bf-56d6-476e-904d-aaad7bb242cd",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T21:59:59.155Z",
+    "received_at": "2026-02-19T22:00:09.547585+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "76491dd3-3483-44be-8639-32887257bd30",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:00:29.156Z",
+    "received_at": "2026-02-19T22:00:35.275798+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0684f624-b2b9-4f0a-8cdf-2eb59aac862f",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:00:59.165Z",
+    "received_at": "2026-02-19T22:01:02.555598+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "c2559335-a3d2-4188-80dc-fa13f95776d1",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:01:29.164Z",
+    "received_at": "2026-02-19T22:01:35.598669+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "3c3fa1d7-e761-45f2-9da2-8b5ff8c7e24e",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:01:59.164Z",
+    "received_at": "2026-02-19T22:02:03.662611+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "2f064cf0-0c19-45f8-8265-c96b44aeef9d",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:02:29.163Z",
+    "received_at": "2026-02-19T22:02:35.099769+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0c955a93-ab95-4a10-a857-f69fd00bea8e",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:02:59.162Z",
+    "received_at": "2026-02-19T22:03:04.427068+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "dc6f68a4-e21d-485b-95d1-abad4771b4be",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:03:29.160Z",
+    "received_at": "2026-02-19T22:03:31.578027+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e5d14855-c0b4-4d0e-b4cd-969e92c0b759",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:03:59.174Z",
+    "received_at": "2026-02-19T22:04:03.780789+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "7dda2b10-73ff-4724-8cb7-deb38c29c0ff",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:04:29.188Z",
+    "received_at": "2026-02-19T22:04:36.022900+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6224c175-4b8c-49f7-83d7-c5e54eb42ae1",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:04:59.187Z",
+    "received_at": "2026-02-19T22:05:03.205631+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "074e1e36-44e8-4e2a-842c-6dd9cbe5de1c",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:05:29.201Z",
+    "received_at": "2026-02-19T22:05:35.418349+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "92e4b5e9-e020-4b3f-8f56-42be8f83d50f",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:05:59.201Z",
+    "received_at": "2026-02-19T22:06:02.649460+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "9281a94d-eab3-4b74-b4c6-3af601761b3b",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:06:29.214Z",
+    "received_at": "2026-02-19T22:06:36.214789+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "12029752-bccc-473f-ba0c-6425eb060fee",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:06:59.214Z",
+    "received_at": "2026-02-19T22:07:05.496152+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "e4757343-4b09-437e-8c21-cdb8aa22fec2",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:29.228Z",
+    "received_at": "2026-02-19T22:07:34.030362+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 540,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "cb9d8d00-8404-4574-9bc7-4a0c1e74c788",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:29.228Z",
+    "received_at": "2026-02-19T22:07:34.030362+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "999a0ccb-2afc-4c35-94af-e1dc887b3066",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:59.228Z",
+    "received_at": "2026-02-19T22:08:02.637887+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 570,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "5d06e653-045d-4c5a-8291-b7d29fb946f8",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:07:59.228Z",
+    "received_at": "2026-02-19T22:08:02.637887+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "18768bfa-0e0d-4a06-ba3e-29443f09b1ea",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:29.241Z",
+    "received_at": "2026-02-19T22:08:31.110140+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 600,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "6f765a8f-475c-4f72-98c3-5aec9c71c4fd",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:29.241Z",
+    "received_at": "2026-02-19T22:08:31.110140+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "422dd539-86ec-40f4-b869-b3932e40e180",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:59.245Z",
+    "received_at": "2026-02-19T22:08:59.557746+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 630,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "92ee180b-e9d2-4429-854b-c4094c1a0719",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:08:59.245Z",
+    "received_at": "2026-02-19T22:08:59.557746+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "69d04296-c755-4b3f-977f-3ff252ddc10e",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:29.252Z",
+    "received_at": "2026-02-19T22:09:30.978744+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 660,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "d54d7ead-c489-444b-af20-d89e005a69be",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:29.253Z",
+    "received_at": "2026-02-19T22:09:30.978744+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "982d4b4b-1c6e-4367-bd27-b3cab23edd2f",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:59.258Z",
+    "received_at": "2026-02-19T22:10:02.367659+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 690,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "48c83757-9852-4533-9172-e346c87c0145",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:09:59.259Z",
+    "received_at": "2026-02-19T22:10:02.367659+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "85272444-beb6-4097-a5bc-b0f53ba5c24a",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:29.272Z",
+    "received_at": "2026-02-19T22:10:33.829723+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 720,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0f919b00-1685-4647-b080-b717af197893",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:29.272Z",
+    "received_at": "2026-02-19T22:10:33.829723+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "278b2668-f668-42cd-9cf2-0e7e09e550bf",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:59.271Z",
+    "received_at": "2026-02-19T22:11:00.268080+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 750,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "609a2165-1e89-4064-b27b-50fa36070eb7",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:10:59.271Z",
+    "received_at": "2026-02-19T22:11:00.268080+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "2ad99f4f-7d44-49e5-a7fd-5a8073da95f9",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:29.271Z",
+    "received_at": "2026-02-19T22:11:29.579922+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 780,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "f6f3cf01-df5a-444f-ad5f-f75bfc85b8ab",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:29.271Z",
+    "received_at": "2026-02-19T22:11:29.579922+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "97096c4d-20d4-4c44-9a64-f5a08e61c00b",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:59.282Z",
+    "received_at": "2026-02-19T22:12:01.024669+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 810,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "0d25f519-68db-4ce3-b8f0-d737593c699d",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:11:59.282Z",
+    "received_at": "2026-02-19T22:12:01.024669+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "custom",
+    "severity": "info",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "kind": "queue_snapshot",
+      "summary": "Queue: 0 items",
+      "data": {
+        "depth": 0
+      },
+      "tags": [
+        "queue"
+      ]
+    },
+    "key_type": "live"
+  },
+  {
+    "event_id": "1515e547-fdce-48b7-83ce-f3d00d1af1d7",
+    "tenant_id": "dev",
+    "agent_id": "ag_8hsi7r5k",
+    "agent_type": "Social Market Researcher",
+    "project_id": null,
+    "timestamp": "2026-02-19T22:12:29.296Z",
+    "received_at": "2026-02-19T22:12:32.497517+00:00",
+    "environment": "production",
+    "group": "default",
+    "task_id": null,
+    "task_type": null,
+    "task_run_id": null,
+    "correlation_id": null,
+    "action_id": null,
+    "parent_action_id": null,
+    "event_type": "heartbeat",
+    "severity": "debug",
+    "status": null,
+    "duration_ms": null,
+    "parent_event_id": null,
+    "payload": {
+      "uptime_seconds": 840,
+      "total_runs": 0,
+      "total_tokens": 0,
+      "total_cost": 0.0,
+      "consecutive_errors": 0,
+      "active_skills": [],
+      "heartbeats_fired": 0,
+      "heartbeats_skipped": 0
     },
     "key_type": "live"
   }
