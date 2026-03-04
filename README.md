@@ -476,24 +476,6 @@ The organizational hierarchy is: **Tenant → Projects → Tasks → Events**, w
 
 ---
 
-## The Numbers
-
-| Metric | Value |
-|--------|-------|
-| Total build time | ~48 hours |
-| Coding time (all phases) | ~2 hours |
-| Specs, audits, design time | ~46 hours |
-| Claude instances orchestrated | 3 (Chat + CLI + Cloud) |
-| Cross-audit checkpoints evaluated | 450+ |
-| Critical bugs caught by cross-auditing | 12 (invisible to unit tests) |
-| Test suite growth from audits | 125 → 152 (+22%), zero regressions |
-| Cost reduction demonstrated | $40/hr → $8/hr (80%) from visibility alone |
-| Spec documents produced | 6 major specifications |
-| Data model iterations | 5 (v1 → v5) |
-| Event types in schema | 13 |
-
----
-
 ## Project Structure
 
 ```
