@@ -404,36 +404,6 @@ Deep-dive into a single agent: task history, processing timeline with action nod
 
 Always-visible right sidebar with the live event feed. Every event that flows through the system appears here in real time — filterable by agent, task, or event type.
 
----
-
-## The Hive Method
-
-HiveBoard was built using **The Hive Method** — a development methodology for building production software with multi-agent AI teams.
-
-### The Approach
-
-One human orchestrator directing three specialized Claude instances:
-
-| Role | Agent | Responsibility |
-|------|-------|----------------|
-| **Founder & Product Lead** | Juan | Vision, decisions, quality gates |
-| **Co-Project Manager** | Claude Chat | Strategy, specs, UI/UX design, audit documents |
-| **Team 1 — Dev** | Claude Code CLI | Implementation, technical architecture |
-| **Team 2 — Dev** | Claude Code Cloud | Implementation, functional design |
-
-### The Five Principles
-
-1. **Role Specialization** — Cast agents into distinct roles. Same model, different environment = different tendencies. Observe and assign to strengths.
-
-2. **Specs as Coordination Protocol** — The specification replaces meetings, shared memory, and institutional knowledge. ~46 hours on specs vs. ~2 hours coding.
-
-3. **Adversarial Cross-Auditing** — Team 1 audits Team 2, and vice versa. No ego, no politics. 450+ checkpoints evaluated, 12 critical bugs caught that were invisible to unit tests.
-
-4. **Human as Orchestrator** — The human sets vision, makes decisions, and enforces quality gates. The agents execute within boundaries the human defines.
-
-5. **Kill Fast, Pivot Faster** — The first product idea (FormsFlow) was built and killed in a single session. No sunk cost fallacy. The pivot to HiveBoard happened because the real insight was recognized immediately.
-
-For the full methodology, see [The Hive Method](docs/The-Hive-Method.md).
 
 ---
 
@@ -542,17 +512,6 @@ HiveBoard is the **layer that sits on top of any agent system** and makes the in
 | Braintrust | Evals + logging | Operations-focused, not evaluation-focused |
 
 The gap: none of these think in terms of agents-as-workers with tasks, actions, heartbeats, stuck states, escalations, and recovery paths. HiveBoard does.
-
----
-
-## Built For
-
-- **Anthropic Virtual Hackathon** — February 2026
-- **Problem Statement One:** Build a Tool That Should Exist
-- Built entirely using **Claude Opus 4.6** (Claude Chat + Claude Code CLI + Claude Code Cloud)
-- Demonstrates both the product and **The Hive Method** — a novel multi-agent development methodology
-- **🔴 [Live Demo](https://hiveboard.net/static/fleet.html)** — 5 AI agents running live, fed by the BrightPath Digital simulator
-- **📖 [Full Documentation](https://hiveboard.net/docs/user-manual.html)** — SDK manual, integration guide, dashboard guide
 
 ---
 
