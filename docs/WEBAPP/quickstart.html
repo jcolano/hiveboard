@@ -462,7 +462,7 @@ body {
 
 hb = hiveloop.<span class="cm-fn">init</span>(
     api_key=<span class="cm-str" id="snippetKey">"hb_live_..."</span>,
-    endpoint=<span class="cm-str" id="snippetEndpoint">"https://mlbackend.net/loophive"</span>,
+    endpoint=<span class="cm-str" id="snippetEndpoint">"http://localhost:8000"</span>,
 )
 
 agent = hb.<span class="cm-fn">agent</span>(<span class="cm-str">"my-agent"</span>, type=<span class="cm-str">"general"</span>)
@@ -539,11 +539,11 @@ console.log(`[HiveBoard quickstart.html ${QS_VERSION}]`);
 const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_BASE = _isLocal
     ? 'http://localhost:8451'
-    : 'https://mlbackend.net/loophive';
+    : 'http://localhost:8000';
 
 const DASHBOARD_URL = _isLocal
     ? 'http://localhost:8451/dashboard'
-    : 'https://mlbackend.net/loophive/dashboard';
+    : 'http://localhost:8000/dashboard';
 
 // ═══════════════════════════════════════════
 // STATE

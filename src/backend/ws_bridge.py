@@ -18,7 +18,10 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any
 
-import boto3
+try:
+    import boto3
+except ImportError:
+    boto3 = None  # Optional: install with pip install hiveboard[aws]
 
 from backend.websocket import Subscription
 
@@ -43,6 +46,11 @@ class WebSocketBridge:
     """
 
     def __init__(self, gateway_endpoint: str, region: str):
+        if boto3 is None:
+            raise ImportError(
+                "boto3 is required for the AWS WebSocket bridge. "
+                "Install with: pip install hiveboard[aws]"
+            )
         self._connections: dict[str, BridgeConnection] = {}
         self._tenant_index: dict[str, list[str]] = defaultdict(list)
         self._stuck_fired: dict[str, bool] = {}

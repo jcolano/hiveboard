@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import secrets
 import time
 from uuid import uuid4
@@ -12,7 +13,19 @@ import jwt
 
 from backend.config import get as _cfg
 
-JWT_SECRET = _cfg("jwt_secret", "hiveboard-dev-secret-change-in-production")
+_logger = logging.getLogger(__name__)
+
+_configured_secret = _cfg("jwt_secret")
+if not _configured_secret:
+    JWT_SECRET = secrets.token_hex(32)
+    _logger.warning(
+        "No jwt_secret configured — generated a random secret. "
+        "Sessions will not survive restarts. "
+        "Set jwt_secret in config.json or HIVEBOARD_JWT_SECRET env var."
+    )
+else:
+    JWT_SECRET = _configured_secret
+
 JWT_EXPIRY = int(_cfg("jwt_expiry", 3600))
 JWT_ALGORITHM = "HS256"
 

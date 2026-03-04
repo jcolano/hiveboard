@@ -214,7 +214,7 @@ body {
 const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_BASE = _isLocal
     ? 'http://localhost:8451'
-    : 'https://mlbackend.net/loophive';
+    : 'http://localhost:8000';
 
 async function apiPost(endpoint, data) {
     const resp = await fetch(API_BASE + endpoint, {

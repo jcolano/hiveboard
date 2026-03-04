@@ -29,7 +29,7 @@
 </p>
 
 <p align="center">
-  <strong>🔴 <a href="https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000">Try It Live</a></strong> &nbsp;·&nbsp;
+  <strong>🔴 <a href="https://hiveboard.net/static/fleet.html">Try It Live</a></strong> &nbsp;·&nbsp;
   <strong>📖 <a href="https://hiveboard.net/docs/user-manual.html">Documentation</a></strong> &nbsp;·&nbsp;
   <strong>🎬 <a href="https://youtu.be/lLWr9_1cgNw">Watch the Demo</a></strong>
 </p>
@@ -44,7 +44,7 @@
 
 ## Live Demo
 
-**🔴 [Try the live dashboard →](https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000)**
+**🔴 [Try the live dashboard →](https://hiveboard.net/static/fleet.html)**
 
 5 AI agents running a simulated company (BrightPath Digital) — live heartbeats, real-time tasks, cost data flowing. No signup required.
 
@@ -144,7 +144,7 @@ git clone https://github.com/jcolano/hiveboard.git
 cd hiveboard
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e ".[backend]"
 
 # Start the server
 cd src
@@ -437,24 +437,38 @@ The organizational hierarchy is: **Tenant → Projects → Tasks → Events**, w
 ```
 hiveboard/
 ├── src/
-│   ├── backend/          # FastAPI server — API, WebSocket, database
-│   │   ├── app.py        # Application entry point
-│   │   ├── models.py     # SQLAlchemy / data models
-│   │   ├── routes/       # API route handlers
-│   │   └── ws/           # WebSocket handlers
-│   ├── frontend/         # Dashboard — vanilla JS + CSS
-│   │   ├── index.html    # Main dashboard
-│   │   └── assets/       # Styles, scripts
-│   ├── sdk/              # HiveLoop Python SDK
-│   │   ├── hiveloop/     # Package source
-│   │   └── setup.py      # pip installable
-│   └── simulator/        # Agent simulator for development/demos
-├── docs/                 # Specifications and guides
-│   ├── INTEGRATION_GUIDE.md
-│   ├── The-Hive-Method.md
-│   └── specs/            # Event schema, data model, API spec
-├── tests/                # Test suite
-├── requirements.txt
+│   ├── backend/            # FastAPI server
+│   │   ├── app.py          # App creation, lifespan, middleware
+│   │   ├── routes/         # API route modules
+│   │   │   ├── ingest.py   # POST /v1/ingest (write path)
+│   │   │   ├── agents.py   # Agent + pipeline endpoints
+│   │   │   ├── tasks.py    # Task + timeline endpoints
+│   │   │   ├── events.py   # Events, metrics, cost, LLM calls
+│   │   │   ├── insights.py # Pre-aggregated analytics
+│   │   │   ├── projects.py # Project CRUD
+│   │   │   ├── alerts.py   # Alert rules + history
+│   │   │   ├── auth_routes.py # Auth, users, invites, API keys
+│   │   │   ├── admin.py    # Admin rebuild + pricing
+│   │   │   ├── ws.py       # WebSocket + AWS bridge
+│   │   │   └── helpers.py  # Shared route utilities
+│   │   ├── auth.py         # JWT + password hashing
+│   │   ├── config.py       # Configuration loader
+│   │   ├── middleware.py    # Auth + rate limiting
+│   │   ├── storage_json.py # JSON file storage (MVP)
+│   │   ├── websocket.py    # Local WebSocket manager
+│   │   ├── ws_bridge.py    # AWS API Gateway bridge (optional)
+│   │   ├── aggregator.py   # Event aggregation
+│   │   ├── alerting.py     # Alert rule evaluation
+│   │   └── llm_pricing.py  # LLM cost estimation
+│   ├── sdk/                # HiveLoop Python SDK
+│   │   └── hiveloop/       # Package source
+│   ├── shared/             # Shared enums + Pydantic models
+│   └── static/             # Dashboard HTML/JS/CSS
+├── docs/                   # Specs, guides, user manual
+├── tests/                  # Test suite
+├── config.example.json     # Configuration template
+├── pyproject.toml          # Python project config
+├── LICENSE                 # MIT
 └── README.md
 ```
 
@@ -493,7 +507,7 @@ The gap: none of these think in terms of agents-as-workers with tasks, actions, 
 - **Problem Statement One:** Build a Tool That Should Exist
 - Built entirely using **Claude Opus 4.6** (Claude Chat + Claude Code CLI + Claude Code Cloud)
 - Demonstrates both the product and **The Hive Method** — a novel multi-agent development methodology
-- **🔴 [Live Demo](https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000)** — 5 AI agents running live, fed by the BrightPath Digital simulator
+- **🔴 [Live Demo](https://hiveboard.net/static/fleet.html)** — 5 AI agents running live, fed by the BrightPath Digital simulator
 - **📖 [Full Documentation](https://hiveboard.net/docs/user-manual.html)** — SDK manual, integration guide, dashboard guide
 
 ---
