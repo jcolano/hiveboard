@@ -266,7 +266,7 @@ body {
 const _isLocal = !window.location.hostname || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const API_BASE = _isLocal
     ? 'http://localhost:8451'
-    : 'https://mlbackend.net/loophive';
+    : 'http://localhost:8000';
 
 // Redirect if already logged in
 if (localStorage.getItem('hb_token')) {

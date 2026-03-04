@@ -29,7 +29,7 @@
 </p>
 
 <p align="center">
-  <strong>🔴 <a href="https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000">Try It Live</a></strong> &nbsp;·&nbsp;
+  <strong>🔴 <a href="https://hiveboard.net/static/fleet.html">Try It Live</a></strong> &nbsp;·&nbsp;
   <strong>📖 <a href="https://hiveboard.net/docs/user-manual.html">Documentation</a></strong> &nbsp;·&nbsp;
   <strong>🎬 <a href="https://youtu.be/lLWr9_1cgNw">Watch the Demo</a></strong>
 </p>
@@ -44,7 +44,7 @@
 
 ## Live Demo
 
-**🔴 [Try the live dashboard →](https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000)**
+**🔴 [Try the live dashboard →](https://hiveboard.net/static/fleet.html)**
 
 5 AI agents running a simulated company (BrightPath Digital) — live heartbeats, real-time tasks, cost data flowing. No signup required.
 
@@ -136,41 +136,110 @@ HiveBoard treats AI agents as **workers** — not as API calls or trace spans. E
 
 ## Quick Start
 
-### 1. Start the HiveBoard Server
+### 1. Clone and Install
 
 ```bash
-# Clone the repo
 git clone https://github.com/jcolano/hiveboard.git
 cd hiveboard
 
-# Install dependencies
-pip install -r requirements.txt
+# Create a virtual environment (recommended)
+python -m venv .venv
+source .venv/bin/activate   # Linux/macOS
+# .venv\Scripts\activate    # Windows
 
-# Start the server
+# Install backend dependencies
+pip install -e ".[backend]"
+
+# Install the SDK (from the local source)
+pip install -e "./src/sdk"
+```
+
+### 2. Configure
+
+HiveBoard reads configuration from `config.json` (project root) with environment variable overrides (`HIVEBOARD_*`). Copy the template to get started:
+
+```bash
+cp config.example.json config.json
+```
+
+Edit `config.json` with your own values:
+
+```json
+{
+  "dev_key": "hb_live_my_secret_dev_key_here",
+  "dev_password": "pick-a-strong-password",
+  "jwt_secret": "pick-a-random-secret-string",
+  "jwt_expiry": 3600,
+  "data_dir": "data",
+  "mode": "local",
+  "ws_gateway_endpoint": "",
+  "ws_gateway_region": "us-east-1"
+}
+```
+
+| Key | Description |
+|-----|-------------|
+| `dev_key` | The API key your agents use to authenticate (`hb_live_...`). Choose any string starting with `hb_live_`. |
+| `dev_password` | Password for the default admin user on the dashboard. |
+| `jwt_secret` | Secret for signing JWT tokens. If omitted, a random one is generated on each restart (sessions won't persist across restarts). |
+| `mode` | `"local"` for direct WebSocket (default) or `"production"` for AWS API Gateway bridge. |
+| `data_dir` | Where JSON data files are stored (default: `data/`). |
+
+Alternatively, use environment variables (they override `config.json`):
+
+```bash
+cp .env.example .env
+# Edit .env with your values, then:
+source .env
+```
+
+### 3. Launch the Server
+
+```bash
 cd src
 uvicorn backend.app:app --host 0.0.0.0 --port 8000
 ```
 
-The dashboard is now live at `http://localhost:8000`.
+You should see output like:
+```
+INFO:     Uvicorn running on http://0.0.0.0:8000
+INFO:     HiveBoard started — mode=local
+```
 
-### 2. Install the SDK
+**Verify it's running:**
+```bash
+curl http://localhost:8000/health
+# → {"status": "ok", "version": "..."}
+```
+
+### 4. Access the Dashboard
+
+Open **http://localhost:8000/dashboard** in your browser.
+
+The dashboard URL includes an `accessId` parameter — this is a read-only key derived from your `dev_key`. On first startup, HiveBoard logs the full dashboard URL to the console. You can also find your access ID at:
+
+```
+http://localhost:8000/static/fleet.html?accessId=hb_read_...
+```
+
+### 5. Install the SDK and Instrument Your Agent
 
 ```bash
 pip install hiveloop
 ```
 
-### 3. Instrument Your Agent (3 Lines)
+**Minimal instrumentation (3 lines):**
 
 ```python
 import hiveloop
 
-hb = hiveloop.init(api_key="hb_live_your_key_here", endpoint="http://localhost:8000")
+hb = hiveloop.init(api_key="hb_live_my_secret_dev_key_here", endpoint="http://localhost:8000")
 agent = hb.agent("my-agent", type="general")
 ```
 
-That's it. Your agent now appears on the HiveBoard dashboard with a live heartbeat. If it stops, HiveBoard notices within 5 minutes and marks it as stuck.
+Your agent now appears on the dashboard with a live heartbeat. If it stops reporting, HiveBoard marks it as stuck within 5 minutes.
 
-### 4. Add Task Tracking
+**Add task tracking:**
 
 ```python
 with agent.task("task-123", project="my-project", type="processing") as task:
@@ -181,6 +250,37 @@ with agent.task("task-123", project="my-project", type="processing") as task:
 ```
 
 Now you have task timelines with action tracking and LLM cost breakdowns in the Cost Explorer.
+
+### 6. WebSocket Setup (Real-Time Updates)
+
+HiveBoard supports two WebSocket modes for pushing real-time updates to the dashboard:
+
+**Local mode (default)** — WebSocket connections are handled directly by the FastAPI server. No additional setup is needed. This is what you get when `mode` is set to `"local"` in your config. The dashboard connects via `ws://localhost:8000/ws/...` automatically.
+
+**Production mode (AWS API Gateway)** — For production deployments behind a load balancer, HiveBoard bridges WebSocket connections through AWS API Gateway:
+
+1. Set up an AWS WebSocket API Gateway (see [AWS WebSocket Setup Guide](docs/AWS_WEBSOCKET_SETUP_GUIDE.md) if available)
+2. Update your config:
+   ```json
+   {
+     "mode": "production",
+     "ws_gateway_endpoint": "https://your-api-id.execute-api.us-east-1.amazonaws.com/production",
+     "ws_gateway_region": "us-east-1"
+   }
+   ```
+3. Install the AWS dependency:
+   ```bash
+   pip install -e ".[aws]"
+   ```
+
+> **Note:** For local development and testing, local mode works out of the box. You only need production mode when deploying behind infrastructure that doesn't support sticky WebSocket connections.
+
+### 7. Running Tests
+
+```bash
+pip install -e ".[dev]"
+pytest tests/ -v
+```
 
 ---
 
@@ -437,24 +537,38 @@ The organizational hierarchy is: **Tenant → Projects → Tasks → Events**, w
 ```
 hiveboard/
 ├── src/
-│   ├── backend/          # FastAPI server — API, WebSocket, database
-│   │   ├── app.py        # Application entry point
-│   │   ├── models.py     # SQLAlchemy / data models
-│   │   ├── routes/       # API route handlers
-│   │   └── ws/           # WebSocket handlers
-│   ├── frontend/         # Dashboard — vanilla JS + CSS
-│   │   ├── index.html    # Main dashboard
-│   │   └── assets/       # Styles, scripts
-│   ├── sdk/              # HiveLoop Python SDK
-│   │   ├── hiveloop/     # Package source
-│   │   └── setup.py      # pip installable
-│   └── simulator/        # Agent simulator for development/demos
-├── docs/                 # Specifications and guides
-│   ├── INTEGRATION_GUIDE.md
-│   ├── The-Hive-Method.md
-│   └── specs/            # Event schema, data model, API spec
-├── tests/                # Test suite
-├── requirements.txt
+│   ├── backend/            # FastAPI server
+│   │   ├── app.py          # App creation, lifespan, middleware
+│   │   ├── routes/         # API route modules
+│   │   │   ├── ingest.py   # POST /v1/ingest (write path)
+│   │   │   ├── agents.py   # Agent + pipeline endpoints
+│   │   │   ├── tasks.py    # Task + timeline endpoints
+│   │   │   ├── events.py   # Events, metrics, cost, LLM calls
+│   │   │   ├── insights.py # Pre-aggregated analytics
+│   │   │   ├── projects.py # Project CRUD
+│   │   │   ├── alerts.py   # Alert rules + history
+│   │   │   ├── auth_routes.py # Auth, users, invites, API keys
+│   │   │   ├── admin.py    # Admin rebuild + pricing
+│   │   │   ├── ws.py       # WebSocket + AWS bridge
+│   │   │   └── helpers.py  # Shared route utilities
+│   │   ├── auth.py         # JWT + password hashing
+│   │   ├── config.py       # Configuration loader
+│   │   ├── middleware.py    # Auth + rate limiting
+│   │   ├── storage_json.py # JSON file storage (MVP)
+│   │   ├── websocket.py    # Local WebSocket manager
+│   │   ├── ws_bridge.py    # AWS API Gateway bridge (optional)
+│   │   ├── aggregator.py   # Event aggregation
+│   │   ├── alerting.py     # Alert rule evaluation
+│   │   └── llm_pricing.py  # LLM cost estimation
+│   ├── sdk/                # HiveLoop Python SDK
+│   │   └── hiveloop/       # Package source
+│   ├── shared/             # Shared enums + Pydantic models
+│   └── static/             # Dashboard HTML/JS/CSS
+├── docs/                   # Specs, guides, user manual
+├── tests/                  # Test suite
+├── config.example.json     # Configuration template
+├── pyproject.toml          # Python project config
+├── LICENSE                 # MIT
 └── README.md
 ```
 
@@ -493,7 +607,7 @@ The gap: none of these think in terms of agents-as-workers with tasks, actions, 
 - **Problem Statement One:** Build a Tool That Should Exist
 - Built entirely using **Claude Opus 4.6** (Claude Chat + Claude Code CLI + Claude Code Cloud)
 - Demonstrates both the product and **The Hive Method** — a novel multi-agent development methodology
-- **🔴 [Live Demo](https://hiveboard.net/static/fleet.html?apiKey=hb_live_dev000000000000000000000000000000)** — 5 AI agents running live, fed by the BrightPath Digital simulator
+- **🔴 [Live Demo](https://hiveboard.net/static/fleet.html)** — 5 AI agents running live, fed by the BrightPath Digital simulator
 - **📖 [Full Documentation](https://hiveboard.net/docs/user-manual.html)** — SDK manual, integration guide, dashboard guide
 
 ---
