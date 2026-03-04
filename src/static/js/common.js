@@ -9,13 +9,14 @@ var _isLocal = (!window.location.hostname
 var CONFIG = {
   endpoint: _isLocal
     ? window.location.origin
-    : 'https://mlbackend.net/loophive',
+    : (window.HIVEBOARD_ENDPOINT || window.location.origin),
+  // Set your WebSocket gateway URL here for production deployments
   wsUrl: _isLocal
     ? null
-    : 'wss://85g4pm5cg9.execute-api.us-east-1.amazonaws.com/production/',
+    : (window.HIVEBOARD_WS_URL || null),
   accessId: new URLSearchParams(window.location.search).get('accessId')
     || localStorage.getItem('hiveboard_access_id')
-    || (_isLocal ? 'hb_read_dev000000000000000000000000000000' : ''),
+    || '',
   pollInterval: 5000,
   maxStreamEvents: 50,
   refreshInterval: 30000,

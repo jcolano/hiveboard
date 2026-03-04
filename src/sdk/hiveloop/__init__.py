@@ -39,7 +39,7 @@ __all__ = [
 
 logger = logging.getLogger("hiveloop")
 
-_DEFAULT_ENDPOINT = "https://mlbackend.net/loophive"
+_DEFAULT_ENDPOINT = "http://localhost:8000"
 
 
 def _resolve_endpoint() -> str:

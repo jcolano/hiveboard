@@ -13,7 +13,7 @@ Common issues when connecting a HiveLoop-instrumented app (e.g., loopCore) to a 
 **Fix**: Verify `hiveloop.init(endpoint=...)` matches the HiveBoard server address. Local dev uses port **8451**:
 ```python
 hb = hiveloop.init(
-    api_key="hb_live_dev000000000000000000000000000000",
+    api_key="hb_live_YOUR_KEY_HERE",
     endpoint="http://localhost:8451",
 )
 ```
@@ -54,10 +54,10 @@ get_runtime()                     # This auto-starts agents
 **Fix**: Set the env var before starting the server:
 ```bash
 # Bash / Git Bash
-export HIVEBOARD_DEV_KEY=hb_live_dev000000000000000000000000000000
+export HIVEBOARD_DEV_KEY=hb_live_YOUR_KEY_HERE
 
 # PowerShell
-$env:HIVEBOARD_DEV_KEY = "hb_live_dev000000000000000000000000000000"
+$env:HIVEBOARD_DEV_KEY = "hb_live_YOUR_KEY_HERE"
 ```
 Then delete the `data/` folder and restart the server so bootstrap runs fresh.
 
@@ -120,7 +120,7 @@ cat src/data/api_keys.json   # Should have both hb_live_ and hb_read_ entries
 **Is ingest working?**
 ```bash
 curl -s -X POST http://localhost:8451/v1/ingest \
-  -H "Authorization: Bearer hb_live_dev000000000000000000000000000000" \
+  -H "Authorization: Bearer hb_live_YOUR_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"envelope":{"sdk":"test","sdk_version":"0.1","agent_id":"test"},"events":[{"event_id":"test-001","event_type":"heartbeat","agent_id":"test","timestamp":"2026-01-01T00:00:00Z","payload":{"kind":"heartbeat"}}]}'
 ```
