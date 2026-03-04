@@ -24,8 +24,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT" />
-  <img src="https://img.shields.io/badge/built_with-Claude-blueviolet.svg" alt="Built with Claude" />
-  <img src="https://img.shields.io/badge/hackathon-Anthropic_2026-orange.svg" alt="Anthropic Hackathon 2026" />
 </p>
 
 <p align="center">
