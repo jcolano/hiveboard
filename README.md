@@ -29,32 +29,9 @@
 </p>
 
 <p align="center">
-  <strong>🔴 <a href="https://hiveboard.net/static/fleet.html">Try It Live</a></strong> &nbsp;·&nbsp;
   <strong>📖 <a href="https://hiveboard.net/docs/user-manual.html">Documentation</a></strong> &nbsp;·&nbsp;
-  <strong>🎬 <a href="https://youtu.be/lLWr9_1cgNw">Watch the Demo</a></strong>
 </p>
 
----
-
-> **Anthropic Virtual Hackathon 2026 — Problem Statement One: Build a Tool That Should Exist**
->
-> *Agent observability is the tool every team deploying AI agents needs and nobody has built properly. HiveBoard fills that gap.*
-
----
-
-## Live Demo
-
-**🔴 [Try the live dashboard →](https://hiveboard.net/static/fleet.html)**
-
-5 AI agents running a simulated company (BrightPath Digital) — live heartbeats, real-time tasks, cost data flowing. No signup required.
-
----
-
-## Demo Video
-
-*https://youtu.be/lLWr9_1cgNw — 3-minute demo showing the live dashboard, task timelines, cost optimization, and The Hive Method.*
-
----
 
 ## Website
 
